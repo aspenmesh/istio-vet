@@ -17,7 +17,6 @@ limitations under the License.
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -43,10 +42,9 @@ func vet(cmd *cobra.Command, args []string) error {
 		vetter.Vetter(serviceportprefix.NewVetter())}
 
 	for _, v := range vList {
-		info, _ := json.MarshalIndent(*v.Info(), "", "  ")
 		nList, err := v.Vet(cli)
 		if err != nil {
-			fmt.Printf("Vetter:  %s reported error: %s", info, err)
+			fmt.Printf("Vetter:  %+v reported error: %s", v.Info(), err)
 			continue
 		}
 		for i := range nList {
@@ -55,10 +53,11 @@ func vet(cmd *cobra.Command, args []string) error {
 				ts = append(ts, "${"+k+"}", v)
 			}
 			r := strings.NewReplacer(ts...)
-			nList[i].Summary = r.Replace(nList[i].Summary)
-			nList[i].Msg = r.Replace(nList[i].Msg)
-			note, _ := json.MarshalIndent(*nList[i], "", "  ")
-			fmt.Printf("Vetter:  %s, Note:  %s\n\n", info, note)
+			summary := r.Replace(nList[i].GetSummary())
+			msg := r.Replace(nList[i].GetMsg())
+			fmt.Printf("%s\n", summary)
+			fmt.Printf("==========================\n")
+			fmt.Printf("%s: %s\n\n", nList[i].GetLevel().String(), msg)
 		}
 	}
 

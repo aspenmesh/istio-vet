@@ -29,9 +29,10 @@ message Info {
 
 // NoteLevel indicates the severity level of the note
 enum NoteLevel {
-  INFO = 0;
-  WARNING = 1;
-  ERROR = 2;
+  UNUSED = 0; // useful for skipping empty (0) value
+  INFO = 1;
+  WARNING = 2;
+  ERROR = 3;
 }
 
 // Vetters generate Notes after inspecting the mesh configuration
