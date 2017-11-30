@@ -30,6 +30,16 @@ import (
 	"github.com/aspenmesh/istio-vet/pkg/vetter/serviceportprefix"
 )
 
+func printNote(level, summary, msg string) {
+	fmt.Printf("%s\n", summary)
+	b := make([]byte, len(summary))
+	for i := range b {
+		b[i] = '='
+	}
+	fmt.Printf("%s\n", b)
+	fmt.Printf("%s: %s\n\n", level, msg)
+}
+
 func vet(cmd *cobra.Command, args []string) error {
 	cli, err := meshclient.New()
 	if err != nil {
@@ -55,9 +65,7 @@ func vet(cmd *cobra.Command, args []string) error {
 			r := strings.NewReplacer(ts...)
 			summary := r.Replace(nList[i].GetSummary())
 			msg := r.Replace(nList[i].GetMsg())
-			fmt.Printf("%s\n", summary)
-			fmt.Printf("==========================\n")
-			fmt.Printf("%s: %s\n\n", nList[i].GetLevel().String(), msg)
+			printNote(nList[i].GetLevel().String(), summary, msg)
 		}
 	}
 
