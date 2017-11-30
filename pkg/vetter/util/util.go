@@ -46,6 +46,7 @@ const (
 	IstioInitializerPodAnnotation = "sidecar.istio.io/status"
 	IstioInitializerConfigMap     = "istio-inject"
 	IstioInitializerConfigMapKey  = "config"
+	ServiceProtocolUDP            = "UDP"
 )
 
 // Following types are taken from
@@ -91,7 +92,8 @@ var istioSupportedServicePrefix = []string{
 	"http2", "http2-",
 	"grpc", "grpc-",
 	"mongo", "mongo-",
-	"redis", "redis-"}
+	"redis", "redis-",
+	"tcp", "tcp-"}
 
 var defaultExemptedNamespaces = map[string]bool{
 	"kube-system":  true,

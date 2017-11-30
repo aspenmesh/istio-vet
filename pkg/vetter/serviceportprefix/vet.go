@@ -43,7 +43,8 @@ func (m *svcPortPrefix) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 	}
 	for _, s := range services {
 		for _, p := range s.Spec.Ports {
-			if util.ServicePortPrefixed(p.Name) == false {
+			if p.Protocol != util.ServiceProtocolUDP &&
+				util.ServicePortPrefixed(p.Name) == false {
 				notes = append(notes, &apiv1.Note{
 					Type:    service_port_prefix_note_type,
 					Summary: service_port_prefix_summary,

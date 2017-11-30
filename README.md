@@ -19,11 +19,13 @@ Vetter `meshversion` inspects the version of running istio components and the
 sidecar version running in pods in the mesh and reports back the following
 on version mismatch:
 
-**Summary**: Mismatched sidecar version - `<pod-id>`
+```shell
+Summary: "Mismatched sidecar version - <pod-id>"
 
-**Message**: WARNING: The pod `<pod-id>` in namespace `<namespace>` is running with sidecar proxy
-version `<sidecar-version>` but your environment is running istio version
-`<istio-version>`. Consider upgrading the sidecar proxy in the pod.
+Message: "WARNING: The pod <pod-id> in namespace <namespace> is running with
+sidecar proxy version <sidecar-version> but your environment is running istio
+version <istio-version>. Consider upgrading the sidecar proxy in the pod."
+```
 
 ## Running
 The official docker image is `quay.io/aspenmesh/istio-vet:master`
