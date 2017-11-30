@@ -27,6 +27,7 @@ import (
 )
 
 const (
+	vetterId                           = "meshversion"
 	latest_tag                         = "latest"
 	istio_component_mismatch_note_type = "istio-component-mismatch"
 	istio_component_mismatch_summary   = "Mismatched istio component versions - ${component_name}"
@@ -42,6 +43,9 @@ const (
 	missing_version_note_type    = "missing-version"
 	missing_version_note_summary = "Missing version information"
 	missing_version_note_msg     = "Cannot determine mesh version"
+	initializer_disabled_summary = "Istio initializer is not configured." +
+		" Enable initializer and automatic sidecar injection to use \"" +
+		vetterId + "\" vetter"
 )
 
 type meshVersion struct {
@@ -96,6 +100,13 @@ func (m *meshVersion) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 
 	pods, err := util.ListPodsInMesh(c)
 	if err != nil {
+		if util.IstioInitializerDisabled(err.Error()) == true {
+			notes = append(notes, &apiv1.Note{
+				Type:    sidecar_mismatch_note_type,
+				Summary: initializer_disabled_summary,
+				Level:   apiv1.NoteLevel_INFO})
+			return notes, nil
+		}
 		return nil, err
 	}
 	for _, p := range pods {
@@ -131,5 +142,5 @@ func (m *meshVersion) Info() *apiv1.Info {
 }
 
 func NewVetter() *meshVersion {
-	return &meshVersion{info: apiv1.Info{Id: "meshversion", Version: "0.1.0"}}
+	return &meshVersion{info: apiv1.Info{Id: vetterId, Version: "0.1.0"}}
 }

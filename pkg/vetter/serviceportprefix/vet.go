@@ -24,11 +24,15 @@ import (
 )
 
 const (
+	vetterId                      = "serviceportprefix"
 	service_port_prefix_note_type = "missing-service-port-prefix"
 	service_port_prefix_summary   = "Missing prefix in service - ${service_name}"
 	service_port_prefix_msg       = "The service ${service_name} in namespace ${namespace}" +
 		" contains port names not prefixed with mesh supported protocols." +
 		" Consider updating the service port name with one of the mesh recognized prefixes."
+	initializer_disabled_summary = "Istio initializer is not configured." +
+		" Enable initializer and automatic sidecar injection to use \"" +
+		vetterId + "\" vetter"
 )
 
 type svcPortPrefix struct {
@@ -39,6 +43,13 @@ func (m *svcPortPrefix) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 	notes := []*apiv1.Note{}
 	services, err := util.ListServicesInMesh(c)
 	if err != nil {
+		if util.IstioInitializerDisabled(err.Error()) == true {
+			notes = append(notes, &apiv1.Note{
+				Type:    service_port_prefix_note_type,
+				Summary: initializer_disabled_summary,
+				Level:   apiv1.NoteLevel_INFO})
+			return notes, nil
+		}
 		return nil, err
 	}
 	for _, s := range services {
@@ -69,5 +80,5 @@ func (m *svcPortPrefix) Info() *apiv1.Info {
 }
 
 func NewVetter() *svcPortPrefix {
-	return &svcPortPrefix{info: apiv1.Info{Id: "serviceportprefix", Version: "0.1.0"}}
+	return &svcPortPrefix{info: apiv1.Info{Id: vetterId, Version: "0.1.0"}}
 }

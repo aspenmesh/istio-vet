@@ -28,6 +28,7 @@ import (
 )
 
 const (
+	vetterId                    = "mtlsprobes"
 	mtls_probes_note_type       = "mtls-probes-incompatible"
 	mtls_liveness_probe_summary = "mTLS and liveness probe incompatible - ${pod_name}"
 	mtls_liveness_probe_msg     = "The pod ${pod_name} in namespace ${namespace} uses" +
@@ -37,6 +38,11 @@ const (
 	mtls_readiness_probe_msg     = "The pod ${pod_name} in namespace ${namespace} uses" +
 		" readiness probe which is incompatible with mTLS. Consider disabling the" +
 		" readiness probe or mTLS."
+	mtls_disabled_summary = "mTLS is disabled. Enable it to use \"" +
+		vetterId + "\" vetter"
+	initializer_disabled_summary = "Istio initializer is not configured." +
+		" Enable initializer and automatic sidecar injection to use \"" +
+		vetterId + "\" vetter"
 )
 
 type mtlsProbes struct {
@@ -62,11 +68,25 @@ func (m *mtlsProbes) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 		return nil, err
 	}
 	config := cm.Data[util.IstioConfigMapKey]
-	if len(config) == 0 || mtlsEnabled(config) == false {
+	if len(config) == 0 {
 		return nil, nil
+	}
+	if mtlsEnabled(config) == false {
+		notes = append(notes, &apiv1.Note{
+			Type:    mtls_probes_note_type,
+			Summary: mtls_disabled_summary,
+			Level:   apiv1.NoteLevel_INFO})
+		return notes, nil
 	}
 	pods, err := util.ListPodsInMesh(c)
 	if err != nil {
+		if util.IstioInitializerDisabled(err.Error()) == true {
+			notes = append(notes, &apiv1.Note{
+				Type:    mtls_probes_note_type,
+				Summary: initializer_disabled_summary,
+				Level:   apiv1.NoteLevel_INFO})
+			return notes, nil
+		}
 		return nil, err
 	}
 	for _, p := range pods {
@@ -108,5 +128,5 @@ func (m *mtlsProbes) Info() *apiv1.Info {
 }
 
 func NewVetter() *mtlsProbes {
-	return &mtlsProbes{info: apiv1.Info{Id: "mtlsProbes", Version: "0.1.0"}}
+	return &mtlsProbes{info: apiv1.Info{Id: vetterId, Version: "0.1.0"}}
 }

@@ -47,6 +47,8 @@ const (
 	IstioInitializerConfigMap     = "istio-inject"
 	IstioInitializerConfigMapKey  = "config"
 	ServiceProtocolUDP            = "UDP"
+	initializer_disabled          = "configmaps \"" +
+		IstioInitializerConfigMap + "\" not found"
 )
 
 // Following types are taken from
@@ -118,7 +120,7 @@ func GetInitializerConfig(c kubernetes.Interface) (*IstioInjectConfig, error) {
 	cm, err :=
 		c.CoreV1().ConfigMaps(IstioNamespace).Get(IstioInitializerConfigMap, metav1.GetOptions{})
 	if err != nil {
-		glog.Errorf("Failed to retrieve configmap: %s error: %s", IstioInitializerConfigMap, err)
+		glog.V(2).Infof("Failed to retrieve configmap: %s error: %s", IstioInitializerConfigMap, err)
 		return nil, err
 	}
 	d, e := cm.Data[IstioInitializerConfigMapKey]
@@ -133,6 +135,10 @@ func GetInitializerConfig(c kubernetes.Interface) (*IstioInjectConfig, error) {
 		return nil, err
 	}
 	return &cfg, nil
+}
+
+func IstioInitializerDisabled(e string) bool {
+	return strings.Contains(e, initializer_disabled)
 }
 
 func ServicePortPrefixed(n string) bool {

@@ -31,13 +31,21 @@ import (
 )
 
 func printNote(level, summary, msg string) {
-	fmt.Printf("%s\n", summary)
-	b := make([]byte, len(summary))
-	for i := range b {
-		b[i] = '='
+	if len(summary) > 0 {
+		fmt.Printf("%s\n", summary)
+		if len(msg) > 0 {
+			b := make([]byte, len(summary))
+			for i := range b {
+				b[i] = '='
+			}
+			fmt.Printf("%s\n", b)
+		} else {
+			fmt.Println()
+		}
 	}
-	fmt.Printf("%s\n", b)
-	fmt.Printf("%s: %s\n\n", level, msg)
+	if len(msg) > 0 {
+		fmt.Printf("%s: %s\n\n", level, msg)
+	}
 }
 
 func vet(cmd *cobra.Command, args []string) error {
@@ -54,18 +62,22 @@ func vet(cmd *cobra.Command, args []string) error {
 	for _, v := range vList {
 		nList, err := v.Vet(cli)
 		if err != nil {
-			fmt.Printf("Vetter:  %+v reported error: %s", v.Info(), err)
+			fmt.Printf("Vetter: \"%s\" reported error: %s\n", v.Info().GetId(), err)
 			continue
 		}
-		for i := range nList {
-			var ts []string
-			for k, v := range nList[i].Attr {
-				ts = append(ts, "${"+k+"}", v)
+		if len(nList) > 0 {
+			for i := range nList {
+				var ts []string
+				for k, v := range nList[i].Attr {
+					ts = append(ts, "${"+k+"}", v)
+				}
+				r := strings.NewReplacer(ts...)
+				summary := r.Replace(nList[i].GetSummary())
+				msg := r.Replace(nList[i].GetMsg())
+				printNote(nList[i].GetLevel().String(), summary, msg)
 			}
-			r := strings.NewReplacer(ts...)
-			summary := r.Replace(nList[i].GetSummary())
-			msg := r.Replace(nList[i].GetMsg())
-			printNote(nList[i].GetLevel().String(), summary, msg)
+		} else {
+			fmt.Printf("Vetter \"%s\" ran successfully and generated no notes\n\n", v.Info().GetId())
 		}
 	}
 
