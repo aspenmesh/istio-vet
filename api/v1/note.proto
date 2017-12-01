@@ -65,6 +65,6 @@ message Note {
   NoteLevel level = 5;
 
   // Map of template variables which can be used by Summary and Msg
-  map<string, string> Attr = 6;
+  map<string, string> attr = 6;
 }
 
