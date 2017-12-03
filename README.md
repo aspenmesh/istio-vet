@@ -1,13 +1,13 @@
 # Istio Vet
 
-The istio-vet tool is a utility to validate the configuration of [Istio](https://istio.io/)
+The istio-vet tool is a utility to validate the configuration of [Istio](https://Istio.io/)
 and user applications installed in a [Kubernetes](https://kubernetes.io/)
 cluster.
 
 ## Introduction
 
 The istio-vet utility helps discover incompatible configuration of user
-applications and istio components in a kubernetes cluster. Misconfigurations
+applications and Istio components in a kubernetes cluster. Misconfigurations
 might cause unexpected or incorrect service mesh behavior which can be easily
 detected and fixed using this tool.
 
@@ -15,24 +15,26 @@ Note that istio-vet only **reads** configuration objects from the kubernetes API
 
 ### Example
 
-Vetter `meshversion` inspects the version of running istio components and the
+Vetter `meshversion` inspects the version of running Istio components and the
 sidecar version running in pods in the mesh and reports back the following
 on version mismatch:
 
 ```shell
-Summary: "Mismatched sidecar version - <pod-id>"
+Summary: "Mismatched sidecar version - myapp-xyz-1234"
 
-Message: "WARNING: The pod <pod-id> in namespace <namespace> is running with
-sidecar proxy version <sidecar-version> but your environment is running istio
-version <istio-version>. Consider upgrading the sidecar proxy in the pod."
+Message: "WARNING: The pod myapp-xyz-1234 in namespace default is running with
+sidecar proxy version 0.2.10 but your environment is running Istio
+version 0.2.12. Consider upgrading the sidecar proxy in the pod."
 ```
 
 ## Running
+
 The official docker image is `quay.io/aspenmesh/istio-vet:master`
 
 Container image can be deployed in a kubernetes cluster or run locally.
 
 ### Local
+
 When run locally kube config for the kubernetes cluster needs to be mounted
 inside the container.
 
@@ -41,6 +43,7 @@ docker run --rm -v $HOME/.kube/config:/root/.kube/config quay.io/aspenmesh/istio
 ```
 
 ### In-cluster
+
 The istio-vet container can be deployed as a Job in a kubernetes cluster using
 the manifest file in install directory.
 
@@ -51,7 +54,7 @@ kubectl apply -f install/kubernetes/istio-vet.yaml
 To inspect the output of the istio-vet, use the following command:
 
 ```shell
-kubectl -n istio-system logs -l "app=istio-vet" --tail=0
+kubectl -n Istio-system logs -l "app=istio-vet" --tail=0
 ```
 
 Note that the Job would have to be manually run every time to get the latest output
@@ -59,3 +62,36 @@ from the istio-vet utility.
 
 Please visit [aspenmesh.io](https://aspenmesh.io/) and sign-up to receive
 alerts, insights and analytics from your service mesh.
+
+## Repository Layout
+
+This repository contains code for the vet package and supported vetters in
+separate packages. It includes:
+
+* **pkg/vet** - This directory contains code for the vet utility which is the
+  main binary produced by the repository. It invokes vetters included in the
+  pkg/vetters directory.
+
+* **pkg/vetters** - This directory contains sub-directories for individual
+  vetter packages, helper utility package and the type definitions for vetters
+  to implement. It includes the following supported vetters:
+
+  * [meshversion](https://github.com/aspenmesh/istio-vet/blob/master/pkg/vetter/meshversion/README.md) - This vetter inspects the version of various installed
+    Istio componenets and reports back mismatching versions. It also inspects
+    the version of sidecar proxy running in pods in the mesh and compares it
+    with the installed Istio version and reports back any version mismatch.
+
+  * [mtlsprobes](https://github.com/aspenmesh/istio-vet/blob/master/pkg/vetter/mtlsprobes/README.md) - This vetter inspects if mTLS in Istio service mesh and
+    non-exec (i.e. HTTP or TCP) Liveness or Readiness probes are enabled in
+    any Pod at the same time.
+
+  * [serviceportprefix](https://github.com/aspenmesh/istio-vet/blob/master/pkg/vetter/serviceportprefix/README.md) - This vetter inspects services in the Istio mesh and
+    reports back if any service port name definition doesn't include Istio
+    recongnized port protocol prefixes.
+
+  * [podsinmesh](https://github.com/aspenmesh/istio-vet/blob/master/pkg/vetter/podsinmesh/README.md) - This vetter reports back the number of user pods in/out of
+    the mesh. It also reports number of system pods running which are exempted
+    from the mesh.
+
+More details about vetters can be found in the individual vetters package
+documentation.
