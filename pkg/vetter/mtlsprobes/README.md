@@ -1,8 +1,7 @@
 # mTLS Probes
 
-The mtlsprobes vetters identifies if
-[mTLS](https://istio.io/docs/tasks/security/mutual-tls.html)
- is enabled in the Istio service mesh along with HTTP or TCP
+The `mtlsprobes` vetter verifies if [mTLS](https://istio.io/docs/tasks/security/mutual-tls.html)
+is enabled in the Istio service mesh along with HTTP or TCP
 [probes](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/)
 (Liveness or Readiness) in any of the Pods in the mesh.
 

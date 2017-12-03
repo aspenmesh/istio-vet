@@ -1,7 +1,7 @@
 # Service Port Prefix
 
-The serviceportprefix vetter inspects the port names defined in the services in
-mesh and generates warnings if any of them are missing Istio recognized port
+The `serviceportprefix` vetter inspects the port names defined in the services in
+mesh and generates notes if they are missing Istio recognized port
 protocol prefixes.
 
 Service port names need to be prefixed with the recognized
@@ -20,9 +20,9 @@ the following protocols:
 * redis
 * tcp
 
-Note that `tcp` protocol prefix can be used to explicitly signal that the port
-is being used for TCP. Service ports with protocol type `UDP` are also excluded
-from this requirement.
+Note that `tcp` protocol prefix can be used to indicate that the port
+is for TCP protocol. Service ports with protocol type UDP are also excluded
+from this prefix requirement.
 
 ## Example
 
