@@ -110,23 +110,21 @@ func (m *meshVersion) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 		return nil, err
 	}
 	for _, p := range pods {
-		if util.SidecarInjected(p) == true {
-			sideCarVer, err := util.ImageTag(util.IstioProxyContainerName, p.Spec)
-			if err != nil || sideCarVer == latest_tag {
-				continue
-			}
-			if sideCarVer != ver {
-				notes = append(notes, &apiv1.Note{
-					Type:    sidecar_mismatch_note_type,
-					Summary: sidecar_mismatch_summary,
-					Msg:     sidecar_mismatch_msg,
-					Level:   apiv1.NoteLevel_WARNING,
-					Attr: map[string]string{
-						"pod_name":        p.Name,
-						"namespace":       p.Namespace,
-						"sidecar_version": sideCarVer,
-						"istio_version":   ver}})
-			}
+		sideCarVer, err := util.ImageTag(util.IstioProxyContainerName, p.Spec)
+		if err != nil || sideCarVer == latest_tag {
+			continue
+		}
+		if sideCarVer != ver {
+			notes = append(notes, &apiv1.Note{
+				Type:    sidecar_mismatch_note_type,
+				Summary: sidecar_mismatch_summary,
+				Msg:     sidecar_mismatch_msg,
+				Level:   apiv1.NoteLevel_WARNING,
+				Attr: map[string]string{
+					"pod_name":        p.Name,
+					"namespace":       p.Namespace,
+					"sidecar_version": sideCarVer,
+					"istio_version":   ver}})
 		}
 	}
 

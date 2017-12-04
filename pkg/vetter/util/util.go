@@ -46,6 +46,7 @@ const (
 	IstioInitializerPodAnnotation = "sidecar.istio.io/status"
 	IstioInitializerConfigMap     = "istio-inject"
 	IstioInitializerConfigMapKey  = "config"
+	IstioAppLabel                 = "app"
 	ServiceProtocolUDP            = "UDP"
 	initializer_disabled          = "configmaps \"" +
 		IstioInitializerConfigMap + "\" not found"

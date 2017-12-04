@@ -100,5 +100,9 @@ It includes:
     the mesh. It also reports number of system pods running which are exempted
     from the mesh.
 
+  * [applabel](https:////github.com/aspenmesh/istio-vet/blob/master/pkg/vetter/applabel/README.md) -
+    This vetter inspects the labels defined for the pods in the mesh and
+    generates notes if the label `app` is missing in any pod specification.
+
 More details about vetters can be found in the individual vetters package
 documentation.

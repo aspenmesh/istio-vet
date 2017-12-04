@@ -24,6 +24,9 @@ Note that `tcp` protocol prefix can be used to indicate that the port
 is for TCP protocol. Service ports with protocol type UDP are also excluded
 from this prefix requirement.
 
+It is recommended to add one of the above mentioned protocol prefixes to
+the services mentioned in the generated notes.
+
 ## Example
 
 If a Service in mesh is defined with any of the following port definitions:
