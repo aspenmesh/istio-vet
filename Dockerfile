@@ -6,7 +6,6 @@ RUN apt-get update \
  && apt-get install -y \
     unzip \
     ca-certificates \
-    npm \
  && rm -rf /var/lib/apt/lists/*
 
 RUN curl -s -L \

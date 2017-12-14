@@ -30,9 +30,6 @@ const (
 	service_port_prefix_msg       = "The service ${service_name} in namespace ${namespace}" +
 		" contains port names not prefixed with mesh supported protocols." +
 		" Consider updating the service port name with one of the mesh recognized prefixes."
-	initializer_disabled_summary = "Istio initializer is not configured." +
-		" Enable initializer and automatic sidecar injection to use \"" +
-		vetterId + "\" vetter"
 )
 
 type svcPortPrefix struct {
@@ -43,11 +40,9 @@ func (m *svcPortPrefix) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 	notes := []*apiv1.Note{}
 	services, err := util.ListServicesInMesh(c)
 	if err != nil {
-		if util.IstioInitializerDisabled(err.Error()) == true {
-			notes = append(notes, &apiv1.Note{
-				Type:    service_port_prefix_note_type,
-				Summary: initializer_disabled_summary,
-				Level:   apiv1.NoteLevel_INFO})
+		if n := util.IstioInitializerDisabledNote(err.Error(), vetterId,
+			service_port_prefix_note_type); n != nil {
+			notes = append(notes, n)
 			return notes, nil
 		}
 		return nil, err

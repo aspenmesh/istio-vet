@@ -40,9 +40,6 @@ const (
 		" readiness probe or mTLS."
 	mtls_disabled_summary = "mTLS is disabled. Enable it to use \"" +
 		vetterId + "\" vetter"
-	initializer_disabled_summary = "Istio initializer is not configured." +
-		" Enable initializer and automatic sidecar injection to use \"" +
-		vetterId + "\" vetter"
 )
 
 type mtlsProbes struct {
@@ -80,11 +77,9 @@ func (m *mtlsProbes) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 	}
 	pods, err := util.ListPodsInMesh(c)
 	if err != nil {
-		if util.IstioInitializerDisabled(err.Error()) == true {
-			notes = append(notes, &apiv1.Note{
-				Type:    mtls_probes_note_type,
-				Summary: initializer_disabled_summary,
-				Level:   apiv1.NoteLevel_INFO})
+		if n := util.IstioInitializerDisabledNote(err.Error(), vetterId,
+			mtls_probes_note_type); n != nil {
+			notes = append(notes, n)
 			return notes, nil
 		}
 		return nil, err

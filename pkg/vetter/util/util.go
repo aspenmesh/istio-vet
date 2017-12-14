@@ -50,6 +50,9 @@ const (
 	ServiceProtocolUDP            = "UDP"
 	initializer_disabled          = "configmaps \"" +
 		IstioInitializerConfigMap + "\" not found"
+	initializer_disabled_summary = "Istio initializer is not configured." +
+		" Enable initializer and automatic sidecar injection to use "
+	kubernetesServiceName = "kubernetes"
 )
 
 // Following types are taken from
@@ -138,8 +141,14 @@ func GetInitializerConfig(c kubernetes.Interface) (*IstioInjectConfig, error) {
 	return &cfg, nil
 }
 
-func IstioInitializerDisabled(e string) bool {
-	return strings.Contains(e, initializer_disabled)
+func IstioInitializerDisabledNote(e, vetterId, vetterType string) *apiv1.Note {
+	if strings.Contains(e, initializer_disabled) {
+		return &apiv1.Note{
+			Type:    vetterType,
+			Summary: initializer_disabled_summary + "\"" + vetterId + "\" vetter.",
+			Level:   apiv1.NoteLevel_INFO}
+	}
+	return nil
 }
 
 func ServicePortPrefixed(n string) bool {
@@ -268,6 +277,28 @@ func ListServicesInMesh(c kubernetes.Interface) ([]corev1.Service, error) {
 		}
 	}
 	return services, nil
+}
+
+func ListEndpointsInMesh(c kubernetes.Interface) ([]corev1.Endpoints, error) {
+	opts := metav1.ListOptions{}
+	endpoints := []corev1.Endpoints{}
+	ns, err := ListNamespacesInMesh(c)
+	if err != nil {
+		return nil, err
+	}
+	for _, n := range ns {
+		endpointList, err := c.CoreV1().Endpoints(n.Name).List(opts)
+		if err != nil {
+			glog.Errorf("Failed to retrieve endpoints for namespace: %s error: %s", n.Name, err)
+			return nil, err
+		}
+		for _, s := range endpointList.Items {
+			if s.Name != kubernetesServiceName {
+				endpoints = append(endpoints, s)
+			}
+		}
+	}
+	return endpoints, nil
 }
 
 func ComputeId(n *apiv1.Note) string {

@@ -29,9 +29,6 @@ const (
 	missing_app_label_summary   = "Missing app label - ${pod_name}"
 	missing_app_label_msg       = "The pod ${pod_name} in namespace ${namespace}" +
 		" is missing \"app\" label. Consider adding the label \"app\" to the pod."
-	initializer_disabled_summary = "Istio initializer is not configured." +
-		" Enable initializer and automatic sidecar injection to use \"" +
-		vetterId + "\" vetter"
 )
 
 type applabel struct {
@@ -43,11 +40,9 @@ func (m *applabel) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 
 	pods, err := util.ListPodsInMesh(c)
 	if err != nil {
-		if util.IstioInitializerDisabled(err.Error()) == true {
-			notes = append(notes, &apiv1.Note{
-				Type:    missing_app_label_note_type,
-				Summary: initializer_disabled_summary,
-				Level:   apiv1.NoteLevel_INFO})
+		if n := util.IstioInitializerDisabledNote(err.Error(), vetterId,
+			missing_app_label_note_type); n != nil {
+			notes = append(notes, n)
 			return notes, nil
 		}
 		return nil, err
