@@ -28,6 +28,7 @@ import (
 	"github.com/aspenmesh/istio-vet/pkg/vetter/meshversion"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/mtlsprobes"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/podsinmesh"
+	"github.com/aspenmesh/istio-vet/pkg/vetter/serviceassociation"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/serviceportprefix"
 )
 
@@ -59,7 +60,8 @@ func vet(cmd *cobra.Command, args []string) error {
 		vetter.Vetter(meshversion.NewVetter()),
 		vetter.Vetter(mtlsprobes.NewVetter()),
 		vetter.Vetter(applabel.NewVetter()),
-		vetter.Vetter(serviceportprefix.NewVetter())}
+		vetter.Vetter(serviceportprefix.NewVetter()),
+		vetter.Vetter(serviceassociation.NewVetter())}
 
 	for _, v := range vList {
 		nList, err := v.Vet(cli)
