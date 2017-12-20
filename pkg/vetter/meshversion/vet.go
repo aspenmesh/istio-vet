@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package meshversion vets the versions of Istio components, Sidecar proxy
+// and generates notes on version mismatch.
 package meshversion
 
 import (
@@ -134,6 +136,7 @@ func (m *meshVersion) Info() *apiv1.Info {
 	return &m.info
 }
 
+// NewVetter returns "meshVersion" which implements Vetter Interface
 func NewVetter() *meshVersion {
 	return &meshVersion{info: apiv1.Info{Id: vetterId, Version: "0.1.0"}}
 }

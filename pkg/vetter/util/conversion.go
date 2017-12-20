@@ -25,12 +25,15 @@ import (
 
 // Taken from
 // https://github.com/istio/istio/blob/master/pilot/model/conversion.go
+
+// ApplyJSON unmarshals a JSON string into a proto message
 func ApplyJSON(js string, pb proto.Message) error {
 	return jsonpb.UnmarshalString(js, pb)
 }
 
 // Taken from
 // https://github.com/istio/istio/blob/master/pilot/model/conversion.go
+
 // ApplyYAML unmarshals a YAML string into a proto message
 func ApplyYAML(yml string, pb proto.Message) error {
 	js, err := yaml.YAMLToJSON([]byte(yml))

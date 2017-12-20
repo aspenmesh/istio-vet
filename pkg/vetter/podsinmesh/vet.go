@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package podsinmesh generates informational notes on system and user Pods in
+// the mesh.
 package podsinmesh
 
 import (
@@ -95,6 +97,7 @@ func (m *meshStats) Info() *apiv1.Info {
 	return &m.info
 }
 
+// NewVetter returns "meshStats" which implements Vetter Interface
 func NewVetter() *meshStats {
 	return &meshStats{info: apiv1.Info{Id: "podsinmesh", Version: "0.1.0"}}
 }

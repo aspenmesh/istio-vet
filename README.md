@@ -1,5 +1,7 @@
 # Istio Vet
 
+[![GoDoc](https://godoc.org/github.com/aspenmesh/istio-vet?status.svg)](https://godoc.org/github.com/aspenmesh/istio-vet)
+
 The istio-vet tool is a utility to validate the configuration of [Istio](https://Istio.io/)
 and user applications installed in a [Kubernetes](https://kubernetes.io/)
 cluster.

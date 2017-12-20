@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package util provides common constants and helper functions for vetters.
 package util
 
 import (
@@ -57,6 +58,7 @@ const (
 
 // Following types are taken from
 // https://github.com/istio/istio/blob/master/pilot/platform/kube/inject/inject.go
+
 type InjectionPolicy string
 
 // Params describes configurable parameters for injecting istio proxy
@@ -106,6 +108,8 @@ var defaultExemptedNamespaces = map[string]bool{
 	"kube-public":  true,
 	"istio-system": true}
 
+// Returns list of default Namsepaces exempted from automatic sidecar injection.
+// List includes "kube-system", "kube-public" and "istio-system"
 func DefaultExemptedNamespaces() []string {
 	s := make([]string, len(defaultExemptedNamespaces))
 	i := 0
@@ -116,10 +120,14 @@ func DefaultExemptedNamespaces() []string {
 	return s
 }
 
+// Checks if a Namespace is by default exempted from automatic sidecar injection
 func ExemptedNamespace(ns string) bool {
 	return defaultExemptedNamespaces[ns]
 }
 
+// Retrieves the Istio Initializer config.
+// Istio Initializer config is stored as "istio-inject" configmap in
+// "istio-system" Namespace.
 func GetInitializerConfig(c kubernetes.Interface) (*IstioInjectConfig, error) {
 	cm, err :=
 		c.CoreV1().ConfigMaps(IstioNamespace).Get(IstioInitializerConfigMap, metav1.GetOptions{})
@@ -141,6 +149,7 @@ func GetInitializerConfig(c kubernetes.Interface) (*IstioInjectConfig, error) {
 	return &cfg, nil
 }
 
+// Generates an INFO note if the error string contains "istio-inject configmap not found"
 func IstioInitializerDisabledNote(e, vetterId, vetterType string) *apiv1.Note {
 	if strings.Contains(e, initializer_disabled) {
 		return &apiv1.Note{
@@ -151,6 +160,7 @@ func IstioInitializerDisabledNote(e, vetterId, vetterType string) *apiv1.Note {
 	return nil
 }
 
+// Checks if the Service port name is prefixed with Istio supported protocols
 func ServicePortPrefixed(n string) bool {
 	i := 0
 	for i < len(istioSupportedServicePrefix) {
@@ -162,6 +172,9 @@ func ServicePortPrefixed(n string) bool {
 	return false
 }
 
+// Checks if sidecar is injected in a Pod.
+// Sidecar is considered injected if initializer annotation and proxy container
+// are both present in the Pod Spec.
 func SidecarInjected(p corev1.Pod) bool {
 	if _, ok := p.Annotations[IstioInitializerPodAnnotation]; !ok {
 		return false
@@ -175,6 +188,9 @@ func SidecarInjected(p corev1.Pod) bool {
 	return false
 }
 
+// Returns the Image tag of a named Container if present in the Pod Spec.
+// If no version is specified "latest" is returned.
+// Returns error if Container is not present in the Pod Spec.
 func ImageTag(n string, s corev1.PodSpec) (string, error) {
 	cList := s.Containers
 	for _, c := range cList {
@@ -201,6 +217,9 @@ func existsInStringSlice(e string, list []string) bool {
 	return false
 }
 
+// Lists the Namespaces included in the mesh.
+// Inspects the Istio Initializer(istio-inject) configmap to enumerate
+// Namespaces included/excluded from the mesh.
 func ListNamespacesInMesh(c kubernetes.Interface) ([]corev1.Namespace, error) {
 	opts := metav1.ListOptions{}
 	namespaces := []corev1.Namespace{}
@@ -235,6 +254,9 @@ func ListNamespacesInMesh(c kubernetes.Interface) ([]corev1.Namespace, error) {
 	return namespaces, nil
 }
 
+// Lists Pods in the mesh.
+// Pods in Namespaces returned by ListNamespacesInMesh with sidecar
+// injected as determined by SidecarInjected are considered in the mesh.
 func ListPodsInMesh(c kubernetes.Interface) ([]corev1.Pod, error) {
 	opts := metav1.ListOptions{}
 	pods := []corev1.Pod{}
@@ -257,6 +279,8 @@ func ListPodsInMesh(c kubernetes.Interface) ([]corev1.Pod, error) {
 	return pods, nil
 }
 
+// Lists Services in the mesh.
+// Services in Namespaces returned by ListNamespacesInMesh are considered in the mesh.
 func ListServicesInMesh(c kubernetes.Interface) ([]corev1.Service, error) {
 	opts := metav1.ListOptions{}
 	services := []corev1.Service{}
@@ -279,6 +303,8 @@ func ListServicesInMesh(c kubernetes.Interface) ([]corev1.Service, error) {
 	return services, nil
 }
 
+// Lists Endpoints in the mesh.
+// Endpoints in Namespaces returned by ListNamespacesInMesh are considered in the mesh.
 func ListEndpointsInMesh(c kubernetes.Interface) ([]corev1.Endpoints, error) {
 	opts := metav1.ListOptions{}
 	endpoints := []corev1.Endpoints{}
@@ -301,6 +327,7 @@ func ListEndpointsInMesh(c kubernetes.Interface) ([]corev1.Endpoints, error) {
 	return endpoints, nil
 }
 
+// Returns MD5 checksum of the Note struct which can be used as ID for the note.
 func ComputeId(n *apiv1.Note) string {
 	return fmt.Sprintf("%x", structhash.Md5(n, 1))
 }

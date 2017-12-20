@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package serviceassociation vets multiple service associations of pods in the
+// mesh.
 package serviceassociation
 
 import (
@@ -108,6 +110,7 @@ func (m *svcAssociation) Info() *apiv1.Info {
 	return &m.info
 }
 
+// NewVetter returns "svcAssociation" which implements Vetter Interface
 func NewVetter() *svcAssociation {
 	return &svcAssociation{info: apiv1.Info{Id: vetterId, Version: "0.1.0"}}
 }

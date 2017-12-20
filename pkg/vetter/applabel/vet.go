@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package applabel vets the labels defined for the pods in the mesh and
+// generates notes if the label `app` is missing on any pod.
 package applabel
 
 import (
@@ -71,6 +73,7 @@ func (m *applabel) Info() *apiv1.Info {
 	return &m.info
 }
 
+// NewVetter returns "applabel" which implements Vetter Interface
 func NewVetter() *applabel {
 	return &applabel{info: apiv1.Info{Id: vetterId, Version: "0.1.0"}}
 }

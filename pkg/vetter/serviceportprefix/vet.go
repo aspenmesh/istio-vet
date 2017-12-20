@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package serviceportprefix vets the port names of the services in the mesh and
+// generates notes if they are missing Istio recognized port protocol prefixes.
 package serviceportprefix
 
 import (
@@ -74,6 +76,7 @@ func (m *svcPortPrefix) Info() *apiv1.Info {
 	return &m.info
 }
 
+// NewVetter returns "svcPortPrefix" which implements Vetter Interface
 func NewVetter() *svcPortPrefix {
 	return &svcPortPrefix{info: apiv1.Info{Id: vetterId, Version: "0.1.0"}}
 }

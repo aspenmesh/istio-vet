@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package mtlsprobes inspects if Istio mTLS and liveness probes are enabled for
+// any Pods in the mesh.
 package mtlsprobes
 
 import (
@@ -122,6 +124,7 @@ func (m *mtlsProbes) Info() *apiv1.Info {
 	return &m.info
 }
 
+// NewVetter returns "mtlsProbes" which implements Vetter Interface
 func NewVetter() *mtlsProbes {
 	return &mtlsProbes{info: apiv1.Info{Id: vetterId, Version: "0.1.0"}}
 }
