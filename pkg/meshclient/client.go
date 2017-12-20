@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package meshclient provides utilities for creating a kubernetes client.
 package meshclient
 
 import (
