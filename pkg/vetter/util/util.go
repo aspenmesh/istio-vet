@@ -26,7 +26,7 @@ import (
 	"github.com/cnf/structhash"
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
-	proxyconfig "istio.io/api/proxy/v1/config"
+	meshconfig "istio.io/api/mesh/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -67,15 +67,15 @@ type InjectionPolicy string
 // Params describes configurable parameters for injecting istio proxy
 // into kubernetes resource.
 type Params struct {
-	InitImage       string                  `json:"initImage"`
-	ProxyImage      string                  `json:"proxyImage"`
-	Verbosity       int                     `json:"verbosity"`
-	SidecarProxyUID int64                   `json:"sidecarProxyUID"`
-	Version         string                  `json:"version"`
-	EnableCoreDump  bool                    `json:"enableCoreDump"`
-	DebugMode       bool                    `json:"debugMode"`
-	Mesh            *proxyconfig.MeshConfig `json:"-"`
-	ImagePullPolicy string                  `json:"imagePullPolicy"`
+	InitImage       string                 `json:"initImage"`
+	ProxyImage      string                 `json:"proxyImage"`
+	Verbosity       int                    `json:"verbosity"`
+	SidecarProxyUID int64                  `json:"sidecarProxyUID"`
+	Version         string                 `json:"version"`
+	EnableCoreDump  bool                   `json:"enableCoreDump"`
+	DebugMode       bool                   `json:"debugMode"`
+	Mesh            *meshconfig.MeshConfig `json:"-"`
+	ImagePullPolicy string                 `json:"imagePullPolicy"`
 	// Comma separated list of IP ranges in CIDR form. If set, only
 	// redirect outbound traffic to Envoy for these IP
 	// ranges. Otherwise all outbound traffic is redirected to Envoy.

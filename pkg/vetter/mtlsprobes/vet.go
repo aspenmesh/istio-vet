@@ -23,7 +23,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/golang/glog"
-	proxyconfig "istio.io/api/proxy/v1/config"
+	meshconfig "istio.io/api/mesh/v1alpha1"
 
 	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/util"
@@ -50,7 +50,7 @@ type MtlsProbes struct {
 }
 
 func mtlsEnabled(c string) bool {
-	var cfg proxyconfig.MeshConfig
+	var cfg meshconfig.MeshConfig
 	if err := util.ApplyYAML(c, &cfg); err != nil {
 		glog.Errorf("Failed to parse yaml mesh config: %s", err)
 		return false

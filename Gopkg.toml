@@ -4,6 +4,22 @@
 # Refer to https://github.com/golang/dep/blob/master/docs/Gopkg.toml.md
 # for detailed Gopkg.toml documentation.
 #
+# required = ["github.com/user/thing/cmd/thing"]
+# ignored = ["github.com/user/project/pkgX", "bitbucket.org/user/project/pkgA/pkgY"]
+#
+# [[constraint]]
+#   name = "github.com/user/project"
+#   version = "1.0.0"
+#
+# [[constraint]]
+#   name = "github.com/user/project2"
+#   branch = "dev"
+#   source = "github.com/myfork/project2"
+#
+# [[override]]
+#  name = "github.com/x/y"
+#  version = "2.4.0"
+
 
 [[constraint]]
   branch = "master"
@@ -34,8 +50,8 @@
   version = "1.0.0"
 
 [[constraint]]
-  branch = "BetterIngress"
   name = "istio.io/api"
+  version = "0.3.0"
 
 [[constraint]]
   branch = "master"
@@ -47,4 +63,4 @@
 
 [[constraint]]
   name = "k8s.io/client-go"
-  version = "5.0.1"
+  version = "6.0.0"
