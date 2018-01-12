@@ -45,4 +45,4 @@ RUN apt-get update \
 
 COPY --from=builder /go/bin/vet /usr/local/bin
 
-CMD ["vet", "mesh"]
+CMD ["vet"]

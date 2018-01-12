@@ -31,19 +31,21 @@ import (
 )
 
 const (
-	user_pod_count_note_type   = "user-pod-count"
-	user_pod_count_summary     = "User pod count"
-	user_pod_count_msg         = "${user_pods_in_mesh} user pods in mesh out of ${num_user_pods}"
-	system_pod_count_note_type = "system-pod-count"
-	system_pod_count_summary   = "System pod count"
-	system_pod_count_msg       = "${num_system_pods} system pods out of mesh"
+	userPodCountNoteType   = "user-pod-count"
+	userPodCountSummary    = "User pod count"
+	userPodCountMsg        = "${user_pods_in_mesh} user pods in mesh out of ${num_user_pods}"
+	systemPodCountNoteType = "system-pod-count"
+	systemPodCountSummary  = "System pod count"
+	systemPodCountMsg      = "${num_system_pods} system pods out of mesh"
 )
 
-type meshStats struct {
+// MeshStats implements Vetter interface
+type MeshStats struct {
 	info apiv1.Info
 }
 
-func (m *meshStats) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
+// Vet returns the list of generated notes
+func (m *MeshStats) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 	opts := metav1.ListOptions{}
 	ns, err := c.CoreV1().Namespaces().List(opts)
 	if err != nil {
@@ -61,7 +63,7 @@ func (m *meshStats) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 			totalUserPods += len(podList.Items)
 			for _, p := range podList.Items {
 				if util.SidecarInjected(p) == true {
-					totalUserPodsInMesh += 1
+					totalUserPodsInMesh++
 				}
 			}
 		} else {
@@ -71,33 +73,34 @@ func (m *meshStats) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 
 	notes := []*apiv1.Note{
 		&apiv1.Note{
-			Type:    user_pod_count_note_type,
-			Summary: user_pod_count_summary,
-			Msg:     user_pod_count_msg,
+			Type:    userPodCountNoteType,
+			Summary: userPodCountSummary,
+			Msg:     userPodCountMsg,
 			Level:   apiv1.NoteLevel_INFO,
 			Attr: map[string]string{
 				"user_pods_in_mesh": strconv.Itoa(totalUserPodsInMesh),
 				"num_user_pods":     strconv.Itoa(totalUserPods)}},
 		&apiv1.Note{
-			Type:    system_pod_count_note_type,
-			Summary: system_pod_count_summary,
-			Msg:     system_pod_count_msg,
+			Type:    systemPodCountNoteType,
+			Summary: systemPodCountSummary,
+			Msg:     systemPodCountMsg,
 			Level:   apiv1.NoteLevel_INFO,
 			Attr: map[string]string{
 				"num_system_pods": strconv.Itoa(totalSystemPods)}}}
 
 	for i := range notes {
-		notes[i].Id = util.ComputeId(notes[i])
+		notes[i].Id = util.ComputeID(notes[i])
 	}
 
 	return notes, nil
 }
 
-func (m *meshStats) Info() *apiv1.Info {
+// Info returns information about the vetter
+func (m *MeshStats) Info() *apiv1.Info {
 	return &m.info
 }
 
 // NewVetter returns "meshStats" which implements Vetter Interface
-func NewVetter() *meshStats {
-	return &meshStats{info: apiv1.Info{Id: "podsinmesh", Version: "0.1.0"}}
+func NewVetter() *MeshStats {
+	return &MeshStats{info: apiv1.Info{Id: "podsinmesh", Version: "0.1.0"}}
 }

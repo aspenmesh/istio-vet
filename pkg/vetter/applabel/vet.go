@@ -26,24 +26,26 @@ import (
 )
 
 const (
-	vetterId                    = "applabel"
-	missing_app_label_note_type = "missing-app-label"
-	missing_app_label_summary   = "Missing app label - ${pod_name}"
-	missing_app_label_msg       = "The pod ${pod_name} in namespace ${namespace}" +
+	vetterID                = "AppLabel"
+	missingAppLabelNoteType = "missing-app-label"
+	missingAppLabelSummary  = "Missing app label - ${pod_name}"
+	missingAppLabelMsg      = "The pod ${pod_name} in namespace ${namespace}" +
 		" is missing \"app\" label. Consider adding the label \"app\" to the pod."
 )
 
-type applabel struct {
+// AppLabel implements Vetter interface
+type AppLabel struct {
 	info apiv1.Info
 }
 
-func (m *applabel) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
+// Vet returns the list of generated notes
+func (m *AppLabel) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 	notes := []*apiv1.Note{}
 
 	pods, err := util.ListPodsInMesh(c)
 	if err != nil {
-		if n := util.IstioInitializerDisabledNote(err.Error(), vetterId,
-			missing_app_label_note_type); n != nil {
+		if n := util.IstioInitializerDisabledNote(err.Error(), vetterID,
+			missingAppLabelNoteType); n != nil {
 			notes = append(notes, n)
 			return notes, nil
 		}
@@ -52,9 +54,9 @@ func (m *applabel) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 	for _, p := range pods {
 		if _, ok := p.Labels[util.IstioAppLabel]; !ok {
 			notes = append(notes, &apiv1.Note{
-				Type:    missing_app_label_note_type,
-				Summary: missing_app_label_summary,
-				Msg:     missing_app_label_msg,
+				Type:    missingAppLabelNoteType,
+				Summary: missingAppLabelSummary,
+				Msg:     missingAppLabelMsg,
 				Level:   apiv1.NoteLevel_WARNING,
 				Attr: map[string]string{
 					"pod_name":  p.Name,
@@ -63,17 +65,18 @@ func (m *applabel) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 	}
 
 	for i := range notes {
-		notes[i].Id = util.ComputeId(notes[i])
+		notes[i].Id = util.ComputeID(notes[i])
 	}
 
 	return notes, nil
 }
 
-func (m *applabel) Info() *apiv1.Info {
+// Info returns information about the vetter
+func (m *AppLabel) Info() *apiv1.Info {
 	return &m.info
 }
 
-// NewVetter returns "applabel" which implements Vetter Interface
-func NewVetter() *applabel {
-	return &applabel{info: apiv1.Info{Id: vetterId, Version: "0.1.0"}}
+// NewVetter returns "AppLabel" which implements Vetter Interface
+func NewVetter() *AppLabel {
+	return &AppLabel{info: apiv1.Info{Id: vetterID, Version: "0.1.0"}}
 }

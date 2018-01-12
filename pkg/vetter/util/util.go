@@ -34,6 +34,7 @@ import (
 	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
 )
 
+// Constants related to Istio
 const (
 	IstioNamespace                = "istio-system"
 	IstioProxyContainerName       = "istio-proxy"
@@ -49,9 +50,9 @@ const (
 	IstioInitializerConfigMapKey  = "config"
 	IstioAppLabel                 = "app"
 	ServiceProtocolUDP            = "UDP"
-	initializer_disabled          = "configmaps \"" +
+	initializerDisabled           = "configmaps \"" +
 		IstioInitializerConfigMap + "\" not found"
-	initializer_disabled_summary = "Istio initializer is not configured." +
+	initializerDisabledSummary = "Istio initializer is not configured." +
 		" Enable initializer and automatic sidecar injection to use "
 	kubernetesServiceName = "kubernetes"
 )
@@ -59,6 +60,8 @@ const (
 // Following types are taken from
 // https://github.com/istio/istio/blob/master/pilot/platform/kube/inject/inject.go
 
+// InjectionPolicy determines the policy for injecting the
+// sidecar proxy into the watched namespace(s).
 type InjectionPolicy string
 
 // Params describes configurable parameters for injecting istio proxy
@@ -79,6 +82,7 @@ type Params struct {
 	IncludeIPRanges string `json:"includeIPRanges"`
 }
 
+// IstioInjectConfig describes the configuration for Istio Inject initializer
 type IstioInjectConfig struct {
 	Policy InjectionPolicy `json:"policy"`
 
@@ -114,7 +118,7 @@ var defaultExemptedNamespaces = map[string]bool{
 func DefaultExemptedNamespaces() []string {
 	s := make([]string, len(defaultExemptedNamespaces))
 	i := 0
-	for k, _ := range defaultExemptedNamespaces {
+	for k := range defaultExemptedNamespaces {
 		s[i] = k
 		i++
 	}
@@ -153,11 +157,11 @@ func GetInitializerConfig(c kubernetes.Interface) (*IstioInjectConfig, error) {
 
 // IstioInitializerDisabledNote generates an INFO note if the error string
 // contains "istio-inject configmap not found".
-func IstioInitializerDisabledNote(e, vetterId, vetterType string) *apiv1.Note {
-	if strings.Contains(e, initializer_disabled) {
+func IstioInitializerDisabledNote(e, vetterID, vetterType string) *apiv1.Note {
+	if strings.Contains(e, initializerDisabled) {
 		return &apiv1.Note{
 			Type:    vetterType,
-			Summary: initializer_disabled_summary + "\"" + vetterId + "\" vetter.",
+			Summary: initializerDisabledSummary + "\"" + vetterID + "\" vetter.",
 			Level:   apiv1.NoteLevel_INFO}
 	}
 	return nil
@@ -202,9 +206,8 @@ func ImageTag(n string, s corev1.PodSpec) (string, error) {
 			imageTags := strings.Split(c.Image, ":")
 			if len(imageTags) == 1 {
 				return "latest", nil
-			} else {
-				return imageTags[len(imageTags)-1], nil
 			}
+			return imageTags[len(imageTags)-1], nil
 		}
 	}
 	errStr := fmt.Sprintf("Failed to find container: %s", n)
@@ -331,8 +334,8 @@ func ListEndpointsInMesh(c kubernetes.Interface) ([]corev1.Endpoints, error) {
 	return endpoints, nil
 }
 
-// ComputeId returns MD5 checksum of the Note struct which can be used as
+// ComputeID returns MD5 checksum of the Note struct which can be used as
 // ID for the note.
-func ComputeId(n *apiv1.Note) string {
+func ComputeID(n *apiv1.Note) string {
 	return fmt.Sprintf("%x", structhash.Md5(n, 1))
 }

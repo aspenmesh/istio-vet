@@ -26,14 +26,16 @@ import (
 
 var kubeConfig clientcmd.ClientConfig
 
+// New returns a new Kubernetes Client
 func New() (kubernetes.Interface, error) {
-	cs, err := GetClientset()
+	cs, err := getClientSet()
 	if err != nil {
 		return nil, err
 	}
 	return cs, nil
 }
 
+// BindKubeConfigToFlags binds Kubernetes client flags
 func BindKubeConfigToFlags(flags *pflag.FlagSet) {
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
 
@@ -44,8 +46,7 @@ func BindKubeConfigToFlags(flags *pflag.FlagSet) {
 	kubeConfig = clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &configOverrides)
 }
 
-func GetClientset() (*kubernetes.Clientset, error) {
-
+func getClientSet() (*kubernetes.Clientset, error) {
 	config, err := kubeConfig.ClientConfig()
 	if err != nil {
 		return nil, err

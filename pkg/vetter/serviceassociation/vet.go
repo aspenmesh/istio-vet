@@ -30,15 +30,16 @@ import (
 )
 
 const (
-	vetterId                               = "serviceassociation"
-	multiple_service_association_note_type = "multiple-service-association"
-	multiple_service_association_summary   = "Multiple service association - ${service_list}"
-	multiple_service_association_msg       = "The services ${service_list} in namespace ${namespace}" +
+	vetterID                           = "serviceassociation"
+	multipleServiceAssociationNoteType = "multiple-service-association"
+	multipleServiceAssociationSummary  = "Multiple service association - ${service_list}"
+	multipleServiceAssociationMsg      = "The services ${service_list} in namespace ${namespace}" +
 		" are associated with the pod ${pod_name}. Consider updating the" +
 		" service definitions ensuring the pod belongs to a single service."
 )
 
-type svcAssociation struct {
+// SvcAssociation implements Vetter interface
+type SvcAssociation struct {
 	info apiv1.Info
 }
 
@@ -72,12 +73,13 @@ func createEndpointMap(e []corev1.Endpoints) map[string]endpointInfo {
 	return endpointMap
 }
 
-func (m *svcAssociation) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
+// Vet returns the list of generated notes
+func (m *SvcAssociation) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 	notes := []*apiv1.Note{}
 	endpoints, err := util.ListEndpointsInMesh(c)
 	if err != nil {
-		if n := util.IstioInitializerDisabledNote(err.Error(), vetterId,
-			multiple_service_association_note_type); n != nil {
+		if n := util.IstioInitializerDisabledNote(err.Error(), vetterID,
+			multipleServiceAssociationNoteType); n != nil {
 			notes = append(notes, n)
 			return notes, nil
 		}
@@ -88,9 +90,9 @@ func (m *svcAssociation) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 	for _, v := range epMap {
 		if len(v.ServiceNames) > 1 {
 			notes = append(notes, &apiv1.Note{
-				Type:    multiple_service_association_note_type,
-				Summary: multiple_service_association_summary,
-				Msg:     multiple_service_association_msg,
+				Type:    multipleServiceAssociationNoteType,
+				Summary: multipleServiceAssociationSummary,
+				Msg:     multipleServiceAssociationMsg,
 				Level:   apiv1.NoteLevel_ERROR,
 				Attr: map[string]string{
 					"pod_name":     v.PodName,
@@ -100,17 +102,18 @@ func (m *svcAssociation) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 	}
 
 	for i := range notes {
-		notes[i].Id = util.ComputeId(notes[i])
+		notes[i].Id = util.ComputeID(notes[i])
 	}
 
 	return notes, nil
 }
 
-func (m *svcAssociation) Info() *apiv1.Info {
+// Info returns information about the vetter
+func (m *SvcAssociation) Info() *apiv1.Info {
 	return &m.info
 }
 
 // NewVetter returns "svcAssociation" which implements Vetter Interface
-func NewVetter() *svcAssociation {
-	return &svcAssociation{info: apiv1.Info{Id: vetterId, Version: "0.1.0"}}
+func NewVetter() *SvcAssociation {
+	return &SvcAssociation{info: apiv1.Info{Id: vetterID, Version: "0.1.0"}}
 }

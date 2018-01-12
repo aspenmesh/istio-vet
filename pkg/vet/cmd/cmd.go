@@ -33,14 +33,20 @@ import (
 var cfgFile string
 
 const (
+	// DefaultConfigFile is the default config file for vet tool
 	DefaultConfigFile = "/etc/istio/vet.yaml"
 )
 
-// This represents the base command when called without any subcommands
+// RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
-	Use:   "mesh",
-	Short: "vet mesh configuration state",
-	Long: `CLI for vetting istio mesh cluster
+	Use:   "vet",
+	Short: "Runs vet command",
+	Long: `Runs vet command.
+
+Vet is a diagnostic tool for validating the configuration of Istio
+and applications deployed in the mesh.
+
+For more details, see 'https://github.com/aspenmesh/istio-vet'
 `,
 	RunE: vet,
 }

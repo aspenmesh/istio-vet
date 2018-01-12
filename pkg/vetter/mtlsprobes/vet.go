@@ -30,21 +30,22 @@ import (
 )
 
 const (
-	vetterId                    = "mtlsprobes"
-	mtls_probes_note_type       = "mtls-probes-incompatible"
-	mtls_liveness_probe_summary = "mTLS and liveness probe incompatible - ${pod_name}"
-	mtls_liveness_probe_msg     = "The pod ${pod_name} in namespace ${namespace} uses" +
+	vetterID                 = "MtlsProbes"
+	mtlsProbesNoteType       = "mtls-probes-incompatible"
+	mtlsLivenessProbeSummary = "mTLS and liveness probe incompatible - ${pod_name}"
+	mtlsLivenessProbeMsg     = "The pod ${pod_name} in namespace ${namespace} uses" +
 		" liveness probe which is incompatible with mTLS. Consider disabling the" +
 		" liveness probe or mTLS."
-	mtls_readiness_probe_summary = "mTLS and readiness probe incompatible - ${pod_name}"
-	mtls_readiness_probe_msg     = "The pod ${pod_name} in namespace ${namespace} uses" +
+	mtlsReadinessProbeSummary = "mTLS and readiness probe incompatible - ${pod_name}"
+	mtlsReadinessProbeMsg     = "The pod ${pod_name} in namespace ${namespace} uses" +
 		" readiness probe which is incompatible with mTLS. Consider disabling the" +
 		" readiness probe or mTLS."
-	mtls_disabled_summary = "mTLS is disabled. Enable it to use \"" +
-		vetterId + "\" vetter"
+	mtlsDisabledSummary = "mTLS is disabled. Enable it to use \"" +
+		vetterID + "\" vetter"
 )
 
-type mtlsProbes struct {
+// MtlsProbes implements Vetter interface
+type MtlsProbes struct {
 	info apiv1.Info
 }
 
@@ -57,7 +58,8 @@ func mtlsEnabled(c string) bool {
 	return cfg.GetAuthPolicy() != 0
 }
 
-func (m *mtlsProbes) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
+// Vet returns the list of generated notes
+func (m *MtlsProbes) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 	notes := []*apiv1.Note{}
 	cm, err :=
 		c.CoreV1().ConfigMaps(util.IstioNamespace).Get(util.IstioConfigMap,
@@ -72,15 +74,15 @@ func (m *mtlsProbes) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 	}
 	if mtlsEnabled(config) == false {
 		notes = append(notes, &apiv1.Note{
-			Type:    mtls_probes_note_type,
-			Summary: mtls_disabled_summary,
+			Type:    mtlsProbesNoteType,
+			Summary: mtlsDisabledSummary,
 			Level:   apiv1.NoteLevel_INFO})
 		return notes, nil
 	}
 	pods, err := util.ListPodsInMesh(c)
 	if err != nil {
-		if n := util.IstioInitializerDisabledNote(err.Error(), vetterId,
-			mtls_probes_note_type); n != nil {
+		if n := util.IstioInitializerDisabledNote(err.Error(), vetterID,
+			mtlsProbesNoteType); n != nil {
 			notes = append(notes, n)
 			return notes, nil
 		}
@@ -92,18 +94,18 @@ func (m *mtlsProbes) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 			for _, c := range cList {
 				if c.LivenessProbe != nil && c.LivenessProbe.Exec == nil {
 					notes = append(notes, &apiv1.Note{
-						Type:    mtls_probes_note_type,
-						Summary: mtls_liveness_probe_summary,
-						Msg:     mtls_liveness_probe_msg,
+						Type:    mtlsProbesNoteType,
+						Summary: mtlsLivenessProbeSummary,
+						Msg:     mtlsLivenessProbeMsg,
 						Level:   apiv1.NoteLevel_ERROR,
 						Attr: map[string]string{
 							"pod_name":  p.Name,
 							"namespace": p.Namespace}})
 				} else if c.ReadinessProbe != nil && c.ReadinessProbe.Exec == nil {
 					notes = append(notes, &apiv1.Note{
-						Type:    mtls_probes_note_type,
-						Summary: mtls_readiness_probe_summary,
-						Msg:     mtls_readiness_probe_msg,
+						Type:    mtlsProbesNoteType,
+						Summary: mtlsReadinessProbeSummary,
+						Msg:     mtlsReadinessProbeMsg,
 						Level:   apiv1.NoteLevel_ERROR,
 						Attr: map[string]string{
 							"pod_name":  p.Name,
@@ -114,17 +116,18 @@ func (m *mtlsProbes) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 	}
 
 	for i := range notes {
-		notes[i].Id = util.ComputeId(notes[i])
+		notes[i].Id = util.ComputeID(notes[i])
 	}
 
 	return notes, nil
 }
 
-func (m *mtlsProbes) Info() *apiv1.Info {
+// Info returns information about the vetter
+func (m *MtlsProbes) Info() *apiv1.Info {
 	return &m.info
 }
 
-// NewVetter returns "mtlsProbes" which implements Vetter Interface
-func NewVetter() *mtlsProbes {
-	return &mtlsProbes{info: apiv1.Info{Id: vetterId, Version: "0.1.0"}}
+// NewVetter returns "MtlsProbes" which implements Vetter Interface
+func NewVetter() *MtlsProbes {
+	return &MtlsProbes{info: apiv1.Info{Id: vetterID, Version: "0.1.0"}}
 }

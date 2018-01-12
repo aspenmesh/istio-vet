@@ -29,25 +29,26 @@ import (
 )
 
 const (
-	vetterId                           = "meshversion"
-	latest_tag                         = "latest"
-	istio_component_mismatch_note_type = "istio-component-mismatch"
-	istio_component_mismatch_summary   = "Mismatched istio component versions - ${component_name}"
-	istio_component_mismatch_msg       = "Istio component ${component_name} is running version ${component_version}" +
+	vetterID                       = "MeshVersion"
+	latestTag                      = "latest"
+	istioComponentMismatchNoteType = "istio-component-mismatch"
+	istioComponentMismatchSummary  = "Mismatched istio component versions - ${component_name}"
+	istioComponentMismatchMsg      = "Istio component ${component_name} is running version ${component_version}" +
 		" but your environment is running istio version ${istio_version}." +
 		" Consider upgrading the component ${component_name} "
-	sidecar_mismatch_note_type = "sidecar-version-mismatch"
-	sidecar_mismatch_summary   = "Mismatched sidecar version - ${pod_name}"
-	sidecar_mismatch_msg       = "The pod ${pod_name} in namespace ${namespace}" +
+	sidecarMismatchNoteType = "sidecar-version-mismatch"
+	sidecarMismatchSummary  = "Mismatched sidecar version - ${pod_name}"
+	sidecarMismatchMsg      = "The pod ${pod_name} in namespace ${namespace}" +
 		" is running with sidecar proxy version ${sidecar_version}" +
 		" but your environment is running istio version" +
 		" ${istio_version}. Consider upgrading the sidecar proxy in the pod."
-	missing_version_note_type    = "missing-version"
-	missing_version_note_summary = "Missing version information"
-	missing_version_note_msg     = "Cannot determine mesh version"
+	missingVersionNoteType    = "missing-version"
+	missingVersionNoteSummary = "Missing version information"
+	missingVersionNoteMsg     = "Cannot determine mesh version"
 )
 
-type meshVersion struct {
+// MeshVersion implements Vetter interface
+type MeshVersion struct {
 	info apiv1.Info
 }
 
@@ -67,17 +68,18 @@ func istioVersion(c kubernetes.Interface) (string, error) {
 		util.IstioMixerContainerName)
 }
 
-func (m *meshVersion) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
+// Vet returns the list of generated notes
+func (m *MeshVersion) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 	notes := []*apiv1.Note{}
 	ver, err := istioVersion(c)
 	if err != nil {
 		return nil, err
 	}
-	if ver == latest_tag {
+	if ver == latestTag {
 		notes = append(notes, &apiv1.Note{
-			Type:    missing_version_note_type,
-			Summary: missing_version_note_summary,
-			Msg:     missing_version_note_msg,
+			Type:    missingVersionNoteType,
+			Summary: missingVersionNoteSummary,
+			Msg:     missingVersionNoteMsg,
 			Level:   apiv1.NoteLevel_INFO})
 
 		return notes, nil
@@ -85,11 +87,11 @@ func (m *meshVersion) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 
 	pilotVer, err := getImageVersion(c, util.IstioNamespace,
 		util.IstioPilotDeploymentName, util.IstioPilotContainerName)
-	if pilotVer != latest_tag && pilotVer != ver {
+	if pilotVer != latestTag && pilotVer != ver {
 		notes = append(notes, &apiv1.Note{
-			Type:    istio_component_mismatch_note_type,
-			Summary: istio_component_mismatch_summary,
-			Msg:     istio_component_mismatch_msg,
+			Type:    istioComponentMismatchNoteType,
+			Summary: istioComponentMismatchSummary,
+			Msg:     istioComponentMismatchMsg,
 			Level:   apiv1.NoteLevel_WARNING,
 			Attr: map[string]string{
 				"component_name":    util.IstioPilotDeploymentName,
@@ -99,8 +101,8 @@ func (m *meshVersion) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 
 	pods, err := util.ListPodsInMesh(c)
 	if err != nil {
-		if n := util.IstioInitializerDisabledNote(err.Error(), vetterId,
-			sidecar_mismatch_note_type); n != nil {
+		if n := util.IstioInitializerDisabledNote(err.Error(), vetterID,
+			sidecarMismatchNoteType); n != nil {
 			notes = append(notes, n)
 			return notes, nil
 		}
@@ -108,14 +110,14 @@ func (m *meshVersion) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 	}
 	for _, p := range pods {
 		sideCarVer, err := util.ImageTag(util.IstioProxyContainerName, p.Spec)
-		if err != nil || sideCarVer == latest_tag {
+		if err != nil || sideCarVer == latestTag {
 			continue
 		}
 		if sideCarVer != ver {
 			notes = append(notes, &apiv1.Note{
-				Type:    sidecar_mismatch_note_type,
-				Summary: sidecar_mismatch_summary,
-				Msg:     sidecar_mismatch_msg,
+				Type:    sidecarMismatchNoteType,
+				Summary: sidecarMismatchSummary,
+				Msg:     sidecarMismatchMsg,
 				Level:   apiv1.NoteLevel_WARNING,
 				Attr: map[string]string{
 					"pod_name":        p.Name,
@@ -126,17 +128,18 @@ func (m *meshVersion) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 	}
 
 	for i := range notes {
-		notes[i].Id = util.ComputeId(notes[i])
+		notes[i].Id = util.ComputeID(notes[i])
 	}
 
 	return notes, nil
 }
 
-func (m *meshVersion) Info() *apiv1.Info {
+// Info returns information about the vetter
+func (m *MeshVersion) Info() *apiv1.Info {
 	return &m.info
 }
 
-// NewVetter returns "meshVersion" which implements Vetter Interface
-func NewVetter() *meshVersion {
-	return &meshVersion{info: apiv1.Info{Id: vetterId, Version: "0.1.0"}}
+// NewVetter returns "MeshVersion" which implements Vetter Interface
+func NewVetter() *MeshVersion {
+	return &MeshVersion{info: apiv1.Info{Id: vetterID, Version: "0.1.0"}}
 }

@@ -26,24 +26,26 @@ import (
 )
 
 const (
-	vetterId                      = "serviceportprefix"
-	service_port_prefix_note_type = "missing-service-port-prefix"
-	service_port_prefix_summary   = "Missing prefix in service - ${service_name}"
-	service_port_prefix_msg       = "The service ${service_name} in namespace ${namespace}" +
+	vetterID                  = "serviceportprefix"
+	servicePortPrefixNoteType = "missing-service-port-prefix"
+	servicePortPrefixSummary  = "Missing prefix in service - ${service_name}"
+	servicePortPrefixMsg      = "The service ${service_name} in namespace ${namespace}" +
 		" contains port names not prefixed with mesh supported protocols." +
 		" Consider updating the service port name with one of the mesh recognized prefixes."
 )
 
-type svcPortPrefix struct {
+// SvcPortPrefix implements Vetter interface
+type SvcPortPrefix struct {
 	info apiv1.Info
 }
 
-func (m *svcPortPrefix) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
+// Vet returns the list of generated notes
+func (m *SvcPortPrefix) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 	notes := []*apiv1.Note{}
 	services, err := util.ListServicesInMesh(c)
 	if err != nil {
-		if n := util.IstioInitializerDisabledNote(err.Error(), vetterId,
-			service_port_prefix_note_type); n != nil {
+		if n := util.IstioInitializerDisabledNote(err.Error(), vetterID,
+			servicePortPrefixNoteType); n != nil {
 			notes = append(notes, n)
 			return notes, nil
 		}
@@ -54,9 +56,9 @@ func (m *svcPortPrefix) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 			if p.Protocol != util.ServiceProtocolUDP &&
 				util.ServicePortPrefixed(p.Name) == false {
 				notes = append(notes, &apiv1.Note{
-					Type:    service_port_prefix_note_type,
-					Summary: service_port_prefix_summary,
-					Msg:     service_port_prefix_msg,
+					Type:    servicePortPrefixNoteType,
+					Summary: servicePortPrefixSummary,
+					Msg:     servicePortPrefixMsg,
 					Level:   apiv1.NoteLevel_WARNING,
 					Attr: map[string]string{
 						"service_name": s.Name,
@@ -66,17 +68,18 @@ func (m *svcPortPrefix) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 	}
 
 	for i := range notes {
-		notes[i].Id = util.ComputeId(notes[i])
+		notes[i].Id = util.ComputeID(notes[i])
 	}
 
 	return notes, nil
 }
 
-func (m *svcPortPrefix) Info() *apiv1.Info {
+// Info returns information about the vetter
+func (m *SvcPortPrefix) Info() *apiv1.Info {
 	return &m.info
 }
 
 // NewVetter returns "svcPortPrefix" which implements Vetter Interface
-func NewVetter() *svcPortPrefix {
-	return &svcPortPrefix{info: apiv1.Info{Id: vetterId, Version: "0.1.0"}}
+func NewVetter() *SvcPortPrefix {
+	return &SvcPortPrefix{info: apiv1.Info{Id: vetterID, Version: "0.1.0"}}
 }
