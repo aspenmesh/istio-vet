@@ -19,7 +19,8 @@ limitations under the License.
 package meshversion
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"errors"
+
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/golang/glog"
@@ -36,12 +37,18 @@ const (
 	istioComponentMismatchMsg      = "Istio component ${component_name} is running version ${component_version}" +
 		" but your environment is running istio version ${istio_version}." +
 		" Consider upgrading the component ${component_name} "
-	sidecarMismatchNoteType = "sidecar-version-mismatch"
-	sidecarMismatchSummary  = "Mismatched sidecar version - ${pod_name}"
+	sidecarMismatchNoteType = "sidecar-image-mismatch"
+	sidecarMismatchSummary  = "Mismatched sidecar image - ${pod_name}"
 	sidecarMismatchMsg      = "The pod ${pod_name} in namespace ${namespace}" +
-		" is running with sidecar proxy version ${sidecar_version}" +
-		" but your environment is running istio version" +
-		" ${istio_version}. Consider upgrading the sidecar proxy in the pod."
+		" is running with sidecar proxy image ${sidecar_image}" +
+		" but your environment is injecting ${inject_sidecar_image} for" +
+		" new workloads. Consider upgrading the sidecar proxy in the pod."
+	initMismatchNoteType = "init-image-mismatch"
+	initMismatchSummary  = "Mismatched istio-init image - ${pod_name}"
+	initMismatchMsg      = "The pod ${pod_name} in namespace ${namespace}" +
+		" is running with istio-init image ${init_image}" +
+		" but your environment is injecting ${inject_init_image} for" +
+		" new workloads. Consider upgrading the istio-init container in the pod."
 	missingVersionNoteType    = "missing-version"
 	missingVersionNoteSummary = "Missing version information"
 	missingVersionNoteMsg     = "Cannot determine mesh version"
@@ -52,79 +59,89 @@ type MeshVersion struct {
 	info apiv1.Info
 }
 
-func getImageVersion(c kubernetes.Interface, namespace, deployment, container string) (string, error) {
-	opts := metav1.GetOptions{}
-	d, err := c.ExtensionsV1beta1().Deployments(namespace).Get(deployment, opts)
+type injectImages struct {
+	Init    string
+	Sidecar string
+}
+
+func getInjectImages(c kubernetes.Interface) (injectImages, error) {
+	injectConfig, err := util.GetInitializerConfig(c)
 	if err != nil {
-		glog.Errorf("Failed to retrieve deployment: %s in namespace: %s error: %s",
-			deployment, namespace, err)
-		return "", err
+		return injectImages{}, err
 	}
-	return util.ImageTag(container, d.Spec.Template.Spec)
+	if injectConfig.Params.InitImage == "" ||
+		injectConfig.Params.ProxyImage == "" {
+		errStr := "Failed to identify inject images"
+		glog.Error(errStr)
+		return injectImages{}, errors.New(errStr)
+	}
+	return injectImages{
+		Init:    injectConfig.Params.InitImage,
+		Sidecar: injectConfig.Params.ProxyImage,
+	}, nil
 }
 
-func istioVersion(c kubernetes.Interface) (string, error) {
-	return getImageVersion(c, util.IstioNamespace, util.IstioMixerDeploymentName,
-		util.IstioMixerContainerName)
-}
-
-// Vet returns the list of generated notes
-func (m *MeshVersion) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
+// The istio-inject ConfigMap has the sidecar & init images that should be
+// injected into all new deployments, daemonsets, ....  If that doesn't match
+// the images that are injected, emit a warning.
+func (m *MeshVersion) vetInjectedImages(c kubernetes.Interface) ([]*apiv1.Note, error) {
 	notes := []*apiv1.Note{}
-	ver, err := istioVersion(c)
-	if err != nil {
-		return nil, err
-	}
-	if ver == latestTag {
-		notes = append(notes, &apiv1.Note{
-			Type:    missingVersionNoteType,
-			Summary: missingVersionNoteSummary,
-			Msg:     missingVersionNoteMsg,
-			Level:   apiv1.NoteLevel_INFO})
-
-		return notes, nil
-	}
-
-	pilotVer, err := getImageVersion(c, util.IstioNamespace,
-		util.IstioPilotDeploymentName, util.IstioPilotContainerName)
-	if pilotVer != latestTag && pilotVer != ver {
-		notes = append(notes, &apiv1.Note{
-			Type:    istioComponentMismatchNoteType,
-			Summary: istioComponentMismatchSummary,
-			Msg:     istioComponentMismatchMsg,
-			Level:   apiv1.NoteLevel_WARNING,
-			Attr: map[string]string{
-				"component_name":    util.IstioPilotDeploymentName,
-				"component_version": pilotVer,
-				"istio_version":     ver}})
-	}
-
-	pods, err := util.ListPodsInMesh(c)
+	injectImages, err := getInjectImages(c)
 	if err != nil {
 		if n := util.IstioInitializerDisabledNote(err.Error(), vetterID,
 			sidecarMismatchNoteType); n != nil {
 			notes = append(notes, n)
-			return notes, nil
 		}
+		return notes, nil
+	}
+
+	pods, err := util.ListPodsInMesh(c)
+	if err != nil {
 		return nil, err
 	}
+
 	for _, p := range pods {
-		sideCarVer, err := util.ImageTag(util.IstioProxyContainerName, p.Spec)
-		if err != nil || sideCarVer == latestTag {
-			continue
-		}
-		if sideCarVer != ver {
+		// If err != nil when getting pod data, the lower-level error has already
+		// been logged and handled.
+
+		sidecarImage, err := util.Image(util.IstioProxyContainerName, p.Spec)
+		if err == nil && sidecarImage != injectImages.Sidecar {
 			notes = append(notes, &apiv1.Note{
 				Type:    sidecarMismatchNoteType,
 				Summary: sidecarMismatchSummary,
 				Msg:     sidecarMismatchMsg,
 				Level:   apiv1.NoteLevel_WARNING,
 				Attr: map[string]string{
-					"pod_name":        p.Name,
-					"namespace":       p.Namespace,
-					"sidecar_version": sideCarVer,
-					"istio_version":   ver}})
+					"pod_name":             p.Name,
+					"namespace":            p.Namespace,
+					"sidecar_image":        sidecarImage,
+					"inject_sidecar_image": injectImages.Sidecar}})
 		}
+
+		initImage, err := util.InitImage(util.IstioInitContainerName, p.Spec)
+		if err == nil && initImage != injectImages.Init {
+			notes = append(notes, &apiv1.Note{
+				Type:    initMismatchNoteType,
+				Summary: initMismatchSummary,
+				Msg:     initMismatchMsg,
+				Level:   apiv1.NoteLevel_WARNING,
+				Attr: map[string]string{
+					"pod_name":          p.Name,
+					"namespace":         p.Namespace,
+					"init_image":        initImage,
+					"inject_init_image": injectImages.Init}})
+		}
+	}
+	return notes, nil
+}
+
+// Vet returns the list of generated notes
+func (m *MeshVersion) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
+	notes := []*apiv1.Note{}
+
+	injectedNotes, err := m.vetInjectedImages(c)
+	if err == nil {
+		notes = append(notes, injectedNotes...)
 	}
 
 	for i := range notes {

@@ -42,6 +42,7 @@ const (
 	IstioMixerContainerName       = "mixer"
 	IstioPilotDeploymentName      = "istio-pilot"
 	IstioPilotContainerName       = "discovery"
+	IstioInitContainerName        = "istio-init"
 	IstioConfigMap                = "istio"
 	IstioConfigMapKey             = "mesh"
 	IstioAuthPolicy               = "authPolicy: MUTUAL_TLS"
@@ -196,23 +197,27 @@ func SidecarInjected(p corev1.Pod) bool {
 	return false
 }
 
-// ImageTag returns the Image tag of a named Container if present in the Pod Spec.
-// If no version is specified "latest" is returned.
-// Returns error if Container is not present in the Pod Spec.
-func ImageTag(n string, s corev1.PodSpec) (string, error) {
-	cList := s.Containers
+func imageFromContainers(n string, cList []corev1.Container) (string, error) {
 	for _, c := range cList {
 		if c.Name == n {
-			imageTags := strings.Split(c.Image, ":")
-			if len(imageTags) == 1 {
-				return "latest", nil
-			}
-			return imageTags[len(imageTags)-1], nil
+			return c.Image, nil
 		}
 	}
-	errStr := fmt.Sprintf("Failed to find container: %s", n)
+	errStr := fmt.Sprintf("Failed to find container %s", n)
 	glog.Error(errStr)
 	return "", errors.New(errStr)
+}
+
+// Image returns the image for the container named n if present
+// in the pod spec, or an error otherwise.
+func Image(n string, s corev1.PodSpec) (string, error) {
+	return imageFromContainers(n, s.Containers)
+}
+
+// InitImage returns the image for the init container named n if present
+// in the pod spec, or an error otherwise.
+func InitImage(n string, s corev1.PodSpec) (string, error) {
+	return imageFromContainers(n, s.InitContainers)
 }
 
 func existsInStringSlice(e string, list []string) bool {
