@@ -21,12 +21,12 @@ package meshversion
 import (
 	"errors"
 
-	"k8s.io/client-go/kubernetes"
-
-	"github.com/golang/glog"
-
 	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
+	"github.com/aspenmesh/istio-vet/pkg/vetter"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/util"
+	"github.com/golang/glog"
+	appsv1beta1 "k8s.io/client-go/listers/apps/v1beta1"
+	"k8s.io/client-go/listers/core/v1"
 )
 
 const (
@@ -56,7 +56,10 @@ const (
 
 // MeshVersion implements Vetter interface
 type MeshVersion struct {
-	info apiv1.Info
+	podLister        v1.PodLister
+	deploymentLister appsv1beta1.DeploymentLister
+	cmLister         v1.ConfigMapLister
+	nsLister         v1.NamespaceLister
 }
 
 type injectImages struct {
@@ -64,8 +67,8 @@ type injectImages struct {
 	Sidecar string
 }
 
-func getInjectImages(c kubernetes.Interface) (injectImages, error) {
-	injectConfig, err := util.GetInitializerConfig(c)
+func getInjectImages(deployLister appsv1beta1.DeploymentLister, cmLister v1.ConfigMapLister) (injectImages, error) {
+	injectConfig, err := util.GetInitializerConfig(cmLister)
 	if err != nil {
 		return injectImages{}, err
 	}
@@ -84,9 +87,9 @@ func getInjectImages(c kubernetes.Interface) (injectImages, error) {
 // The istio-inject ConfigMap has the sidecar & init images that should be
 // injected into all new deployments, daemonsets, ....  If that doesn't match
 // the images that are injected, emit a warning.
-func (m *MeshVersion) vetInjectedImages(c kubernetes.Interface) ([]*apiv1.Note, error) {
+func (m *MeshVersion) vetInjectedImages() ([]*apiv1.Note, error) {
 	notes := []*apiv1.Note{}
-	injectImages, err := getInjectImages(c)
+	injectImages, err := getInjectImages(m.deploymentLister, m.cmLister)
 	if err != nil {
 		if n := util.IstioInitializerDisabledNote(err.Error(), vetterID,
 			sidecarMismatchNoteType); n != nil {
@@ -95,7 +98,7 @@ func (m *MeshVersion) vetInjectedImages(c kubernetes.Interface) ([]*apiv1.Note, 
 		return notes, nil
 	}
 
-	pods, err := util.ListPodsInMesh(c)
+	pods, err := util.ListPodsInMesh(m.nsLister, m.cmLister, m.podLister)
 	if err != nil {
 		return nil, err
 	}
@@ -136,10 +139,10 @@ func (m *MeshVersion) vetInjectedImages(c kubernetes.Interface) ([]*apiv1.Note, 
 }
 
 // Vet returns the list of generated notes
-func (m *MeshVersion) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
+func (m *MeshVersion) Vet() ([]*apiv1.Note, error) {
 	notes := []*apiv1.Note{}
 
-	injectedNotes, err := m.vetInjectedImages(c)
+	injectedNotes, err := m.vetInjectedImages()
 	if err == nil {
 		notes = append(notes, injectedNotes...)
 	}
@@ -153,10 +156,15 @@ func (m *MeshVersion) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 
 // Info returns information about the vetter
 func (m *MeshVersion) Info() *apiv1.Info {
-	return &m.info
+	return &apiv1.Info{Id: vetterID, Version: "0.1.0"}
 }
 
 // NewVetter returns "MeshVersion" which implements Vetter Interface
-func NewVetter() *MeshVersion {
-	return &MeshVersion{info: apiv1.Info{Id: vetterID, Version: "0.1.0"}}
+func NewVetter(factory vetter.ResourceListGetter) *MeshVersion {
+	return &MeshVersion{
+		podLister:        factory.Core().V1().Pods().Lister(),
+		deploymentLister: factory.Apps().V1beta1().Deployments().Lister(),
+		cmLister:         factory.Core().V1().ConfigMaps().Lister(),
+		nsLister:         factory.Core().V1().Namespaces().Lister(),
+	}
 }

@@ -21,13 +21,12 @@ package podsinmesh
 import (
 	"strconv"
 
-	"github.com/golang/glog"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-
-	"github.com/aspenmesh/istio-vet/pkg/vetter/util"
-
 	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
+	"github.com/aspenmesh/istio-vet/pkg/vetter"
+	"github.com/aspenmesh/istio-vet/pkg/vetter/util"
+	"github.com/golang/glog"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/listers/core/v1"
 )
 
 const (
@@ -41,33 +40,33 @@ const (
 
 // MeshStats implements Vetter interface
 type MeshStats struct {
-	info apiv1.Info
+	podLister v1.PodLister
+	nsLister  v1.NamespaceLister
 }
 
 // Vet returns the list of generated notes
-func (m *MeshStats) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
-	opts := metav1.ListOptions{}
-	ns, err := c.CoreV1().Namespaces().List(opts)
+func (m *MeshStats) Vet() ([]*apiv1.Note, error) {
+	ns, err := m.nsLister.List(labels.Everything())
 	if err != nil {
 		glog.Error("Failed to retrieve namespaces: ", err)
 		return nil, err
 	}
 	var totalUserPods, totalUserPodsInMesh, totalSystemPods int
-	for _, n := range ns.Items {
-		podList, err := c.CoreV1().Pods(n.Name).List(opts)
+	for _, n := range ns {
+		podList, err := m.podLister.Pods(n.Name).List(labels.Everything())
 		if err != nil {
 			glog.Errorf("Failed to retrieve pods for namespace: %s : %s", n.Name, err)
 			return nil, err
 		}
 		if util.ExemptedNamespace(n.Name) == false {
-			totalUserPods += len(podList.Items)
-			for _, p := range podList.Items {
+			totalUserPods += len(podList)
+			for _, p := range podList {
 				if util.SidecarInjected(p) == true {
 					totalUserPodsInMesh++
 				}
 			}
 		} else {
-			totalSystemPods += len(podList.Items)
+			totalSystemPods += len(podList)
 		}
 	}
 
@@ -97,10 +96,13 @@ func (m *MeshStats) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 
 // Info returns information about the vetter
 func (m *MeshStats) Info() *apiv1.Info {
-	return &m.info
+	return &apiv1.Info{Id: "podsinmesh", Version: "0.1.0"}
 }
 
 // NewVetter returns "meshStats" which implements Vetter Interface
-func NewVetter() *MeshStats {
-	return &MeshStats{info: apiv1.Info{Id: "podsinmesh", Version: "0.1.0"}}
+func NewVetter(factory vetter.ResourceListGetter) *MeshStats {
+	return &MeshStats{
+		podLister: factory.Core().V1().Pods().Lister(),
+		nsLister:  factory.Core().V1().Namespaces().Lister(),
+	}
 }

@@ -19,10 +19,10 @@ limitations under the License.
 package applabel
 
 import (
-	"k8s.io/client-go/kubernetes"
-
 	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
+	"github.com/aspenmesh/istio-vet/pkg/vetter"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/util"
+	"k8s.io/client-go/listers/core/v1"
 )
 
 const (
@@ -35,14 +35,17 @@ const (
 
 // AppLabel implements Vetter interface
 type AppLabel struct {
-	info apiv1.Info
+	info      apiv1.Info
+	nsLister  v1.NamespaceLister
+	cmLister  v1.ConfigMapLister
+	podLister v1.PodLister
 }
 
 // Vet returns the list of generated notes
-func (m *AppLabel) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
+func (m *AppLabel) Vet() ([]*apiv1.Note, error) {
 	notes := []*apiv1.Note{}
 
-	pods, err := util.ListPodsInMesh(c)
+	pods, err := util.ListPodsInMesh(m.nsLister, m.cmLister, m.podLister)
 	if err != nil {
 		if n := util.IstioInitializerDisabledNote(err.Error(), vetterID,
 			missingAppLabelNoteType); n != nil {
@@ -71,12 +74,15 @@ func (m *AppLabel) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 	return notes, nil
 }
 
-// Info returns information about the vetter
 func (m *AppLabel) Info() *apiv1.Info {
-	return &m.info
+	return &apiv1.Info{Id: vetterID, Version: "0.1.0"}
 }
 
 // NewVetter returns "AppLabel" which implements Vetter Interface
-func NewVetter() *AppLabel {
-	return &AppLabel{info: apiv1.Info{Id: vetterID, Version: "0.1.0"}}
+func NewVetter(factory vetter.ResourceListGetter) *AppLabel {
+	return &AppLabel{
+		nsLister:  factory.Core().V1().Namespaces().Lister(),
+		cmLister:  factory.Core().V1().ConfigMaps().Lister(),
+		podLister: factory.Core().V1().Pods().Lister(),
+	}
 }

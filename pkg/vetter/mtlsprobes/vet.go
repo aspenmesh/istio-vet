@@ -19,14 +19,12 @@ limitations under the License.
 package mtlsprobes
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-
-	"github.com/golang/glog"
-	meshconfig "istio.io/api/mesh/v1alpha1"
-
 	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
+	"github.com/aspenmesh/istio-vet/pkg/vetter"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/util"
+	"github.com/golang/glog"
+	meshv1alpha1 "istio.io/api/mesh/v1alpha1"
+	"k8s.io/client-go/listers/core/v1"
 )
 
 const (
@@ -46,11 +44,13 @@ const (
 
 // MtlsProbes implements Vetter interface
 type MtlsProbes struct {
-	info apiv1.Info
+	podLister v1.PodLister
+	nsLister  v1.NamespaceLister
+	cmLister  v1.ConfigMapLister
 }
 
 func mtlsEnabled(c string) bool {
-	var cfg meshconfig.MeshConfig
+	var cfg meshv1alpha1.MeshConfig
 	if err := util.ApplyYAML(c, &cfg); err != nil {
 		glog.Errorf("Failed to parse yaml mesh config: %s", err)
 		return false
@@ -59,11 +59,9 @@ func mtlsEnabled(c string) bool {
 }
 
 // Vet returns the list of generated notes
-func (m *MtlsProbes) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
-	notes := []*apiv1.Note{}
-	cm, err :=
-		c.CoreV1().ConfigMaps(util.IstioNamespace).Get(util.IstioConfigMap,
-			metav1.GetOptions{})
+func (m *MtlsProbes) Vet() ([]*apiv1.Note, error) {
+	var notes []*apiv1.Note
+	cm, err := m.cmLister.ConfigMaps(util.IstioNamespace).Get(util.IstioConfigMap)
 	if err != nil {
 		glog.Errorf("Failed to retrieve configmap: %s error: %s", util.IstioConfigMap, err)
 		return nil, err
@@ -79,7 +77,7 @@ func (m *MtlsProbes) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 			Level:   apiv1.NoteLevel_INFO})
 		return notes, nil
 	}
-	pods, err := util.ListPodsInMesh(c)
+	pods, err := util.ListPodsInMesh(m.nsLister, m.cmLister, m.podLister)
 	if err != nil {
 		if n := util.IstioInitializerDisabledNote(err.Error(), vetterID,
 			mtlsProbesNoteType); n != nil {
@@ -124,10 +122,14 @@ func (m *MtlsProbes) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 
 // Info returns information about the vetter
 func (m *MtlsProbes) Info() *apiv1.Info {
-	return &m.info
+	return &apiv1.Info{Id: vetterID, Version: "0.1.0"}
 }
 
-// NewVetter returns "MtlsProbes" which implements Vetter Interface
-func NewVetter() *MtlsProbes {
-	return &MtlsProbes{info: apiv1.Info{Id: vetterID, Version: "0.1.0"}}
+// NewVetter returns "mtlsProbes" which implements Vetter Interface
+func NewVetter(factory vetter.ResourceListGetter) *MtlsProbes {
+	return &MtlsProbes{
+		podLister: factory.Core().V1().Pods().Lister(),
+		cmLister:  factory.Core().V1().ConfigMaps().Lister(),
+		nsLister:  factory.Core().V1().Namespaces().Lister(),
+	}
 }

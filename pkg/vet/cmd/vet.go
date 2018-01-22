@@ -20,8 +20,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/spf13/cobra"
-
 	"github.com/aspenmesh/istio-vet/pkg/meshclient"
 	"github.com/aspenmesh/istio-vet/pkg/vetter"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/applabel"
@@ -30,6 +28,9 @@ import (
 	"github.com/aspenmesh/istio-vet/pkg/vetter/podsinmesh"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/serviceassociation"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/serviceportprefix"
+	"github.com/golang/glog"
+	"github.com/spf13/cobra"
+	"k8s.io/client-go/informers"
 )
 
 func printNote(level, summary, msg string) {
@@ -55,16 +56,31 @@ func vet(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+
+	kubeInformerFactory := informers.NewSharedInformerFactory(cli, 0)
+
 	vList := []vetter.Vetter{
-		vetter.Vetter(podsinmesh.NewVetter()),
-		vetter.Vetter(meshversion.NewVetter()),
-		vetter.Vetter(mtlsprobes.NewVetter()),
-		vetter.Vetter(applabel.NewVetter()),
-		vetter.Vetter(serviceportprefix.NewVetter()),
-		vetter.Vetter(serviceassociation.NewVetter())}
+		vetter.Vetter(podsinmesh.NewVetter(kubeInformerFactory)),
+		vetter.Vetter(meshversion.NewVetter(kubeInformerFactory)),
+		vetter.Vetter(mtlsprobes.NewVetter(kubeInformerFactory)),
+		vetter.Vetter(applabel.NewVetter(kubeInformerFactory)),
+		vetter.Vetter(serviceportprefix.NewVetter(kubeInformerFactory)),
+		vetter.Vetter(serviceassociation.NewVetter(kubeInformerFactory))}
+
+	stopCh := make(chan struct{})
+
+	kubeInformerFactory.Start(stopCh)
+	oks := kubeInformerFactory.WaitForCacheSync(stopCh)
+	for inf, ok := range oks {
+		if !ok {
+			glog.Fatalf("Failed to sync %s", inf)
+		}
+	}
+	// Just run through once
+	close(stopCh)
 
 	for _, v := range vList {
-		nList, err := v.Vet(cli)
+		nList, err := v.Vet()
 		if err != nil {
 			fmt.Printf("Vetter: \"%s\" reported error: %s\n", v.Info().GetId(), err)
 			continue
