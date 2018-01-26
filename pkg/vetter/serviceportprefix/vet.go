@@ -19,10 +19,10 @@ limitations under the License.
 package serviceportprefix
 
 import (
-	"k8s.io/client-go/kubernetes"
-
 	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
+	"github.com/aspenmesh/istio-vet/pkg/vetter"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/util"
+	"k8s.io/client-go/listers/core/v1"
 )
 
 const (
@@ -36,13 +36,15 @@ const (
 
 // SvcPortPrefix implements Vetter interface
 type SvcPortPrefix struct {
-	info apiv1.Info
+	nsLister  v1.NamespaceLister
+	cmLister  v1.ConfigMapLister
+	svcLister v1.ServiceLister
 }
 
 // Vet returns the list of generated notes
-func (m *SvcPortPrefix) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
+func (m *SvcPortPrefix) Vet() ([]*apiv1.Note, error) {
 	notes := []*apiv1.Note{}
-	services, err := util.ListServicesInMesh(c)
+	services, err := util.ListServicesInMesh(m.nsLister, m.cmLister, m.svcLister)
 	if err != nil {
 		if n := util.IstioInitializerDisabledNote(err.Error(), vetterID,
 			servicePortPrefixNoteType); n != nil {
@@ -76,10 +78,14 @@ func (m *SvcPortPrefix) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 
 // Info returns information about the vetter
 func (m *SvcPortPrefix) Info() *apiv1.Info {
-	return &m.info
+	return &apiv1.Info{Id: vetterID, Version: "0.1.0"}
 }
 
 // NewVetter returns "svcPortPrefix" which implements Vetter Interface
-func NewVetter() *SvcPortPrefix {
-	return &SvcPortPrefix{info: apiv1.Info{Id: vetterID, Version: "0.1.0"}}
+func NewVetter(factory vetter.ResourceListGetter) *SvcPortPrefix {
+	return &SvcPortPrefix{
+		nsLister:  factory.Core().V1().Namespaces().Lister(),
+		cmLister:  factory.Core().V1().ConfigMaps().Lister(),
+		svcLister: factory.Core().V1().Services().Lister(),
+	}
 }

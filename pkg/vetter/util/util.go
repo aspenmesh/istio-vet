@@ -23,15 +23,14 @@ import (
 	"fmt"
 	"strings"
 
+	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
 	"github.com/cnf/structhash"
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
-	meshconfig "istio.io/api/mesh/v1alpha1"
+	meshv1alpha1 "istio.io/api/mesh/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-
-	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/listers/core/v1"
 )
 
 // Constants related to Istio
@@ -68,15 +67,15 @@ type InjectionPolicy string
 // Params describes configurable parameters for injecting istio proxy
 // into kubernetes resource.
 type Params struct {
-	InitImage       string                 `json:"initImage"`
-	ProxyImage      string                 `json:"proxyImage"`
-	Verbosity       int                    `json:"verbosity"`
-	SidecarProxyUID int64                  `json:"sidecarProxyUID"`
-	Version         string                 `json:"version"`
-	EnableCoreDump  bool                   `json:"enableCoreDump"`
-	DebugMode       bool                   `json:"debugMode"`
-	Mesh            *meshconfig.MeshConfig `json:"-"`
-	ImagePullPolicy string                 `json:"imagePullPolicy"`
+	InitImage       string                   `json:"initImage"`
+	ProxyImage      string                   `json:"proxyImage"`
+	Verbosity       int                      `json:"verbosity"`
+	SidecarProxyUID int64                    `json:"sidecarProxyUID"`
+	Version         string                   `json:"version"`
+	EnableCoreDump  bool                     `json:"enableCoreDump"`
+	DebugMode       bool                     `json:"debugMode"`
+	Mesh            *meshv1alpha1.MeshConfig `json:"-"`
+	ImagePullPolicy string                   `json:"imagePullPolicy"`
 	// Comma separated list of IP ranges in CIDR form. If set, only
 	// redirect outbound traffic to Envoy for these IP
 	// ranges. Otherwise all outbound traffic is redirected to Envoy.
@@ -135,9 +134,8 @@ func ExemptedNamespace(ns string) bool {
 // GetInitializerConfig retrieves the Istio Initializer config.
 // Istio Initializer config is stored as "istio-inject" configmap in
 // "istio-system" Namespace.
-func GetInitializerConfig(c kubernetes.Interface) (*IstioInjectConfig, error) {
-	cm, err :=
-		c.CoreV1().ConfigMaps(IstioNamespace).Get(IstioInitializerConfigMap, metav1.GetOptions{})
+func GetInitializerConfig(cmLister v1.ConfigMapLister) (*IstioInjectConfig, error) {
+	cm, err := cmLister.ConfigMaps(IstioNamespace).Get(IstioInitializerConfigMap)
 	if err != nil {
 		glog.V(2).Infof("Failed to retrieve configmap: %s error: %s", IstioInitializerConfigMap, err)
 		return nil, err
@@ -184,7 +182,7 @@ func ServicePortPrefixed(n string) bool {
 // SidecarInjected checks if sidecar is injected in a Pod.
 // Sidecar is considered injected if initializer annotation and proxy container
 // are both present in the Pod Spec.
-func SidecarInjected(p corev1.Pod) bool {
+func SidecarInjected(p *corev1.Pod) bool {
 	if _, ok := p.Annotations[IstioInitializerPodAnnotation]; !ok {
 		return false
 	}
@@ -232,19 +230,18 @@ func existsInStringSlice(e string, list []string) bool {
 // ListNamespacesInMesh returns the list of Namespaces in the mesh.
 // Inspects the Istio Initializer(istio-inject) configmap to enumerate
 // Namespaces included/excluded from the mesh.
-func ListNamespacesInMesh(c kubernetes.Interface) ([]corev1.Namespace, error) {
-	opts := metav1.ListOptions{}
-	namespaces := []corev1.Namespace{}
-	ns, err := c.CoreV1().Namespaces().List(opts)
+func ListNamespacesInMesh(nsLister v1.NamespaceLister, cmLister v1.ConfigMapLister) ([]*corev1.Namespace, error) {
+	namespaces := []*corev1.Namespace{}
+	ns, err := nsLister.List(labels.Everything())
 	if err != nil {
 		glog.Error("Failed to retrieve namespaces: ", err)
 		return nil, err
 	}
-	cfg, err := GetInitializerConfig(c)
+	cfg, err := GetInitializerConfig(cmLister)
 	if err != nil {
 		return nil, err
 	}
-	for _, n := range ns.Items {
+	for _, n := range ns {
 		if ExemptedNamespace(n.Name) == true {
 			continue
 		}
@@ -269,20 +266,19 @@ func ListNamespacesInMesh(c kubernetes.Interface) ([]corev1.Namespace, error) {
 // ListPodsInMesh returns the list of Pods in the mesh.
 // Pods in Namespaces returned by ListNamespacesInMesh with sidecar
 // injected as determined by SidecarInjected are considered in the mesh.
-func ListPodsInMesh(c kubernetes.Interface) ([]corev1.Pod, error) {
-	opts := metav1.ListOptions{}
-	pods := []corev1.Pod{}
-	ns, err := ListNamespacesInMesh(c)
+func ListPodsInMesh(nsLister v1.NamespaceLister, cmLister v1.ConfigMapLister, podLister v1.PodLister) ([]*corev1.Pod, error) {
+	pods := []*corev1.Pod{}
+	ns, err := ListNamespacesInMesh(nsLister, cmLister)
 	if err != nil {
 		return nil, err
 	}
 	for _, n := range ns {
-		podList, err := c.CoreV1().Pods(n.Name).List(opts)
+		podList, err := podLister.Pods(n.Name).List(labels.Everything())
 		if err != nil {
 			glog.Errorf("Failed to retrieve pods for namespace: %s error: %s", n.Name, err)
 			return nil, err
 		}
-		for _, p := range podList.Items {
+		for _, p := range podList {
 			if SidecarInjected(p) == true {
 				pods = append(pods, p)
 			}
@@ -293,20 +289,19 @@ func ListPodsInMesh(c kubernetes.Interface) ([]corev1.Pod, error) {
 
 // ListServicesInMesh returns the list of Services in the mesh.
 // Services in Namespaces returned by ListNamespacesInMesh are considered in the mesh.
-func ListServicesInMesh(c kubernetes.Interface) ([]corev1.Service, error) {
-	opts := metav1.ListOptions{}
-	services := []corev1.Service{}
-	ns, err := ListNamespacesInMesh(c)
+func ListServicesInMesh(nsLister v1.NamespaceLister, cmLister v1.ConfigMapLister, svcLister v1.ServiceLister) ([]*corev1.Service, error) {
+	services := []*corev1.Service{}
+	ns, err := ListNamespacesInMesh(nsLister, cmLister)
 	if err != nil {
 		return nil, err
 	}
 	for _, n := range ns {
-		serviceList, err := c.CoreV1().Services(n.Name).List(opts)
+		serviceList, err := svcLister.Services(n.Name).List(labels.Everything())
 		if err != nil {
 			glog.Errorf("Failed to retrieve services for namespace: %s error: %s", n.Name, err)
 			return nil, err
 		}
-		for _, s := range serviceList.Items {
+		for _, s := range serviceList {
 			if s.Name != "kubernetes" {
 				services = append(services, s)
 			}
@@ -317,20 +312,19 @@ func ListServicesInMesh(c kubernetes.Interface) ([]corev1.Service, error) {
 
 // ListEndpointsInMesh returns the list of Endpoints in the mesh.
 // Endpoints in Namespaces returned by ListNamespacesInMesh are considered in the mesh.
-func ListEndpointsInMesh(c kubernetes.Interface) ([]corev1.Endpoints, error) {
-	opts := metav1.ListOptions{}
-	endpoints := []corev1.Endpoints{}
-	ns, err := ListNamespacesInMesh(c)
+func ListEndpointsInMesh(nsLister v1.NamespaceLister, cmLister v1.ConfigMapLister, epLister v1.EndpointsLister) ([]*corev1.Endpoints, error) {
+	endpoints := []*corev1.Endpoints{}
+	ns, err := ListNamespacesInMesh(nsLister, cmLister)
 	if err != nil {
 		return nil, err
 	}
 	for _, n := range ns {
-		endpointList, err := c.CoreV1().Endpoints(n.Name).List(opts)
+		endpointList, err := epLister.Endpoints(n.Name).List(labels.Everything())
 		if err != nil {
 			glog.Errorf("Failed to retrieve endpoints for namespace: %s error: %s", n.Name, err)
 			return nil, err
 		}
-		for _, s := range endpointList.Items {
+		for _, s := range endpointList {
 			if s.Name != kubernetesServiceName {
 				endpoints = append(endpoints, s)
 			}

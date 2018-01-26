@@ -22,11 +22,11 @@ import (
 	"fmt"
 	"strings"
 
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/kubernetes"
-
 	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
+	"github.com/aspenmesh/istio-vet/pkg/vetter"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/util"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/listers/core/v1"
 )
 
 const (
@@ -40,7 +40,9 @@ const (
 
 // SvcAssociation implements Vetter interface
 type SvcAssociation struct {
-	info apiv1.Info
+	nsLister v1.NamespaceLister
+	cmLister v1.ConfigMapLister
+	epLister v1.EndpointsLister
 }
 
 type endpointInfo struct {
@@ -49,7 +51,7 @@ type endpointInfo struct {
 	ServiceNames []string
 }
 
-func createEndpointMap(e []corev1.Endpoints) map[string]endpointInfo {
+func createEndpointMap(e []*corev1.Endpoints) map[string]endpointInfo {
 	endpointMap := map[string]endpointInfo{}
 	for _, ep := range e {
 		for _, es := range ep.Subsets {
@@ -74,9 +76,9 @@ func createEndpointMap(e []corev1.Endpoints) map[string]endpointInfo {
 }
 
 // Vet returns the list of generated notes
-func (m *SvcAssociation) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
+func (m *SvcAssociation) Vet() ([]*apiv1.Note, error) {
 	notes := []*apiv1.Note{}
-	endpoints, err := util.ListEndpointsInMesh(c)
+	endpoints, err := util.ListEndpointsInMesh(m.nsLister, m.cmLister, m.epLister)
 	if err != nil {
 		if n := util.IstioInitializerDisabledNote(err.Error(), vetterID,
 			multipleServiceAssociationNoteType); n != nil {
@@ -110,10 +112,14 @@ func (m *SvcAssociation) Vet(c kubernetes.Interface) ([]*apiv1.Note, error) {
 
 // Info returns information about the vetter
 func (m *SvcAssociation) Info() *apiv1.Info {
-	return &m.info
+	return &apiv1.Info{Id: vetterID, Version: "0.1.0"}
 }
 
 // NewVetter returns "svcAssociation" which implements Vetter Interface
-func NewVetter() *SvcAssociation {
-	return &SvcAssociation{info: apiv1.Info{Id: vetterID, Version: "0.1.0"}}
+func NewVetter(factory vetter.ResourceListGetter) *SvcAssociation {
+	return &SvcAssociation{
+		nsLister: factory.Core().V1().Namespaces().Lister(),
+		cmLister: factory.Core().V1().ConfigMaps().Lister(),
+		epLister: factory.Core().V1().Endpoints().Lister(),
+	}
 }
