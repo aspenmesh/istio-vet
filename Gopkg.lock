@@ -86,7 +86,6 @@
   revision = "23def4e6c14b4da8ac2ed8007337bc5eb5007998"
 
 [[projects]]
-  branch = "master"
   name = "github.com/golang/protobuf"
   packages = [
     "jsonpb",
@@ -328,8 +327,7 @@
 [[projects]]
   name = "istio.io/api"
   packages = ["mesh/v1alpha1"]
-  revision = "cda38551dd4b693d703cae0e72b649a293550aba"
-  version = "0.3.0"
+  revision = "58de5731b5401268263924fae9df7d091813c19e"
 
 [[projects]]
   branch = "release-1.9"
@@ -412,6 +410,7 @@
   revision = "68f9c3a1feb3140df59c67ced62d3a5df8e6c9c2"
 
 [[projects]]
+  branch = "release-6.0"
   name = "k8s.io/client-go"
   packages = [
     "discovery",
@@ -528,8 +527,7 @@
     "util/homedir",
     "util/integer"
   ]
-  revision = "78700dec6369ba22221b72770783300f143df150"
-  version = "v6.0.0"
+  revision = "9389c055a838d4f208b699b3c7c51b70f2368861"
 
 [[projects]]
   branch = "master"
@@ -540,6 +538,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "dfb835a5bb8148b1b9de67553984ace31f034bc7d3131f6b17754ffe352d3ed1"
+  inputs-digest = "dec99dc7b07d14b568f2f812ee529b735c1132afced3c0e30ac07b93ba2b37e5"
   solver-name = "gps-cdcl"
   solver-version = 1
