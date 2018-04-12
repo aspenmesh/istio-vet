@@ -51,7 +51,7 @@
 
 [[constraint]]
   name = "istio.io/api"
-  revision = "58de5731b5401268263924fae9df7d091813c19e"
+  revision = "7e10af28c89ef66637dbad64fdd324c652263667"
 
 [[constraint]]
   name = "k8s.io/api"

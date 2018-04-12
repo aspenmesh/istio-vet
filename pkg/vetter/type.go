@@ -36,7 +36,7 @@ type Vetter interface {
 }
 
 // ResourceListGetter is used by vetters to register for and list resources they are interested in.
-// This currently exposed the Informer interface, but that should not be used.
+// This currently exposes the Informer interface, but that should not be used.
 // Only the "Lister()" interfaces should be considered public.
 type ResourceListGetter interface {
 	informers.SharedInformerFactory

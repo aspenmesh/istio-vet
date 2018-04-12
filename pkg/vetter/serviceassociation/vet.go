@@ -40,9 +40,10 @@ const (
 
 // SvcAssociation implements Vetter interface
 type SvcAssociation struct {
-	nsLister v1.NamespaceLister
-	cmLister v1.ConfigMapLister
-	epLister v1.EndpointsLister
+	nsLister  v1.NamespaceLister
+	cmLister  v1.ConfigMapLister
+	epLister  v1.EndpointsLister
+	podLister v1.PodLister
 }
 
 type endpointInfo struct {
@@ -51,22 +52,24 @@ type endpointInfo struct {
 	ServiceNames []string
 }
 
-func createEndpointMap(e []*corev1.Endpoints) map[string]endpointInfo {
+func createEndpointMap(e []*corev1.Endpoints, podLister v1.PodLister) map[string]endpointInfo {
 	endpointMap := map[string]endpointInfo{}
 	for _, ep := range e {
 		for _, es := range ep.Subsets {
 			for _, a := range es.Addresses {
-				for _, p := range es.Ports {
-					epMapKey := a.IP + ":" + fmt.Sprintf("%d", p.Port)
-					if epInfo, ok := endpointMap[epMapKey]; !ok {
-						endpointMap[epMapKey] = endpointInfo{
-							Namespace:    ep.Namespace,
-							PodName:      a.TargetRef.Name,
-							ServiceNames: []string{ep.Name}}
-					} else {
-						svcs := append(epInfo.ServiceNames, ep.Name)
-						epInfo.ServiceNames = svcs
-						endpointMap[epMapKey] = epInfo
+				if util.IsEndpointInMesh(&a, podLister) == true {
+					for _, p := range es.Ports {
+						epMapKey := a.IP + ":" + fmt.Sprintf("%d", p.Port)
+						if epInfo, ok := endpointMap[epMapKey]; !ok {
+							endpointMap[epMapKey] = endpointInfo{
+								Namespace:    ep.Namespace,
+								PodName:      a.TargetRef.Name,
+								ServiceNames: []string{ep.Name}}
+						} else {
+							svcs := append(epInfo.ServiceNames, ep.Name)
+							epInfo.ServiceNames = svcs
+							endpointMap[epMapKey] = epInfo
+						}
 					}
 				}
 			}
@@ -88,7 +91,7 @@ func (m *SvcAssociation) Vet() ([]*apiv1.Note, error) {
 		return nil, err
 	}
 
-	epMap := createEndpointMap(endpoints)
+	epMap := createEndpointMap(endpoints, m.podLister)
 	for _, v := range epMap {
 		if len(v.ServiceNames) > 1 {
 			notes = append(notes, &apiv1.Note{
@@ -118,8 +121,9 @@ func (m *SvcAssociation) Info() *apiv1.Info {
 // NewVetter returns "svcAssociation" which implements Vetter Interface
 func NewVetter(factory vetter.ResourceListGetter) *SvcAssociation {
 	return &SvcAssociation{
-		nsLister: factory.Core().V1().Namespaces().Lister(),
-		cmLister: factory.Core().V1().ConfigMaps().Lister(),
-		epLister: factory.Core().V1().Endpoints().Lister(),
+		nsLister:  factory.Core().V1().Namespaces().Lister(),
+		cmLister:  factory.Core().V1().ConfigMaps().Lister(),
+		epLister:  factory.Core().V1().Endpoints().Lister(),
+		podLister: factory.Core().V1().Pods().Lister(),
 	}
 }

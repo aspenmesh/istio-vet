@@ -19,16 +19,21 @@ limitations under the License.
 package util
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"strings"
+	"text/template"
 
 	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
 	"github.com/cnf/structhash"
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/duration"
 	meshv1alpha1 "istio.io/api/mesh/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/listers/core/v1"
 )
@@ -57,47 +62,46 @@ const (
 	kubernetesServiceName = "kubernetes"
 )
 
+var istioInjectNamespaceLabel = map[string]string{
+	"istio-injection": "enabled"}
+
 // Following types are taken from
-// https://github.com/istio/istio/blob/master/pilot/platform/kube/inject/inject.go
+// https://github.com/istio/istio/blob/master/pilot/pkg/kube/inject/inject.go
 
 // InjectionPolicy determines the policy for injecting the
 // sidecar proxy into the watched namespace(s).
 type InjectionPolicy string
 
-// Params describes configurable parameters for injecting istio proxy
-// into kubernetes resource.
-type Params struct {
-	InitImage       string                   `json:"initImage"`
-	ProxyImage      string                   `json:"proxyImage"`
-	Verbosity       int                      `json:"verbosity"`
-	SidecarProxyUID int64                    `json:"sidecarProxyUID"`
-	Version         string                   `json:"version"`
-	EnableCoreDump  bool                     `json:"enableCoreDump"`
-	DebugMode       bool                     `json:"debugMode"`
-	Mesh            *meshv1alpha1.MeshConfig `json:"-"`
-	ImagePullPolicy string                   `json:"imagePullPolicy"`
-	// Comma separated list of IP ranges in CIDR form. If set, only
-	// redirect outbound traffic to Envoy for these IP
-	// ranges. Otherwise all outbound traffic is redirected to Envoy.
-	IncludeIPRanges string `json:"includeIPRanges"`
+// SidecarTemplateData is the data object to which the templated
+// version of `SidecarInjectionSpec` is applied.
+type SidecarTemplateData struct {
+	ObjectMeta  *metav1.ObjectMeta
+	Spec        *corev1.PodSpec
+	ProxyConfig *meshv1alpha1.ProxyConfig
+	MeshConfig  *meshv1alpha1.MeshConfig
 }
 
-// IstioInjectConfig describes the configuration for Istio Inject initializer
+// SidecarInjectionSpec collects all container types and volumes for
+// sidecar mesh injection
+type SidecarInjectionSpec struct {
+	InitContainers []corev1.Container `yaml:"initContainers"`
+	Containers     []corev1.Container `yaml:"containers"`
+	Volumes        []corev1.Volume    `yaml:"volumes"`
+}
+
+// Config specifies the sidecar injection configuration This includes
+// the sidear template and cluster-side injection policy. It is used
+// by kube-inject, sidecar injector, and http endpoint.
 type IstioInjectConfig struct {
 	Policy InjectionPolicy `json:"policy"`
 
-	// deprecate if InitializerConfiguration becomes namespace aware
-	IncludeNamespaces []string `json:"namespaces"`
-
-	// deprecate if InitializerConfiguration becomes namespace aware
-	ExcludeNamespaces []string `json:"excludeNamespaces"`
-
-	// Params specifies the parameters of the injected sidcar template
-	Params Params `json:"params"`
-
-	// InitializerName specifies the name of the initializer.
-	InitializerName string `json:"initializerName"`
+	// Template is the templated version of `SidecarInjectionSpec` prior to
+	// expansion over the `SidecarTemplateData`.
+	Template string `json:"template"`
 }
+
+// End types from
+// https://github.com/istio/istio/blob/master/pilot/pkg/kube/inject/inject.go
 
 var istioSupportedServicePrefix = []string{
 	"http", "http-",
@@ -131,6 +135,16 @@ func ExemptedNamespace(ns string) bool {
 	return defaultExemptedNamespaces[ns]
 }
 
+// Function formatDuration is taken from
+// https://github.com/istio/istio/blob/master/pilot/pkg/kube/inject/inject.go
+func formatDuration(in *duration.Duration) string {
+	dur, err := ptypes.Duration(in)
+	if err != nil {
+		return "1s"
+	}
+	return dur.String()
+}
+
 // GetInitializerConfig retrieves the Istio Initializer config.
 // Istio Initializer config is stored as "istio-inject" configmap in
 // "istio-system" Namespace.
@@ -152,6 +166,65 @@ func GetInitializerConfig(cmLister v1.ConfigMapLister) (*IstioInjectConfig, erro
 		return nil, err
 	}
 	return &cfg, nil
+}
+
+// GetMeshConfig retrieves the Istio Mesh config.
+// Istio Mesh config is stored as "istio" configmap in
+// "istio-system" Namespace.
+func GetMeshConfig(cmLister v1.ConfigMapLister) (*meshv1alpha1.MeshConfig, error) {
+	cm, err := cmLister.ConfigMaps(IstioNamespace).Get(IstioConfigMap)
+	if err != nil {
+		glog.Errorf("Failed to retrieve configmap: %s error: %s", IstioConfigMap, err)
+		return nil, err
+	}
+	c := cm.Data[IstioConfigMapKey]
+	if len(c) == 0 {
+		return nil, nil
+	}
+	var cfg meshv1alpha1.MeshConfig
+	if err = ApplyYAML(c, &cfg); err != nil {
+		glog.Errorf("Failed to parse yaml mesh config: %s", err)
+		return nil, err
+	}
+	return &cfg, nil
+}
+
+// GetInitializerSidecarSpec retrieves the sidecar spec which will be inserted
+// by the initializer
+func GetInitializerSidecarSpec(cmLister v1.ConfigMapLister) (*SidecarInjectionSpec, error) {
+	ic, err := GetInitializerConfig(cmLister)
+	if err != nil {
+		return nil, err
+	}
+	mc, err := GetMeshConfig(cmLister)
+	if err != nil {
+		return nil, err
+	}
+	// Following is taken from injectionData function in
+	// https://github.com/istio/istio/blob/master/pilot/pkg/kube/inject/inject.go
+	data := SidecarTemplateData{
+		ObjectMeta:  &metav1.ObjectMeta{},
+		Spec:        &corev1.PodSpec{},
+		ProxyConfig: mc.DefaultConfig,
+		MeshConfig:  mc,
+	}
+	funcMap := template.FuncMap{"formatDuration": formatDuration}
+
+	var tmpl bytes.Buffer
+	t := template.Must(template.New("inject").Funcs(funcMap).Parse(ic.Template))
+	if err := t.Execute(&tmpl, &data); err != nil {
+		glog.Errorf("Failed to parse istio inject template: %s", err)
+		return nil, err
+	}
+
+	var sic SidecarInjectionSpec
+	if err := yaml.Unmarshal(tmpl.Bytes(), &sic); err != nil {
+		glog.Errorf("Failed to parse yaml substituted istio inject template: %s", err)
+		return nil, err
+	}
+	// End snippet from injectionData function in
+	// https://github.com/istio/istio/blob/master/pilot/pkg/kube/inject/inject.go
+	return &sic, nil
 }
 
 // IstioInitializerDisabledNote generates an INFO note if the error string
@@ -228,39 +301,15 @@ func existsInStringSlice(e string, list []string) bool {
 }
 
 // ListNamespacesInMesh returns the list of Namespaces in the mesh.
-// Inspects the Istio Initializer(istio-inject) configmap to enumerate
-// Namespaces included/excluded from the mesh.
+// Namespaces with label "istio-inject=enabled" are considered in
+// the mesh.
 func ListNamespacesInMesh(nsLister v1.NamespaceLister, cmLister v1.ConfigMapLister) ([]*corev1.Namespace, error) {
-	namespaces := []*corev1.Namespace{}
-	ns, err := nsLister.List(labels.Everything())
+	ns, err := nsLister.List(labels.Set(istioInjectNamespaceLabel).AsSelector())
 	if err != nil {
 		glog.Error("Failed to retrieve namespaces: ", err)
 		return nil, err
 	}
-	cfg, err := GetInitializerConfig(cmLister)
-	if err != nil {
-		return nil, err
-	}
-	for _, n := range ns {
-		if ExemptedNamespace(n.Name) == true {
-			continue
-		}
-		if cfg.ExcludeNamespaces != nil && len(cfg.ExcludeNamespaces) > 0 {
-			excluded := existsInStringSlice(n.Name, cfg.ExcludeNamespaces)
-			if excluded == true {
-				continue
-			}
-		}
-		if cfg.IncludeNamespaces != nil && len(cfg.IncludeNamespaces) > 0 {
-			included := existsInStringSlice(corev1.NamespaceAll, cfg.IncludeNamespaces) ||
-				existsInStringSlice(n.Name, cfg.IncludeNamespaces)
-			if included == false {
-				continue
-			}
-		}
-		namespaces = append(namespaces, n)
-	}
-	return namespaces, nil
+	return ns, nil
 }
 
 // ListPodsInMesh returns the list of Pods in the mesh.
@@ -308,6 +357,24 @@ func ListServicesInMesh(nsLister v1.NamespaceLister, cmLister v1.ConfigMapLister
 		}
 	}
 	return services, nil
+}
+
+func IsEndpointInMesh(ea *corev1.EndpointAddress, podLister v1.PodLister) bool {
+	if ea != nil && ea.TargetRef != nil {
+		if ea.TargetRef.Kind == "Pod" {
+			podList, err := podLister.Pods(ea.TargetRef.Namespace).List(labels.Everything())
+			if err != nil {
+				glog.Errorf("Failed to retrieve pods for namespace: %s error: %s", ea.TargetRef.Namespace, err)
+				return false
+			}
+			for _, p := range podList {
+				if p.Name == ea.TargetRef.Name && SidecarInjected(p) == true {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 // ListEndpointsInMesh returns the list of Endpoints in the mesh.

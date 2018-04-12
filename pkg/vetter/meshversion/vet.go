@@ -25,7 +25,6 @@ import (
 	"github.com/aspenmesh/istio-vet/pkg/vetter"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/util"
 	"github.com/golang/glog"
-	appsv1beta1 "k8s.io/client-go/listers/apps/v1beta1"
 	"k8s.io/client-go/listers/core/v1"
 )
 
@@ -56,10 +55,9 @@ const (
 
 // MeshVersion implements Vetter interface
 type MeshVersion struct {
-	podLister        v1.PodLister
-	deploymentLister appsv1beta1.DeploymentLister
-	cmLister         v1.ConfigMapLister
-	nsLister         v1.NamespaceLister
+	podLister v1.PodLister
+	cmLister  v1.ConfigMapLister
+	nsLister  v1.NamespaceLister
 }
 
 type injectImages struct {
@@ -67,21 +65,21 @@ type injectImages struct {
 	Sidecar string
 }
 
-func getInjectImages(deployLister appsv1beta1.DeploymentLister, cmLister v1.ConfigMapLister) (injectImages, error) {
-	injectConfig, err := util.GetInitializerConfig(cmLister)
+func getInjectImages(cmLister v1.ConfigMapLister) (injectImages, error) {
+	sic, err := util.GetInitializerSidecarSpec(cmLister)
 	if err != nil {
 		return injectImages{}, err
 	}
-	if injectConfig.Params.InitImage == "" ||
-		injectConfig.Params.ProxyImage == "" {
-		errStr := "Failed to identify inject images"
+	if len(sic.InitContainers) > 0 && len(sic.Containers) > 0 {
+		return injectImages{
+			Init:    sic.InitContainers[0].Image,
+			Sidecar: sic.Containers[0].Image,
+		}, nil
+	} else {
+		errStr := "Failed to get inject images"
 		glog.Error(errStr)
 		return injectImages{}, errors.New(errStr)
 	}
-	return injectImages{
-		Init:    injectConfig.Params.InitImage,
-		Sidecar: injectConfig.Params.ProxyImage,
-	}, nil
 }
 
 // The istio-inject ConfigMap has the sidecar & init images that should be
@@ -89,7 +87,7 @@ func getInjectImages(deployLister appsv1beta1.DeploymentLister, cmLister v1.Conf
 // the images that are injected, emit a warning.
 func (m *MeshVersion) vetInjectedImages() ([]*apiv1.Note, error) {
 	notes := []*apiv1.Note{}
-	injectImages, err := getInjectImages(m.deploymentLister, m.cmLister)
+	injectImages, err := getInjectImages(m.cmLister)
 	if err != nil {
 		if n := util.IstioInitializerDisabledNote(err.Error(), vetterID,
 			sidecarMismatchNoteType); n != nil {
@@ -100,13 +98,12 @@ func (m *MeshVersion) vetInjectedImages() ([]*apiv1.Note, error) {
 
 	pods, err := util.ListPodsInMesh(m.nsLister, m.cmLister, m.podLister)
 	if err != nil {
+		// If err != nil when getting pod data, the lower-level error has already
+		// been logged and handled.
 		return nil, err
 	}
 
 	for _, p := range pods {
-		// If err != nil when getting pod data, the lower-level error has already
-		// been logged and handled.
-
 		sidecarImage, err := util.Image(util.IstioProxyContainerName, p.Spec)
 		if err == nil && sidecarImage != injectImages.Sidecar {
 			notes = append(notes, &apiv1.Note{
@@ -162,9 +159,8 @@ func (m *MeshVersion) Info() *apiv1.Info {
 // NewVetter returns "MeshVersion" which implements Vetter Interface
 func NewVetter(factory vetter.ResourceListGetter) *MeshVersion {
 	return &MeshVersion{
-		podLister:        factory.Core().V1().Pods().Lister(),
-		deploymentLister: factory.Apps().V1beta1().Deployments().Lister(),
-		cmLister:         factory.Core().V1().ConfigMaps().Lister(),
-		nsLister:         factory.Core().V1().Namespaces().Lister(),
+		podLister: factory.Core().V1().Pods().Lister(),
+		cmLister:  factory.Core().V1().ConfigMaps().Lister(),
+		nsLister:  factory.Core().V1().Namespaces().Lister(),
 	}
 }
