@@ -7,6 +7,8 @@ The istio-vet tool is a utility to validate the configuration of [Istio](https:/
 and user applications installed in a [Kubernetes](https://kubernetes.io/)
 cluster.
 
+**This tool works with Istio version 0.7.1 and above.**
+
 ## Introduction
 
 The istio-vet utility helps discover incompatible configuration of user
