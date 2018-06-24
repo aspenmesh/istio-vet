@@ -328,7 +328,8 @@
 [[projects]]
   name = "istio.io/api"
   packages = ["mesh/v1alpha1"]
-  revision = "7e10af28c89ef66637dbad64fdd324c652263667"
+  revision = "8d67e57e3612dae1a3423795bce93a372cfe4fa4"
+  version = "0.8.0"
 
 [[projects]]
   branch = "release-1.9"
@@ -539,6 +540,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "1b84defef3b5eaabfe4ec13ee54fd4942c8f6cb31b7cd23d6487052802918a42"
+  inputs-digest = "418ef03df490a6e717728ebe45b0b55a118c9b26466551f8663352a3f3ee5ec6"
   solver-name = "gps-cdcl"
   solver-version = 1
