@@ -9,9 +9,9 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 RUN curl -s -L \
-    https://github.com/golang/dep/releases/download/v0.3.2/dep-linux-amd64 \
+    https://github.com/golang/dep/releases/download/v0.5.0/dep-linux-amd64 \
     > /go/bin/dep \
- && echo "322152b8b50b26e5e3a7f6ebaeb75d9c11a747e64bbfd0d8bb1f4d89a031c2b5 /go/bin/dep" | sha256sum -c - \
+ && echo "287b08291e14f1fae8ba44374b26a2b12eb941af3497ed0ca649253e21ba2f83 /go/bin/dep" | sha256sum -c - \
  && chmod +x /go/bin/dep
 
 RUN go get github.com/golang/protobuf/protoc-gen-go
