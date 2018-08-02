@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/aspenmesh/istio-client-go/pkg/client/informers/externalversions"
 	"github.com/aspenmesh/istio-vet/pkg/meshclient"
 	"github.com/aspenmesh/istio-vet/pkg/vetter"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/applabel"
@@ -51,6 +52,18 @@ func printNote(level, summary, msg string) {
 	}
 }
 
+type metaInformerFactory struct {
+	k8s   informers.SharedInformerFactory
+	istio externalversions.SharedInformerFactory
+}
+
+func (m *metaInformerFactory) K8s() informers.SharedInformerFactory {
+	return m.k8s
+}
+func (m *metaInformerFactory) Istio() externalversions.SharedInformerFactory {
+	return m.istio
+}
+
 func vet(cmd *cobra.Command, args []string) error {
 	cli, err := meshclient.New()
 	if err != nil {
@@ -58,14 +71,18 @@ func vet(cmd *cobra.Command, args []string) error {
 	}
 
 	kubeInformerFactory := informers.NewSharedInformerFactory(cli, 0)
+	informerFactory := &metaInformerFactory{
+		k8s: kubeInformerFactory,
+		// TODO: Add istio informer
+	}
 
 	vList := []vetter.Vetter{
-		vetter.Vetter(podsinmesh.NewVetter(kubeInformerFactory)),
-		vetter.Vetter(meshversion.NewVetter(kubeInformerFactory)),
-		vetter.Vetter(mtlsprobes.NewVetter(kubeInformerFactory)),
-		vetter.Vetter(applabel.NewVetter(kubeInformerFactory)),
-		vetter.Vetter(serviceportprefix.NewVetter(kubeInformerFactory)),
-		vetter.Vetter(serviceassociation.NewVetter(kubeInformerFactory))}
+		vetter.Vetter(podsinmesh.NewVetter(informerFactory)),
+		vetter.Vetter(meshversion.NewVetter(informerFactory)),
+		vetter.Vetter(mtlsprobes.NewVetter(informerFactory)),
+		vetter.Vetter(applabel.NewVetter(informerFactory)),
+		vetter.Vetter(serviceportprefix.NewVetter(informerFactory)),
+		vetter.Vetter(serviceassociation.NewVetter(informerFactory))}
 
 	stopCh := make(chan struct{})
 

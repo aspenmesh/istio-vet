@@ -21,6 +21,7 @@ limitations under the License.
 package vetter
 
 import (
+	"github.com/aspenmesh/istio-client-go/pkg/client/informers/externalversions"
 	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
 	"k8s.io/client-go/informers"
 )
@@ -39,5 +40,6 @@ type Vetter interface {
 // This currently exposes the Informer interface, but that should not be used.
 // Only the "Lister()" interfaces should be considered public.
 type ResourceListGetter interface {
-	informers.SharedInformerFactory
+	K8s() informers.SharedInformerFactory
+	Istio() externalversions.SharedInformerFactory
 }

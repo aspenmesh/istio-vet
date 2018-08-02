@@ -81,8 +81,8 @@ func (m *AppLabel) Info() *apiv1.Info {
 // NewVetter returns "AppLabel" which implements Vetter Interface
 func NewVetter(factory vetter.ResourceListGetter) *AppLabel {
 	return &AppLabel{
-		nsLister:  factory.Core().V1().Namespaces().Lister(),
-		cmLister:  factory.Core().V1().ConfigMaps().Lister(),
-		podLister: factory.Core().V1().Pods().Lister(),
+		nsLister:  factory.K8s().Core().V1().Namespaces().Lister(),
+		cmLister:  factory.K8s().Core().V1().ConfigMaps().Lister(),
+		podLister: factory.K8s().Core().V1().Pods().Lister(),
 	}
 }

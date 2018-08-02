@@ -84,8 +84,8 @@ func (m *SvcPortPrefix) Info() *apiv1.Info {
 // NewVetter returns "svcPortPrefix" which implements Vetter Interface
 func NewVetter(factory vetter.ResourceListGetter) *SvcPortPrefix {
 	return &SvcPortPrefix{
-		nsLister:  factory.Core().V1().Namespaces().Lister(),
-		cmLister:  factory.Core().V1().ConfigMaps().Lister(),
-		svcLister: factory.Core().V1().Services().Lister(),
+		nsLister:  factory.K8s().Core().V1().Namespaces().Lister(),
+		cmLister:  factory.K8s().Core().V1().ConfigMaps().Lister(),
+		svcLister: factory.K8s().Core().V1().Services().Lister(),
 	}
 }

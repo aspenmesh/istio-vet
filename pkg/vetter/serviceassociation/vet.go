@@ -121,9 +121,9 @@ func (m *SvcAssociation) Info() *apiv1.Info {
 // NewVetter returns "svcAssociation" which implements Vetter Interface
 func NewVetter(factory vetter.ResourceListGetter) *SvcAssociation {
 	return &SvcAssociation{
-		nsLister:  factory.Core().V1().Namespaces().Lister(),
-		cmLister:  factory.Core().V1().ConfigMaps().Lister(),
-		epLister:  factory.Core().V1().Endpoints().Lister(),
-		podLister: factory.Core().V1().Pods().Lister(),
+		nsLister:  factory.K8s().Core().V1().Namespaces().Lister(),
+		cmLister:  factory.K8s().Core().V1().ConfigMaps().Lister(),
+		epLister:  factory.K8s().Core().V1().Endpoints().Lister(),
+		podLister: factory.K8s().Core().V1().Pods().Lister(),
 	}
 }

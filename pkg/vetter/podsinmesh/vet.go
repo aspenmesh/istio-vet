@@ -102,7 +102,7 @@ func (m *MeshStats) Info() *apiv1.Info {
 // NewVetter returns "meshStats" which implements Vetter Interface
 func NewVetter(factory vetter.ResourceListGetter) *MeshStats {
 	return &MeshStats{
-		podLister: factory.Core().V1().Pods().Lister(),
-		nsLister:  factory.Core().V1().Namespaces().Lister(),
+		podLister: factory.K8s().Core().V1().Pods().Lister(),
+		nsLister:  factory.K8s().Core().V1().Namespaces().Lister(),
 	}
 }
