@@ -428,6 +428,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:7bff42fbbef28d0ef60138c92cb3872cacb035133b3cfa39e3ff2c43f1fc332e"
+  name = "github.com/wadey/gocovmerge"
+  packages = ["."]
+  pruneopts = ""
+  revision = "b5bfa59ec0adc420475f97f89b58045c721d761c"
+
+[[projects]]
+  branch = "master"
   digest = "1:43adf91783cc814f60c0dd21c9aadf0b5284721e13542e124536638e0b43a6b3"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
@@ -497,6 +505,14 @@
   ]
   pruneopts = ""
   revision = "e19ae1496984b1c655b8044a65c0300a3c878dd3"
+
+[[projects]]
+  branch = "master"
+  digest = "1:b467f18d6f897a2de9b7a1af9833fa9be47784787aa20a566a21999a8ead3d37"
+  name = "golang.org/x/tools"
+  packages = ["cover"]
+  pruneopts = ""
+  revision = "a434f64ace81347eff0fb4a32bc80a235e0ad762"
 
 [[projects]]
   digest = "1:eb53021a8aa3f599d29c7102e65026242bdedce998a54837dc67f14b6a97c5fd"
@@ -777,6 +793,7 @@
     "github.com/spf13/cobra",
     "github.com/spf13/pflag",
     "github.com/spf13/viper",
+    "github.com/wadey/gocovmerge",
     "istio.io/api/mesh/v1alpha1",
     "k8s.io/api/core/v1",
     "k8s.io/apimachinery/pkg/apis/meta/v1",

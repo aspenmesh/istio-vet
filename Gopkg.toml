@@ -21,6 +21,10 @@
 #  version = "2.4.0"
 
 
+required = [
+  "github.com/wadey/gocovmerge",
+]
+
 [[constraint]]
   branch = "master"
   name = "github.com/cnf/structhash"
