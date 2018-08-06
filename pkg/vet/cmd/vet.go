@@ -99,6 +99,14 @@ func vet(cmd *cobra.Command, args []string) error {
 			glog.Fatalf("Failed to sync %s", inf)
 		}
 	}
+
+	istioInformerFactory.Start(stopCh)
+	oks = istioInformerFactory.WaitForCacheSync(stopCh)
+	for inf, ok := range oks {
+		if !ok {
+			glog.Fatalf("Failed to sync %s", inf)
+		}
+	}
 	// Just run through once
 	close(stopCh)
 
