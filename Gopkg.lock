@@ -19,6 +19,31 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:c5387e857e59d19a8c065b93a97c77b8b7cd3f4fd8fdd797318832960023b8ec"
+  name = "github.com/aspenmesh/istio-client-go"
+  packages = [
+    "pkg/apis/authentication",
+    "pkg/apis/authentication/v1alpha1",
+    "pkg/apis/networking",
+    "pkg/apis/networking/v1alpha3",
+    "pkg/client/clientset/versioned",
+    "pkg/client/clientset/versioned/scheme",
+    "pkg/client/clientset/versioned/typed/authentication/v1alpha1",
+    "pkg/client/clientset/versioned/typed/networking/v1alpha3",
+    "pkg/client/informers/externalversions",
+    "pkg/client/informers/externalversions/authentication",
+    "pkg/client/informers/externalversions/authentication/v1alpha1",
+    "pkg/client/informers/externalversions/internalinterfaces",
+    "pkg/client/informers/externalversions/networking",
+    "pkg/client/informers/externalversions/networking/v1alpha3",
+    "pkg/client/listers/authentication/v1alpha1",
+    "pkg/client/listers/networking/v1alpha3",
+  ]
+  pruneopts = ""
+  revision = "a681158dee6f9b87eac817150043d347fa4d5a6e"
+
+[[projects]]
+  branch = "master"
   digest = "1:3be1ff341e5bdc1b0dae40a19af9a4a5f1dcdb8c3c0ef87c9322d488ef6d11e0"
   name = "github.com/cnf/structhash"
   packages = ["."]
@@ -98,6 +123,7 @@
   packages = [
     "proto",
     "sortkeys",
+    "types",
   ]
   pruneopts = ""
   revision = "342cbe0a04158f6dcb03ca0079991a51a4248c02"
@@ -415,7 +441,11 @@
   branch = "release-0.8"
   digest = "1:383cf412f31ab1f782b56ab0ecfca27548bf7aaf171f4ec85c7d1ac7e97bf540"
   name = "istio.io/api"
-  packages = ["mesh/v1alpha1"]
+  packages = [
+    "authentication/v1alpha1",
+    "mesh/v1alpha1",
+    "networking/v1alpha3",
+  ]
   pruneopts = ""
   revision = "8d67e57e3612dae1a3423795bce93a372cfe4fa4"
 
@@ -637,6 +667,8 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned",
+    "github.com/aspenmesh/istio-client-go/pkg/client/informers/externalversions",
     "github.com/cnf/structhash",
     "github.com/ghodss/yaml",
     "github.com/golang/glog",
@@ -654,6 +686,7 @@
     "k8s.io/client-go/informers",
     "k8s.io/client-go/kubernetes",
     "k8s.io/client-go/listers/core/v1",
+    "k8s.io/client-go/rest",
     "k8s.io/client-go/tools/clientcmd",
   ]
   solver-name = "gps-cdcl"
