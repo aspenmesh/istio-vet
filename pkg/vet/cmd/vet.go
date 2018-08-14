@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"strings"
 
+	istioinformer "github.com/aspenmesh/istio-client-go/pkg/client/informers/externalversions"
+	"github.com/aspenmesh/istio-vet/pkg/istioclient"
 	"github.com/aspenmesh/istio-vet/pkg/meshclient"
 	"github.com/aspenmesh/istio-vet/pkg/vetter"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/applabel"
@@ -51,26 +53,55 @@ func printNote(level, summary, msg string) {
 	}
 }
 
+type metaInformerFactory struct {
+	k8s   informers.SharedInformerFactory
+	istio istioinformer.SharedInformerFactory
+}
+
+func (m *metaInformerFactory) K8s() informers.SharedInformerFactory {
+	return m.k8s
+}
+func (m *metaInformerFactory) Istio() istioinformer.SharedInformerFactory {
+	return m.istio
+}
+
 func vet(cmd *cobra.Command, args []string) error {
-	cli, err := meshclient.New()
+	k8sClient, err := meshclient.New()
+	if err != nil {
+		return err
+	}
+	istioClient, err := istioclient.New(k8sClient.Config())
 	if err != nil {
 		return err
 	}
 
-	kubeInformerFactory := informers.NewSharedInformerFactory(cli, 0)
+	kubeInformerFactory := informers.NewSharedInformerFactory(k8sClient, 0)
+	istioInformerFactory := istioinformer.NewSharedInformerFactory(istioClient, 0)
+	informerFactory := &metaInformerFactory{
+		k8s:   kubeInformerFactory,
+		istio: istioInformerFactory,
+	}
 
 	vList := []vetter.Vetter{
-		vetter.Vetter(podsinmesh.NewVetter(kubeInformerFactory)),
-		vetter.Vetter(meshversion.NewVetter(kubeInformerFactory)),
-		vetter.Vetter(mtlsprobes.NewVetter(kubeInformerFactory)),
-		vetter.Vetter(applabel.NewVetter(kubeInformerFactory)),
-		vetter.Vetter(serviceportprefix.NewVetter(kubeInformerFactory)),
-		vetter.Vetter(serviceassociation.NewVetter(kubeInformerFactory))}
+		vetter.Vetter(podsinmesh.NewVetter(informerFactory)),
+		vetter.Vetter(meshversion.NewVetter(informerFactory)),
+		vetter.Vetter(mtlsprobes.NewVetter(informerFactory)),
+		vetter.Vetter(applabel.NewVetter(informerFactory)),
+		vetter.Vetter(serviceportprefix.NewVetter(informerFactory)),
+		vetter.Vetter(serviceassociation.NewVetter(informerFactory))}
 
 	stopCh := make(chan struct{})
 
 	kubeInformerFactory.Start(stopCh)
 	oks := kubeInformerFactory.WaitForCacheSync(stopCh)
+	for inf, ok := range oks {
+		if !ok {
+			glog.Fatalf("Failed to sync %s", inf)
+		}
+	}
+
+	istioInformerFactory.Start(stopCh)
+	oks = istioInformerFactory.WaitForCacheSync(stopCh)
 	for inf, ok := range oks {
 		if !ok {
 			glog.Fatalf("Failed to sync %s", inf)

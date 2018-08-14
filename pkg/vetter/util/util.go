@@ -25,6 +25,8 @@ import (
 	"strings"
 	"text/template"
 
+	v1alpha3 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
+	netv1alpha3 "github.com/aspenmesh/istio-client-go/pkg/client/listers/networking/v1alpha3"
 	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
 	"github.com/cnf/structhash"
 	"github.com/ghodss/yaml"
@@ -54,6 +56,7 @@ const (
 	IstioInitializerConfigMap     = "istio-inject"
 	IstioInitializerConfigMapKey  = "config"
 	IstioAppLabel                 = "app"
+	KubernetesDomainSuffix        = ".svc.cluster.local"
 	ServiceProtocolUDP            = "UDP"
 	initializerDisabled           = "configmaps \"" +
 		IstioInitializerConfigMap + "\" not found"
@@ -404,4 +407,39 @@ func ListEndpointsInMesh(nsLister v1.NamespaceLister, cmLister v1.ConfigMapListe
 // ID for the note.
 func ComputeID(n *apiv1.Note) string {
 	return fmt.Sprintf("%x", structhash.Md5(n, 1))
+}
+
+// ListVirtualServices returns a list of VirtualService resources in the mesh.
+func ListVirtualServicesInMesh(nsLister v1.NamespaceLister, cmLister v1.ConfigMapLister,
+	vsLister netv1alpha3.VirtualServiceLister) ([]*v1alpha3.VirtualService, error) {
+	virtualServices := []*v1alpha3.VirtualService{}
+	ns, err := ListNamespacesInMesh(nsLister, cmLister)
+	if err != nil {
+		return nil, err
+	}
+	for _, n := range ns {
+		virtServiceList, err := vsLister.VirtualServices(n.Name).List(labels.Everything())
+		if err != nil {
+			glog.Errorf("Failed to retrieve VirtualServices for namespace: %s error: %s", n.Name, err)
+			return nil, err
+		}
+		virtualServices = append(virtualServices, virtServiceList...)
+	}
+	return virtualServices, nil
+}
+
+// ConvertHostnameToFQDN returns the FQDN if a short name is passed
+func ConvertHostnameToFQDN(hostname string, namespace string) (string, error) {
+	if (hostname == "") || (namespace == "") {
+		err := errors.New("hostname and namespace cannot be empty")
+		return "", err
+	}
+	if strings.HasPrefix(hostname, "*") {
+		return hostname, nil
+	}
+	if strings.Contains(hostname, ".") {
+		return hostname, nil
+	}
+	// need to return Fully Qualified Domain Name
+	return hostname + "." + namespace + KubernetesDomainSuffix, nil
 }

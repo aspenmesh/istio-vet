@@ -21,6 +21,10 @@
 #  version = "2.4.0"
 
 
+required = [
+  "github.com/wadey/gocovmerge",
+]
+
 [[constraint]]
   branch = "master"
   name = "github.com/cnf/structhash"
@@ -64,3 +68,16 @@
 [[constraint]]
   name = "k8s.io/client-go"
   branch = "release-6.0"
+
+[[constraint]]
+  name = "github.com/onsi/ginkgo"
+  version = "1.6.0"
+
+[[constraint]]
+  name = "github.com/onsi/gomega"
+  version = "1.4.1"
+
+# Workaround bug in dep: Need to override the source for fsnotify, used by ginkgo
+[[override]]
+  name = "gopkg.in/fsnotify.v1"
+  source = "https://github.com/fsnotify/fsnotify.git"

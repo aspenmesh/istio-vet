@@ -15,7 +15,7 @@ GENERATED_GO = pkg/generated/api/v1/note.pb.go
 #
 # Normal build for developers. Just builds source.
 #
-all: go-build
+all: go-build test
 
 image:
 	docker build -t istio-vet .
@@ -56,6 +56,26 @@ fmt:
 	@go fmt $(ALL_PKGS)
 	@git diff --exit-code
 
+test: go-test
+
+go-test: _build/coverage.out
+
+_build/coverage.out:
+	go install -v \
+		./vendor/github.com/wadey/gocovmerge
+	go install -v \
+		./vendor/github.com/onsi/ginkgo/ginkgo
+	@mkdir -p $(@D)
+	ginkgo -r  \
+    --randomizeAllSpecs \
+    --randomizeSuites \
+    --failOnPending \
+    --cover \
+    --trace \
+    --race \
+    --progress \
+    --outputdir $(CURDIR)/_build/
+	gocovmerge $(@D)/*.coverprofile > $@
 
 # Generated go
 pkg/generated/api/v1/note.pb.go: api/v1/note.proto
@@ -65,7 +85,7 @@ pkg/generated/api/v1/note.pb.go: api/v1/note.proto
 		--go_out=:pkg/generated \
 		$<
 
-.PHONY: all
+.PHONY: all test image precommit debug clean info fmt go-build go-test
 
 # Disable builtin implicit rules
 .SUFFIXES:

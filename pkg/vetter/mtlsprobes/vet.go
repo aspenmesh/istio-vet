@@ -128,8 +128,8 @@ func (m *MtlsProbes) Info() *apiv1.Info {
 // NewVetter returns "mtlsProbes" which implements Vetter Interface
 func NewVetter(factory vetter.ResourceListGetter) *MtlsProbes {
 	return &MtlsProbes{
-		podLister: factory.Core().V1().Pods().Lister(),
-		cmLister:  factory.Core().V1().ConfigMaps().Lister(),
-		nsLister:  factory.Core().V1().Namespaces().Lister(),
+		podLister: factory.K8s().Core().V1().Pods().Lister(),
+		cmLister:  factory.K8s().Core().V1().ConfigMaps().Lister(),
+		nsLister:  factory.K8s().Core().V1().Namespaces().Lister(),
 	}
 }
