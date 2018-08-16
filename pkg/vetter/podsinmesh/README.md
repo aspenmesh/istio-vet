@@ -12,14 +12,7 @@ It also counts the system Pods (in namespaces `kube-system`, `kube-public`,
 `istio-system`) and reports the number of running system pods which are
 exempted from the mesh.
 
-## Example
+## Notes Generated
 
-Running `podsinmesh` vetter returns the following note:
-
-```shell
-Summary: "User pod count"
-Message: "INFO: 4 user pods in mesh out of 6"
-
-Summary: "System pod count"
-Message: "INFO: 23 system pods out of mesh'
-```
+- [System pod count](README-system-pod-count.md)
+- [User pod count](README-user-pod-count.md)

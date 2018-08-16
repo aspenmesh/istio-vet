@@ -13,16 +13,6 @@ kubelet.
 Note that the **Exec** command probes can be used with mTLS enabled in Istio
 service mesh.
 
-## Example
+## Notes Generated
 
-If a Pod is deployed in the mesh which has mTLS enabled and a
-Liveness or Readiness probe defined in the specification following note is
-generated:
-
-```shell
-Summary: "mTLS and liveness probe incompatible - myapp-xyz-1234"
-
-Message: "ERROR: The pod myapp-xyz-1234 in namespace default uses
-liveness probe which is incompatible with mTLS. Consider disabling the
-liveness probe or mTLS."
-```
+- [Health probes incompatible with mTLS probe](README-mtls-probes-incompatible.md)

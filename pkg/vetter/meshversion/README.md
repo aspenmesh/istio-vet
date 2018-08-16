@@ -18,31 +18,8 @@ Version mismatch in various components can lead to unexpected behavior or policy
 violations due to incompatibility. It is recommended to upgrade the reported
 components to the *Istio version*.
 
-## Example
+## Notes Generated
 
-### Mismatched sidecar version
+- [Mismatched sidecar version](README-sidecar-image-mismatch.md)
+- [Mismatched init container version](README-init-image-mismatch.md)
 
-If the sidecar proxy image version running in a Pod in mesh is different than
-the *Istio version* as described above, following note is generated:
-
-```shell
-Summary: "Mismatched sidecar version - myapp-xyz-1234"
-
-Message: "WARNING: The pod myapp-xyz-1234 in namespace default is running with
-sidecar proxy version 0.2.9 but your environment is running istio version 0.2.12.
-Consider upgrading the sidecar proxy in the pod."
-```
-
-### Mismatched Istio component version
-
-If the Istio Pilot image version specified in the `istio-pilot` deployment is
-different than the *Istio version* as described above, following note
-is generated:
-
-```shell
-Summary: "Mismatched istio component versions - istio-pilot"
-
-Message: "WARNING: Istio component istio-pilot is running version 0.2.10 but
-your environment is running istio version 0.2.12. Consider upgrading the
-component istio-pilot"
-```

@@ -27,31 +27,6 @@ from this prefix requirement.
 It is recommended to add one of the above mentioned protocol prefixes to
 the services mentioned in the generated notes.
 
-## Example
+## Notes Generated
 
-If a Service in mesh is defined with any of the following port definitions:
-
-```shell
-  ports:
-  - protocol: TCP
-    port: 80
-    targetPort: 80
-```
-or
-
-```shell
-  ports:
-  - protocol: TCP
-    port: 80
-    targetPort: 80
-    name: myport
-```
-following note is generated:
-
-```shell
-Summary: "Missing prefix in service - myapp-xyz-1234"
-
-Message: "WARNING: The service myapp-service in namespace default
-contains port names not prefixed with mesh supported protocols.
-Consider updating the service port name with one of the mesh recognized prefixes."
-```
+- [Missing service port prefix](README-missing-service-port-prefix.md)
