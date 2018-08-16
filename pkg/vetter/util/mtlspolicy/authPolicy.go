@@ -144,7 +144,7 @@ func AuthPolicyIsMtls(policy *authv1alpha1.Policy) bool {
 	return false
 }
 
-// TLSByPort walks through Policies at the port level and
+// TLSByPort walks through Policies at the port, name, and namespace level and
 // returns true if the Policy found has mTLS enabled
 func (ap *AuthPolicies) TLSByPort(s Service, port uint32) (bool, *authv1alpha1.Policy, error) {
 	policies := ap.ByPort(s, port)
@@ -155,11 +155,10 @@ func (ap *AuthPolicies) TLSByPort(s Service, port uint32) (bool, *authv1alpha1.P
 	if len(policies) == 1 {
 		return AuthPolicyIsMtls(policies[0]), policies[0], nil
 	}
-	// TODO: Walk the next tier?
-	return false, nil, errors.New("No policy for port")
+	return ap.TLSByName(s)
 }
 
-// TLSByName walks through Policies at the name level and
+// TLSByName walks through Policies at the name and namespace level and
 // returns true if the Policy found has mTLS enabled
 func (ap *AuthPolicies) TLSByName(s Service) (bool, *authv1alpha1.Policy, error) {
 	policies := ap.ByName(s)
@@ -170,8 +169,7 @@ func (ap *AuthPolicies) TLSByName(s Service) (bool, *authv1alpha1.Policy, error)
 	if len(policies) == 1 {
 		return AuthPolicyIsMtls(policies[0]), policies[0], nil
 	}
-	// TODO: Walk the next tier?
-	return false, nil, errors.New("No policy for service by name")
+	return ap.TLSByNamespace(s)
 }
 
 // TLSByNamespace walks through Policies at the namespace level and
