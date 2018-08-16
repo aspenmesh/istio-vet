@@ -27,9 +27,11 @@ import (
 	"github.com/aspenmesh/istio-vet/pkg/vetter/util"
 	mtlspolicyutil "github.com/aspenmesh/istio-vet/pkg/vetter/util/mtlspolicy"
 	"github.com/golang/glog"
+	//istioauthv1alpha1 "istio.io/api/authentication/v1alpha1"
 	meshv1alpha1 "istio.io/api/mesh/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/listers/core/v1"
 )
 
