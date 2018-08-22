@@ -33,7 +33,7 @@ port/name/namespace specified.
 
 #### Sample 1
  
-The following configuration, which defines a liveness probe in the specification
+The following configuration, which defines a liveness probe in the deployment
 and also has mTLS globally enabled, but no authentication policy for service
 that is 
 associated with the Pod on that port would cause the Pod to re-start and enter a
@@ -95,15 +95,15 @@ Message: "ERROR: The pod httpbin-1a23bc456d-7ef8g in namespace default uses
 liveness probe which is incompatible with mTLS. Consider disabling the
 liveness probe or mTLS, or disabling mTLS for the port of the liveness probe."
 ```
-See Suggested Resolutions below for an example of how to fix this by defining an
-authentication policy for your service.
+See [Suggested Resolution](#suggested-resolution) below for an example of how to 
+fix this by defining an authentication policy for your service.
 
 #### Sample 2
 
-Using the same configuration as above, which defines a liveness probe in it, but
-instead having global mTLS **disabled** and an authentication policy for the 
-service that is associated with the Pod on that port will also cause the Pod 
-to re-start and enter a CrashLoopBackOff state.
+Using the same deployment configuration as above, which defines a liveness probe 
+in it, but instead having global mTLS **disabled** and an authentication policy
+for the service that is associated with the Pod on that port will also cause 
+the Pod to re-start and enter a CrashLoopBackOff state.
 
 An example of an authentication policy that enables mTLS for the same port as
 the liveness probe:
@@ -130,27 +130,24 @@ NAME                       READY     STATUS             RESTARTS   AGE
 httpbin-1a23bc456d-7ef8g   1/2       CrashLoopBackOff   3          1m
 ```
 
-If the Pod is deployed in the mesh with the above configuration, the following
-note will be generated:
+If the Pod is deployed in the mesh with the above configuration, the same note
+will be generated as the note above in Sample 1.
 
-```shell
-Summary: "mTLS and liveness probe incompatible - httpbin-1a23bc456d-7ef8g"
-
-Message: "ERROR: The pod httpbin-1a23bc456d-7ef8g in namespace default uses
-liveness probe which is incompatible with mTLS. Consider disabling the
-liveness probe or mTLS, or disabling mTLS for the port of the liveness probe."
-```
-See Suggested Resolution below for an example of how to fix this by defining an
-authentication policy for your service.
+See [Suggested Resolution](#suggested-resolution) below for an example of how to 
+fix this by defining an authentication policy for your service.
 
 
-## Suggested Resolution
+## Suggested Resolution <a id="suggested-resolution"></a>
 
 You can do one of these things:
 
 - **Define an Authentication Policy for your Service.** As of Istio v0.8 you can
   define an authentication policy that disables mTLS for the port of the 
-liveness/readiness probe.  This will override the global mTLS setting only for the
+liveness/readiness probe.  It is recommended to use a port that is specific for
+health probes, and to disable mTLS on that port.  If the application port is
+also used for the health port and mTLS is disabled on this shared port, mTLS
+will be disabled for the application port. By disabling mTLS for a health-specific
+port, this will override the global mTLS setting only for the
 port of the liveness/readiness probe.  The following authentication policy would
 disable mTLS for the probe port in both Sample 1 and Sample 2 above.
 
