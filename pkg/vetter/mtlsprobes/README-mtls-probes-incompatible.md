@@ -1,10 +1,10 @@
-# mTLS and Liveness Probes Incompatible
+# Liveness or Readiness Probe Incompatible with mTLS
 
 ## Example
 
 The pod `your-app-45574414-qhgq3` in namespace `your-app` uses liveness probe
 which is incompatible with mTLS.  Consider disabling the liveness probe or
-mTLS.
+mTLS, or disabling mTLS for the port of the liveness probe.
 
 ## Description
 
@@ -19,11 +19,154 @@ that will be trusted by other sidecars.  However, the liveness probe or
 readiness probe involves the kubelet connecting directly to the sidecar to
 probe if the application is alive or ready.  The kubelet does not have a key
 and cert that the sidecar would trust, so the sidecar cannot authenticate the
-client kubelet and rejects the connection.
+client kubelet and rejects the connection.  If mTLS is enabled for the
+liveness/readiness probe, the Pod will re-start continually and eventually enter
+a CrashLoopBackOff state.
+
+## Auth Policies Enabling/Disabling mTLS
+
+Authorization policies can enable or disable mTLS at the port, service name, and
+service namespace level. This will override the global mTLS setting for the
+port/name/namespace specified.
+
+### Sample Configurations and Auth Policies
+
+#### Sample 1
+ 
+The following configuration, which defines a liveness probe in the specification
+and also has mTLS globally enabled, but no authentication policy for service
+that is 
+associated with the Pod on that port would cause the Pod to re-start and enter a
+CrashLoopBackOff state:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: httpbin
+  labels:
+    app: httpbin
+spec:
+  ports:
+  - name: http
+    port: 8000
+  selector:
+    app: httpbin
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: httpbin
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: httpbin
+        version: v1
+    spec:
+      containers:
+      - image: docker.io/citizenstig/httpbin
+      imagePullPolicy: IfNotPresent
+      name: httpbin
+      ports:
+        - containerPort: 8000
+      livenessProbe:
+        httpGet:
+          path: /status/200
+          port: 8000
+        initialDelaySeconds: 5
+        periodSeconds: 5
+```
+From here, running `kubectl get pods -l app=httpbin` would produce output
+similar to the following:
+
+```shell
+NAME                       READY     STATUS             RESTARTS   AGE
+httpbin-1a23bc456d-7ef8g   1/2       CrashLoopBackOff   3          1m
+```
+If the Pod is deployed in the mesh with the above configuration, the following
+note will be generated:
+
+```shell
+Summary: "mTLS and liveness probe incompatible - httpbin-1a23bc456d-7ef8g"
+
+Message: "ERROR: The pod httpbin-1a23bc456d-7ef8g in namespace default uses
+liveness probe which is incompatible with mTLS. Consider disabling the
+liveness probe or mTLS, or disabling mTLS for the port of the liveness probe."
+```
+See Suggested Resolutions below for an example of how to fix this by defining an
+authentication policy for your service.
+
+#### Sample 2
+
+Using the same configuration as above, which defines a liveness probe in it, but
+instead having global mTLS **disabled** and an authentication policy for the 
+service that is associated with the Pod on that port will also cause the Pod 
+to re-start and enter a CrashLoopBackOff state.
+
+An example of an authentication policy that enables mTLS for the same port as
+the liveness probe:
+
+```yaml
+apiVersion: authentication.istio.io/v1alpha1
+kind: Policy
+metadata:
+  name: httpbin
+  namespace: default
+spec:
+    targets:
+    - name: httpbin
+      ports:
+      - number: 8000
+    peers:
+    - mtls:
+```
+Again, running `kubectl get pods -l app=httpbin` would produce output
+similar to the following:
+
+```shell
+NAME                       READY     STATUS             RESTARTS   AGE
+httpbin-1a23bc456d-7ef8g   1/2       CrashLoopBackOff   3          1m
+```
+
+If the Pod is deployed in the mesh with the above configuration, the following
+note will be generated:
+
+```shell
+Summary: "mTLS and liveness probe incompatible - httpbin-1a23bc456d-7ef8g"
+
+Message: "ERROR: The pod httpbin-1a23bc456d-7ef8g in namespace default uses
+liveness probe which is incompatible with mTLS. Consider disabling the
+liveness probe or mTLS, or disabling mTLS for the port of the liveness probe."
+```
+See Suggested Resolution below for an example of how to fix this by defining an
+authentication policy for your service.
+
 
 ## Suggested Resolution
 
 You can do one of these things:
+
+- **Define an Authentication Policy for your Service.** As of Istio v0.8 you can
+  define an authentication policy that disables mTLS for the port of the 
+liveness/readiness probe.  This will override the global mTLS setting only for the
+port of the liveness/readiness probe.  The following authentication policy would
+disable mTLS for the probe port in both Sample 1 and Sample 2 above.
+
+    ```yaml
+    apiVersion: "authentication.istio.io/v1alpha1"
+    kind: "Policy"
+    metadata:
+      name: "httpbin"
+      namespace: "default"
+    spec:
+        targets:
+        - name: httpbin
+          ports:
+          - number: 8000
+        peers:
+    ```
 
 - **Use a Liveness Command Instead.** As a workaround, you can use a liveness
   or readiness command.  Instead of the kubelet connecting to the pod over the
@@ -61,7 +204,7 @@ this technique, make sure your pod will exit if it becomes unhealthy.
 
 ## See also
 
-- [Istio mTLS](https://istio.io/docs/concepts/security/)
+- [Istio mTLS](https://archive.istio.io/v0.8/docs/concepts/security/mutual-tls/)
 - [Liveness Commands](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#define-a-liveness-command)
 - [istio/old_auth_repo#262](https://github.com/istio/old_auth_repo/issues/262)
 - [istio/old_auth_repo#292](https://github.com/istio/old_auth_repo/issues/292)
