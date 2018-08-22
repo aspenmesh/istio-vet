@@ -27,7 +27,6 @@ import (
 	"github.com/aspenmesh/istio-vet/pkg/vetter/util"
 	mtlspolicyutil "github.com/aspenmesh/istio-vet/pkg/vetter/util/mtlspolicy"
 	"github.com/golang/glog"
-	//istioauthv1alpha1 "istio.io/api/authentication/v1alpha1"
 	meshv1alpha1 "istio.io/api/mesh/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -186,33 +185,34 @@ func (m *MtlsProbes) Vet() ([]*apiv1.Note, error) {
 					} else if probePortNum > 65536 {
 						glog.Errorln("Probe port number is out of range, skipping to next pod")
 						continue
-					}
-					// get endpoint for the pod
-					podEndpoint, err := getPodEndpoint(endpointsList, p)
-					if err != nil {
-						glog.Errorln("Error getting pod endpoint, skipping to next pod")
-						continue
-					}
-					// check to see if mTLS needs to be disabled for the probe
-					if generateNote := isNoteRequiredForMtlsProbe(authPolicies, podEndpoint, probePortNum, globalMtls); generateNote {
-						if c.LivenessProbe != nil {
-							notes = append(notes, &apiv1.Note{
-								Type:    mtlsProbesNoteType,
-								Summary: mtlsLivenessProbeSummary,
-								Msg:     mtlsLivenessProbeMsg,
-								Level:   apiv1.NoteLevel_ERROR,
-								Attr: map[string]string{
-									"pod_name":  p.Name,
-									"namespace": p.Namespace}})
-						} else if c.ReadinessProbe != nil {
-							notes = append(notes, &apiv1.Note{
-								Type:    mtlsProbesNoteType,
-								Summary: mtlsReadinessProbeSummary,
-								Msg:     mtlsReadinessProbeMsg,
-								Level:   apiv1.NoteLevel_ERROR,
-								Attr: map[string]string{
-									"pod_name":  p.Name,
-									"namespace": p.Namespace}})
+					} else {
+						// get endpoint for the pod
+						podEndpoint, err := getPodEndpoint(endpointsList, p)
+						if err != nil {
+							glog.Errorln("Error getting pod endpoint, skipping to next pod")
+							continue
+						}
+						// check to see if mTLS needs to be disabled for the probe
+						if generateNote := isNoteRequiredForMtlsProbe(authPolicies, podEndpoint, probePortNum, globalMtls); generateNote {
+							if c.LivenessProbe != nil {
+								notes = append(notes, &apiv1.Note{
+									Type:    mtlsProbesNoteType,
+									Summary: mtlsLivenessProbeSummary,
+									Msg:     mtlsLivenessProbeMsg,
+									Level:   apiv1.NoteLevel_ERROR,
+									Attr: map[string]string{
+										"pod_name":  p.Name,
+										"namespace": p.Namespace}})
+							} else if c.ReadinessProbe != nil {
+								notes = append(notes, &apiv1.Note{
+									Type:    mtlsProbesNoteType,
+									Summary: mtlsReadinessProbeSummary,
+									Msg:     mtlsReadinessProbeMsg,
+									Level:   apiv1.NoteLevel_ERROR,
+									Attr: map[string]string{
+										"pod_name":  p.Name,
+										"namespace": p.Namespace}})
+							}
 						}
 					}
 				}
