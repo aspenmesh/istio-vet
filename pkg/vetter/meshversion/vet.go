@@ -20,22 +20,17 @@ package meshversion
 
 import (
 	"errors"
-
 	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
 	"github.com/aspenmesh/istio-vet/pkg/vetter"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/util"
+
 	"github.com/golang/glog"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/listers/core/v1"
 )
 
 const (
-	vetterID                       = "MeshVersion"
-	latestTag                      = "latest"
-	istioComponentMismatchNoteType = "istio-component-mismatch"
-	istioComponentMismatchSummary  = "Mismatched istio component versions - ${component_name}"
-	istioComponentMismatchMsg      = "Istio component ${component_name} is running version ${component_version}" +
-		" but your environment is running istio version ${istio_version}." +
-		" Consider upgrading the component ${component_name} "
+	vetterID                = "MeshVersion"
 	sidecarMismatchNoteType = "sidecar-image-mismatch"
 	sidecarMismatchSummary  = "Mismatched sidecar image - ${pod_name}"
 	sidecarMismatchMsg      = "The pod ${pod_name} in namespace ${namespace}" +
@@ -48,9 +43,6 @@ const (
 		" is running with istio-init image ${init_image}" +
 		" but your environment is injecting ${inject_init_image} for" +
 		" new workloads. Consider upgrading the istio-init container in the pod."
-	missingVersionNoteType    = "missing-version"
-	missingVersionNoteSummary = "Missing version information"
-	missingVersionNoteMsg     = "Cannot determine mesh version"
 )
 
 // MeshVersion implements Vetter interface
@@ -66,14 +58,15 @@ type injectImages struct {
 }
 
 func getInjectImages(cmLister v1.ConfigMapLister) (injectImages, error) {
-	sic, err := util.GetInitializerSidecarSpec(cmLister)
+	scInjectSpec, err := util.GetInitializerSidecarSpec(cmLister)
+
 	if err != nil {
 		return injectImages{}, err
 	}
-	if len(sic.InitContainers) > 0 && len(sic.Containers) > 0 {
+	if len(scInjectSpec.InitContainers) > 0 && len(scInjectSpec.Containers) > 0 {
 		return injectImages{
-			Init:    sic.InitContainers[0].Image,
-			Sidecar: sic.Containers[0].Image,
+			Init:    scInjectSpec.InitContainers[0].Image,
+			Sidecar: scInjectSpec.Containers[0].Image,
 		}, nil
 	} else {
 		errStr := "Failed to get inject images"
@@ -82,12 +75,52 @@ func getInjectImages(cmLister v1.ConfigMapLister) (injectImages, error) {
 	}
 }
 
-// The istio-inject ConfigMap has the sidecar & init images that should be
-// injected into all new deployments, daemonsets, ....  If that doesn't match
-// the images that are injected, emit a warning.
+// Separated for unit tests
+func vetPods(pods []*corev1.Pod, injImages injectImages) []*apiv1.Note {
+	notes := []*apiv1.Note{}
+
+	for _, p := range pods {
+
+		sidecarImage, err := util.Image(util.IstioProxyContainerName, p.Spec)
+		if err == nil && sidecarImage != injImages.Sidecar {
+			notes = append(notes, &apiv1.Note{
+				Type:    sidecarMismatchNoteType,
+				Summary: sidecarMismatchSummary,
+				Msg:     sidecarMismatchMsg,
+				Level:   apiv1.NoteLevel_WARNING,
+				Attr: map[string]string{
+					"pod_name":             p.Name,
+					"namespace":            p.Namespace,
+					"sidecar_image":        sidecarImage,
+					"inject_sidecar_image": injImages.Sidecar}})
+		}
+
+		initImage, err := util.InitImage(util.IstioInitContainerName, p.Spec)
+		if err == nil && initImage != injImages.Init {
+			notes = append(notes, &apiv1.Note{
+				Type:    initMismatchNoteType,
+				Summary: initMismatchSummary,
+				Msg:     initMismatchMsg,
+				Level:   apiv1.NoteLevel_WARNING,
+				Attr: map[string]string{
+					"pod_name":          p.Name,
+					"namespace":         p.Namespace,
+					"init_image":        initImage,
+					"inject_init_image": injImages.Init}})
+		}
+	}
+
+	for i := range notes {
+		notes[i].Id = util.ComputeID(notes[i])
+	}
+	return notes
+}
+
+// The istio-sidecar-injector ConfigMap has the sidecar & init images that will be injected into all new deployments, daemonsets, ....  If that doesn't match the images that are in existing Pods, emit a warning.
 func (m *MeshVersion) vetInjectedImages() ([]*apiv1.Note, error) {
 	notes := []*apiv1.Note{}
-	injectImages, err := getInjectImages(m.cmLister)
+
+	injImages, err := getInjectImages(m.cmLister)
 	if err != nil {
 		if n := util.IstioInitializerDisabledNote(err.Error(), vetterID,
 			sidecarMismatchNoteType); n != nil {
@@ -103,51 +136,16 @@ func (m *MeshVersion) vetInjectedImages() ([]*apiv1.Note, error) {
 		return nil, err
 	}
 
-	for _, p := range pods {
-		sidecarImage, err := util.Image(util.IstioProxyContainerName, p.Spec)
-		if err == nil && sidecarImage != injectImages.Sidecar {
-			notes = append(notes, &apiv1.Note{
-				Type:    sidecarMismatchNoteType,
-				Summary: sidecarMismatchSummary,
-				Msg:     sidecarMismatchMsg,
-				Level:   apiv1.NoteLevel_WARNING,
-				Attr: map[string]string{
-					"pod_name":             p.Name,
-					"namespace":            p.Namespace,
-					"sidecar_image":        sidecarImage,
-					"inject_sidecar_image": injectImages.Sidecar}})
-		}
-
-		initImage, err := util.InitImage(util.IstioInitContainerName, p.Spec)
-		if err == nil && initImage != injectImages.Init {
-			notes = append(notes, &apiv1.Note{
-				Type:    initMismatchNoteType,
-				Summary: initMismatchSummary,
-				Msg:     initMismatchMsg,
-				Level:   apiv1.NoteLevel_WARNING,
-				Attr: map[string]string{
-					"pod_name":          p.Name,
-					"namespace":         p.Namespace,
-					"init_image":        initImage,
-					"inject_init_image": injectImages.Init}})
-		}
-	}
-	return notes, nil
+	return vetPods(pods, injImages), nil
 }
 
 // Vet returns the list of generated notes
 func (m *MeshVersion) Vet() ([]*apiv1.Note, error) {
 	notes := []*apiv1.Note{}
-
 	injectedNotes, err := m.vetInjectedImages()
 	if err == nil {
 		notes = append(notes, injectedNotes...)
 	}
-
-	for i := range notes {
-		notes[i].Id = util.ComputeID(notes[i])
-	}
-
 	return notes, nil
 }
 

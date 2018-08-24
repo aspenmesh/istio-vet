@@ -53,7 +53,7 @@ const (
 	IstioConfigMapKey             = "mesh"
 	IstioAuthPolicy               = "authPolicy: MUTUAL_TLS"
 	IstioInitializerPodAnnotation = "sidecar.istio.io/status"
-	IstioInitializerConfigMap     = "istio-inject"
+	IstioInitializerConfigMap     = "istio-sidecar-injector"
 	IstioInitializerConfigMapKey  = "config"
 	IstioAppLabel                 = "app"
 	KubernetesDomainSuffix        = ".svc.cluster.local"
@@ -119,6 +119,12 @@ var defaultExemptedNamespaces = map[string]bool{
 	"kube-public":  true,
 	"istio-system": true}
 
+// from: https://github.com/istio/istio/blob/release-0.8/pilot/pkg/kube/inject/inject.go
+func isset(m map[string]string, key string) bool {
+	_, ok := m[key]
+	return ok
+}
+
 // DefaultExemptedNamespaces returns list of default Namsepaces which are
 // exempted from automatic sidecar injection.
 // List includes "kube-system", "kube-public" and "istio-system"
@@ -149,14 +155,19 @@ func formatDuration(in *duration.Duration) string {
 }
 
 // GetInitializerConfig retrieves the Istio Initializer config.
-// Istio Initializer config is stored as "istio-inject" configmap in
+// Istio Initializer config is stored as "istio-sidecar-injector" configmap in
 // "istio-system" Namespace.
-func GetInitializerConfig(cmLister v1.ConfigMapLister) (*IstioInjectConfig, error) {
+func GetInitializerConfigMap(cmLister v1.ConfigMapLister) (*corev1.ConfigMap, error) {
 	cm, err := cmLister.ConfigMaps(IstioNamespace).Get(IstioInitializerConfigMap)
 	if err != nil {
 		glog.V(2).Infof("Failed to retrieve configmap: %s error: %s", IstioInitializerConfigMap, err)
 		return nil, err
 	}
+	return cm, nil
+}
+
+// GetIstioInjectConfig is separated for testing in util_test.go
+func GetIstioInjectConfig(cm *corev1.ConfigMap) (*IstioInjectConfig, error) {
 	d, e := cm.Data[IstioInitializerConfigMapKey]
 	if !e {
 		errStr := fmt.Sprintf("Missing configuration map key: %s in configmap: %s", IstioInitializerConfigMapKey, IstioInitializerConfigMap)
@@ -174,35 +185,43 @@ func GetInitializerConfig(cmLister v1.ConfigMapLister) (*IstioInjectConfig, erro
 // GetMeshConfig retrieves the Istio Mesh config.
 // Istio Mesh config is stored as "istio" configmap in
 // "istio-system" Namespace.
-func GetMeshConfig(cmLister v1.ConfigMapLister) (*meshv1alpha1.MeshConfig, error) {
+func GetMeshConfigMap(cmLister v1.ConfigMapLister) (*corev1.ConfigMap, error) {
 	cm, err := cmLister.ConfigMaps(IstioNamespace).Get(IstioConfigMap)
 	if err != nil {
 		glog.Errorf("Failed to retrieve configmap: %s error: %s", IstioConfigMap, err)
 		return nil, err
 	}
-	c := cm.Data[IstioConfigMapKey]
+	return cm, nil
+}
+func GetMeshConfig(cm *corev1.ConfigMap) (*meshv1alpha1.MeshConfig, error) {
+	c, e := cm.Data[IstioConfigMapKey]
+	if !e {
+		errStr := fmt.Sprintf("Missing configuration map key: %s in configmap: %s", IstioConfigMapKey, IstioConfigMap)
+		glog.Errorf(errStr)
+		return nil, errors.New(errStr)
+	}
+
 	if len(c) == 0 {
 		return nil, nil
 	}
 	var cfg meshv1alpha1.MeshConfig
-	if err = ApplyYAML(c, &cfg); err != nil {
+	if err := ApplyYAML(c, &cfg); err != nil {
 		glog.Errorf("Failed to parse yaml mesh config: %s", err)
 		return nil, err
 	}
 	return &cfg, nil
 }
 
-// GetInitializerSidecarSpec retrieves the sidecar spec which will be inserted
-// by the initializer
-func GetInitializerSidecarSpec(cmLister v1.ConfigMapLister) (*SidecarInjectionSpec, error) {
-	ic, err := GetInitializerConfig(cmLister)
+func makeSideCarSpec(icm, mcm *corev1.ConfigMap) (*SidecarInjectionSpec, error) {
+	ic, err := GetIstioInjectConfig(icm)
 	if err != nil {
 		return nil, err
 	}
-	mc, err := GetMeshConfig(cmLister)
+	mc, err := GetMeshConfig(mcm)
 	if err != nil {
 		return nil, err
 	}
+
 	// Following is taken from injectionData function in
 	// https://github.com/istio/istio/blob/master/pilot/pkg/kube/inject/inject.go
 	data := SidecarTemplateData{
@@ -211,23 +230,42 @@ func GetInitializerSidecarSpec(cmLister v1.ConfigMapLister) (*SidecarInjectionSp
 		ProxyConfig: mc.DefaultConfig,
 		MeshConfig:  mc,
 	}
-	funcMap := template.FuncMap{"formatDuration": formatDuration}
+
+	funcMap := template.FuncMap{
+		"formatDuration": formatDuration,
+		"isset":          isset,
+	}
 
 	var tmpl bytes.Buffer
-	t := template.Must(template.New("inject").Funcs(funcMap).Parse(ic.Template))
+	temp := template.New("inject").Delims("[[", "]]")
+	t := template.Must(temp.Funcs(funcMap).Parse(ic.Template))
 	if err := t.Execute(&tmpl, &data); err != nil {
-		glog.Errorf("Failed to parse istio inject template: %s", err)
 		return nil, err
 	}
 
 	var sic SidecarInjectionSpec
 	if err := yaml.Unmarshal(tmpl.Bytes(), &sic); err != nil {
-		glog.Errorf("Failed to parse yaml substituted istio inject template: %s", err)
 		return nil, err
 	}
 	// End snippet from injectionData function in
 	// https://github.com/istio/istio/blob/master/pilot/pkg/kube/inject/inject.go
+
 	return &sic, nil
+}
+
+// GetInitializerSidecarSpec retrieves the sidecar spec which will be inserted
+// by the initializer
+func GetInitializerSidecarSpec(cmLister v1.ConfigMapLister) (*SidecarInjectionSpec, error) {
+
+	configMap, err := GetInitializerConfigMap(cmLister)
+	if err != nil {
+		return nil, err
+	}
+	meshConfigMap, err := GetMeshConfigMap(cmLister)
+	if err != nil {
+		return nil, err
+	}
+	return makeSideCarSpec(configMap, meshConfigMap)
 }
 
 // IstioInitializerDisabledNote generates an INFO note if the error string

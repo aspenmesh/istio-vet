@@ -17,8 +17,13 @@ limitations under the License.
 package util
 
 import (
+	"io/ioutil"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"github.com/ghodss/yaml"
+	corev1 "k8s.io/api/core/v1"
 )
 
 var _ = Describe("Converting short hostnames to FQDN", func() {
@@ -78,4 +83,42 @@ var _ = Describe("Converting short hostnames to FQDN", func() {
 			Expect(returnedHostname).To(Equal(givenHostname))
 		})
 	})
+})
+
+func configMapFromFile(file string) *corev1.ConfigMap {
+
+	icm, err := ioutil.ReadFile(file)
+	if err != nil {
+		Fail(err.Error())
+	}
+
+	var configMap corev1.ConfigMap
+	if err := yaml.Unmarshal([]byte(icm), &configMap); err != nil {
+
+		Fail(err.Error())
+	}
+
+	return &configMap
+}
+
+var _ = Describe("Converting configmap to SidecarInjectionSpec", func() {
+
+	It("Can create a SidecarInjectionSpec from ConfigMaps", func() {
+		file1 := "./testdata/0.8/0.8-istio-sidecar-injector.yaml"
+		file2 := "./testdata/0.8/0.8-mesh-config.yaml"
+
+		mockICM := configMapFromFile(file1)
+		mockMCM := configMapFromFile(file2)
+
+		sidecarInjSpec, err := makeSideCarSpec(mockICM, mockMCM)
+
+		Expect(err).To(BeNil())
+		Expect(sidecarInjSpec.InitContainers[0].Name).To(Equal("istio-init"))
+		Expect(sidecarInjSpec.InitContainers[0].Image).To(Equal("docker.io/istio/proxy_init:0.8.0"))
+		Expect(sidecarInjSpec.Containers[0].Name).To(Equal("istio-proxy"))
+		Expect(sidecarInjSpec.Containers[0].Image).To(Equal("docker.io/istio/proxyv2:0.8.0"))
+		Expect(sidecarInjSpec.Volumes[0].Name).To(Equal("istio-envoy"))
+
+	})
+
 })
