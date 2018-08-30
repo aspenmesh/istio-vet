@@ -27,10 +27,9 @@ mesh for this service port.  For instance, if your service port named `backend`
 is using an unknown protocol that runs on top of tcp, rename the service port
 to `tcp-backend`.
 
-In version 0.8.0, these protocols are supported: `grpc`, `https`, `http2`,
+In version 1.0.0, these protocols are supported: `grpc`, `https`, `http2`,
 `http`, `tcp`, `udp`, `mongo`, `redis`.
 
 ## See Also
 
-- [Service
-  Requirements](https://archive.istio.io/v0.8/docs/setup/kubernetes/sidecar-injection/#pod-spec-requirements)
+- [Pod and Service Requirements](https://istio.io/docs/setup/kubernetes/spec-requirements/)

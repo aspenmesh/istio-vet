@@ -201,7 +201,7 @@ this technique, make sure your pod will exit if it becomes unhealthy.
 
 ## See also
 
-- [Istio mTLS](https://archive.istio.io/v0.8/docs/concepts/security/mutual-tls/)
+- [Istio mTLS](https://istio.io/docs/concepts/security/mutual-tls/)
 - [Liveness Commands](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#define-a-liveness-command)
 - [istio/old_auth_repo#262](https://github.com/istio/old_auth_repo/issues/262)
 - [istio/old_auth_repo#292](https://github.com/istio/old_auth_repo/issues/292)
