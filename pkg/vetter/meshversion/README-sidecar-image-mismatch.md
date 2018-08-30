@@ -3,8 +3,8 @@
 ## Example
 
 The pod `your-app-45574414-qhgq3` in namespace `your-app` is running with
-sidecar proxy image `docker.io/istio/proxyv2:1.0.0` but your environment is
-injecting `docker.io/istio/proxyv2:0.8.0` for new workloads. Consider upgrading
+sidecar proxy image `docker.io/istio/proxyv2:0.8.0` but your environment is
+injecting `docker.io/istio/proxyv2:1.0.0` for new workloads. Consider upgrading
 the sidecar proxy in the pod.
 
 ## Description
@@ -32,5 +32,5 @@ Re-create this pod so it is injected with a new sidecar matching the version in
 the configmap. 
 
 If the pod is managed by a deployment or stateful set, etc., you can delete the
-pod and the pod will be recreated with the correct version. Before deleteing a
+pod and the pod will be recreated with the correct version. Before deleting a
 pod, make sure that deleting it will not affect the state of your workload.

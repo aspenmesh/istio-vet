@@ -5,7 +5,7 @@ mesh and generates notes if they are missing Istio recognized port
 protocol prefixes.
 
 Service port names need to be prefixed with the recognized
-[names](https://archive.istio.io/v0.8/docs/setup/kubernetes/sidecar-injection/) for Istio
+[names](https://istio.io/docs/setup/kubernetes/sidecar-injection/) for Istio
 routing features to work correctly. If a port name doesn't begin with a
 recognized prefix or is unnamed, traffic on the port is treated as plain TCP or
 UDP depending on the port protocol.
