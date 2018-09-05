@@ -55,7 +55,7 @@ required = [
 
 [[constraint]]
   name = "istio.io/api"
-  branch = "release-0.8"
+  branch = "release-1.0"
 
 [[constraint]]
   name = "k8s.io/api"
