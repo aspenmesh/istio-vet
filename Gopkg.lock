@@ -19,7 +19,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:c5387e857e59d19a8c065b93a97c77b8b7cd3f4fd8fdd797318832960023b8ec"
+  digest = "1:524ca331d8c6995ff9e300f390ed7e60809f649c359fa083278ab8c6750dbc3c"
   name = "github.com/aspenmesh/istio-client-go"
   packages = [
     "pkg/apis/authentication",
@@ -40,7 +40,7 @@
     "pkg/client/listers/networking/v1alpha3",
   ]
   pruneopts = ""
-  revision = "a681158dee6f9b87eac817150043d347fa4d5a6e"
+  revision = "0b9cde3479b22ad5530b008c119b3914e634ba6c"
 
 [[projects]]
   branch = "master"
@@ -121,7 +121,9 @@
   digest = "1:70a80170917a15e1ff02faab5f9e716e945e0676e86599ba144d38f96e30c3bf"
   name = "github.com/gogo/protobuf"
   packages = [
+    "gogoproto",
     "proto",
+    "protoc-gen-gogo/descriptor",
     "sortkeys",
     "types",
   ]
@@ -548,8 +550,8 @@
   revision = "d670f9405373e636a5a2765eea47fac0c9bc91a4"
 
 [[projects]]
-  branch = "release-0.8"
-  digest = "1:383cf412f31ab1f782b56ab0ecfca27548bf7aaf171f4ec85c7d1ac7e97bf540"
+  branch = "release-1.0"
+  digest = "1:bc43af6616d8ca12a7b8e806874387f0f1e181c08f547e9cd77f6cbac8cefd86"
   name = "istio.io/api"
   packages = [
     "authentication/v1alpha1",
@@ -557,7 +559,7 @@
     "networking/v1alpha3",
   ]
   pruneopts = ""
-  revision = "8d67e57e3612dae1a3423795bce93a372cfe4fa4"
+  revision = "76349c53b87f03f1e610b3aa3843dba3c38138d7"
 
 [[projects]]
   digest = "1:f9fa227c63f7ed1bbc0efdee23a87c90e09e01d604608f3d662a1691142bac2d"
@@ -781,6 +783,7 @@
     "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3",
     "github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned",
     "github.com/aspenmesh/istio-client-go/pkg/client/informers/externalversions",
+    "github.com/aspenmesh/istio-client-go/pkg/client/listers/authentication/v1alpha1",
     "github.com/aspenmesh/istio-client-go/pkg/client/listers/networking/v1alpha3",
     "github.com/cnf/structhash",
     "github.com/ghodss/yaml",
@@ -801,6 +804,7 @@
     "k8s.io/api/core/v1",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
     "k8s.io/apimachinery/pkg/labels",
+    "k8s.io/apimachinery/pkg/util/intstr",
     "k8s.io/client-go/informers",
     "k8s.io/client-go/kubernetes",
     "k8s.io/client-go/listers/core/v1",
