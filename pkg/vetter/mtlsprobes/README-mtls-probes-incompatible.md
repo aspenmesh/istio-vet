@@ -26,8 +26,9 @@ a CrashLoopBackOff state.
 ## Auth Policies Enabling/Disabling mTLS
 
 Authorization policies can enable or disable mTLS at the port, service name, and
-service namespace level. This will override the global mTLS setting for the
-port/name/namespace specified.
+service namespace level. This will override the [global mTLS
+setting](https://istio.io/docs/tasks/security/authn-policy/#globally-enabling-istio-mutual-tls) 
+for the port/name/namespace specified.
 
 ### Sample Configurations and Auth Policies
 
@@ -141,8 +142,9 @@ fix this by defining an authentication policy for your service.
 
 You can do one of these things:
 
-- **Define an Authentication Policy for your Service.** As of Istio v0.8 you can
-  define an authentication policy that disables mTLS for the port of the 
+- **Disable mTLS for the health probe port.**  To do this, you will need to
+  define an Authentication Policy for your Service.  In Istio v1.0 you can
+define an Authentication Policy that disables mTLS for the port of the 
 liveness/readiness probe.  It is recommended to use a port that is specific for
 health probes, and to disable mTLS on that port.  If the application port is
 also used for the health port and mTLS is disabled on this shared port, mTLS
@@ -185,10 +187,6 @@ mTLS.
       initialDelaySeconds: 10
       periodSeconds: 5
     ```
-
-- **Disable mTLS.**  Pod-to-pod traffic is still encrypted on the wire but it
-  is possible that a rogue, non-mesh pod could impersonate another mesh pod
-when doing pod-to-pod communication.
 
 - **Disable liveness probes.** You can remove liveness and readiness probes
   from your pod spec.  In this case, the kubelet will not be able to determine
