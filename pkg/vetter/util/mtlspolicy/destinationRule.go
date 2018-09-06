@@ -38,7 +38,7 @@ type destRulesByNamespaceNamePortMap map[string]destRulesByNamePortMap
 
 // DestRules holds maps of Istio destination rules by port, name, and namespace
 type DestRules struct {
-	// Destination rules must have a host specifier.  In Istio 0.8 they cannot be
+	// Destination rules must have a host specifier.  In Istio 1.0 they cannot be
 	// cluster-wide, but they can be namespace wide
 	// (*.namespace.svc.cluster.local)
 	namespace destRulesByNamespaceMap
@@ -228,8 +228,8 @@ func LoadDestRules(rules []*netv1alpha3.DestinationRule) (*DestRules, error) {
 		if r.Spec.GetTrafficPolicy().GetTls() != nil {
 			if s.Name == "*" {
 				if s.Namespace == "*" {
-					// This isn't allowed in Istio 0.8
-					// TODO(andrew): Check that it doesn't work in 0.8.
+					// This isn't allowed in Istio 1.0
+					// TODO(andrew): Check that it doesn't work in 1.0.
 					continue
 				}
 				loaded.AddByNamespace(s.Namespace, r)

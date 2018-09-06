@@ -27,7 +27,6 @@ import (
 	"github.com/aspenmesh/istio-vet/pkg/vetter/util"
 	mtlspolicyutil "github.com/aspenmesh/istio-vet/pkg/vetter/util/mtlspolicy"
 	"github.com/golang/glog"
-	meshv1alpha1 "istio.io/api/mesh/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -54,15 +53,7 @@ type MtlsProbes struct {
 	cmLister  v1.ConfigMapLister
 	epLister  v1.EndpointsLister
 	apLister  authv1alpha1.PolicyLister
-}
-
-func mtlsEnabled(c string) bool {
-	var cfg meshv1alpha1.MeshConfig
-	if err := util.ApplyYAML(c, &cfg); err != nil {
-		glog.Errorf("Failed to parse yaml mesh config: %s", err)
-		return false
-	}
-	return cfg.GetAuthPolicy() != 0
+	mpLister  authv1alpha1.MeshPolicyLister
 }
 
 // getPodEndpoint returns an Endpoint for a pod (if the endpoint exists)
@@ -141,16 +132,16 @@ func (m *MtlsProbes) Vet() ([]*apiv1.Note, error) {
 		return nil, err
 	}
 	// get global mTLS policy
-	cm, err := m.cmLister.ConfigMaps(util.IstioNamespace).Get(util.IstioConfigMap)
+	meshPolicyList, err := m.mpLister.List(labels.Everything())
 	if err != nil {
-		glog.Errorf("Failed to retrieve configmap: %s error: %s", util.IstioConfigMap, err)
+		glog.Errorf("Failed to retrieve MeshPolicies: %s", err)
 		return nil, err
 	}
-	config := cm.Data[util.IstioConfigMapKey]
-	if len(config) == 0 {
-		return nil, nil
+	globalMtls, err := mtlspolicyutil.IsGlobalMtlsEnabled(meshPolicyList)
+	if err != nil {
+		glog.Errorln("Unable to determine status of global mTLS")
+		return nil, err
 	}
-	globalMtls := mtlsEnabled(config)
 	// get list of endpoints
 	endpointsList, err := util.ListEndpointsInMesh(m.nsLister, m.cmLister, m.epLister)
 	if err != nil {
@@ -238,5 +229,6 @@ func NewVetter(factory vetter.ResourceListGetter) *MtlsProbes {
 		nsLister:  factory.K8s().Core().V1().Namespaces().Lister(),
 		epLister:  factory.K8s().Core().V1().Endpoints().Lister(),
 		apLister:  factory.Istio().Authentication().V1alpha1().Policies().Lister(),
+		mpLister:  factory.Istio().Authentication().V1alpha1().MeshPolicies().Lister(),
 	}
 }
