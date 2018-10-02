@@ -562,7 +562,7 @@
   revision = "76349c53b87f03f1e610b3aa3843dba3c38138d7"
 
 [[projects]]
-  digest = "1:f9fa227c63f7ed1bbc0efdee23a87c90e09e01d604608f3d662a1691142bac2d"
+  digest = "1:5beb32094452970c0d73a2bdacd79aa9cfaa4947a774d521c1bed4b4c2705f15"
   name = "k8s.io/api"
   packages = [
     "admissionregistration/v1alpha1",
@@ -595,8 +595,8 @@
     "storage/v1beta1",
   ]
   pruneopts = ""
-  revision = "006a217681ae70cbacdd66a5e2fca1a61a8ff28e"
-  version = "kubernetes-1.9.1"
+  revision = "8b7507fac302640dd5f1efbf9643199952cc58db"
+  version = "kubernetes-1.10.4"
 
 [[projects]]
   branch = "release-1.9"
