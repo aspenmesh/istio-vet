@@ -156,6 +156,7 @@ var (
 		},
 	}
 )
+
 var _ = Describe("LoadAuthPolicies", func() {
 	It("should load policies", func() {
 		loaded, err := LoadAuthPolicies([]*authv1alpha1.Policy{
@@ -186,6 +187,21 @@ var _ = Describe("LoadAuthPolicies", func() {
 		Expect(loaded.ByPort(foo, 8443)).To(Equal([]*authv1alpha1.Policy{apFooPortsBarOn}))
 		Expect(loaded.ByPort(foo, 1000)).To(Equal([]*authv1alpha1.Policy{}))
 		Expect(loaded.ByPort(bar, 8443)).To(Equal([]*authv1alpha1.Policy{}))
+	})
+})
+
+var _ = Describe("GetClusterPortPolicies", func() {
+	It("should return port policies from the loaded AuthPolicies struct", func() {
+		loaded, err := LoadAuthPolicies([]*authv1alpha1.Policy{
+			apDefaultOn,
+			apFooOn,
+			apFooOff,
+			apFooBarOn,
+			apFooPortsBarOn,
+		})
+		Expect(err).To(Succeed())
+		portPolicies := loaded.GetClusterPortPolicies()
+		Expect(len(portPolicies)).To(Equal(1))
 	})
 })
 

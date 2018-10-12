@@ -122,6 +122,19 @@ func (ap *AuthPolicies) ByPort(s Service, port uint32) []*authv1alpha1.Policy {
 	return p
 }
 
+// This returns all the policies for a cluster that whose target is a port, regardless of service or namespace
+func (ap *AuthPolicies) GetClusterPortPolicies() []*authv1alpha1.Policy {
+	portPolicies := []*authv1alpha1.Policy{}
+	for _, polsByNamePortMap := range ap.port {
+		for _, polsByPortMap := range polsByNamePortMap {
+			for _, policies := range polsByPortMap {
+				portPolicies = append(portPolicies, policies...)
+			}
+		}
+	}
+	return portPolicies
+}
+
 // AuthPolicyIsMtls returns true if the passed Policy has mTLS enabled
 func AuthPolicyIsMtls(policy *authv1alpha1.Policy) bool {
 	peers := policy.Spec.GetPeers()
