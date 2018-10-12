@@ -23,6 +23,11 @@ import (
 	istioauthv1alpha1 "istio.io/api/authentication/v1alpha1"
 )
 
+const (
+	meshName = "mesh"
+)
+
+type policiesByMeshMap map[string][]*authv1alpha1.MeshPolicy
 type policiesByNamespaceMap map[string][]*authv1alpha1.Policy
 type policiesByNameMap map[string][]*authv1alpha1.Policy
 type policiesByNamespaceNameMap map[string]policiesByNameMap
@@ -32,6 +37,7 @@ type policiesByNamespaceNamePortMap map[string]policiesByNamePortMap
 
 // AuthPolicies holds maps of Istio authorization policies by port, name, namespace
 type AuthPolicies struct {
+	mesh      policiesByMeshMap
 	namespace policiesByNamespaceMap
 	name      policiesByNamespaceNameMap
 	port      policiesByNamespaceNamePortMap
@@ -41,10 +47,17 @@ type AuthPolicies struct {
 // LoadAuthPolicies
 func NewAuthPolicies() *AuthPolicies {
 	return &AuthPolicies{
+		mesh:      make(policiesByMeshMap),
 		namespace: make(policiesByNamespaceMap),
 		name:      make(policiesByNamespaceNameMap),
 		port:      make(policiesByNamespaceNamePortMap),
 	}
+}
+
+// AddByMesh adds a Policy to the AuthPolicies mesh map
+func (ap *AuthPolicies) AddByMesh(mesh string, policy *authv1alpha1.MeshPolicy) {
+	m := ap.mesh[mesh]
+	ap.mesh[mesh] = append(m, policy)
 }
 
 // AddByNamespace adds a Policy to the AuthPolicies namespace map
@@ -78,6 +91,17 @@ func (ap *AuthPolicies) AddByPort(s Service, port uint32, policy *authv1alpha1.P
 	}
 	p, _ := name[port]
 	name[port] = append(p, policy)
+}
+
+// ByMesh is passed a mesh and returns the Policy in the AuthPolicies
+// mesh map for that mesh
+func (ap *AuthPolicies) ByMesh() []*authv1alpha1.MeshPolicy {
+	// Currently only UI for 1 cluster.
+	m, ok := ap.mesh[meshName]
+	if !ok {
+		return []*authv1alpha1.MeshPolicy{}
+	}
+	return m
 }
 
 // ByNamespace is passed a namespace and returns the Policy in the AuthPolicies
@@ -122,17 +146,21 @@ func (ap *AuthPolicies) ByPort(s Service, port uint32) []*authv1alpha1.Policy {
 	return p
 }
 
-// This returns all the policies for a cluster that whose target is a port, regardless of service or namespace
-func (ap *AuthPolicies) GetClusterPortPolicies() []*authv1alpha1.Policy {
-	portPolicies := []*authv1alpha1.Policy{}
-	for _, polsByNamePortMap := range ap.port {
-		for _, polsByPortMap := range polsByNamePortMap {
-			for _, policies := range polsByPortMap {
-				portPolicies = append(portPolicies, policies...)
-			}
-		}
+// ! * ! * ! * ! MAKE A SEPARATE ONE FOR MESH POLICY, then have each func just call a different func once it gets to peers...
+// Also update this function to use the code that I wrote for the other mtls config stuff
+// Also Also make wrappers for these if they occur in the vetters... (nevermind it's just in the tests...)
+//
+
+// MeshPolicyIsMtls returns true if the passed Policy has mTLS enabled
+func MeshPolicyIsMtls(policy *authv1alpha1.Policy) bool {
+	peers := policy.Spec.GetPeers()
+	if peers == nil {
+		return false
 	}
-	return portPolicies
+	for _, peer := range peers {
+		runTheMTLSGamut(peer)
+	}
+	return false
 }
 
 // AuthPolicyIsMtls returns true if the passed Policy has mTLS enabled
@@ -197,6 +225,30 @@ func (ap *AuthPolicies) TLSByNamespace(s Service) (bool, *authv1alpha1.Policy, e
 		return AuthPolicyIsMtls(policies[0]), policies[0], nil
 	}
 	return false, nil, errors.New("No policy for service by namespace")
+}
+
+func (ap *AuthPolicies) TLSByMesh() (bool, *authv1alpha1.MeshPolicy, error) {
+	policies := ap.ByMesh()
+	if len(policies) > 1 {
+		// There can be only one Mesh policy and it must be named "default"
+		return false, nil, errors.New("Conflicting policies for service by mesh")
+	}
+	if len(policies) == 1 {
+		return MeshPolicyIsMtls(policies[0]), policies[0], nil
+	}
+	return false, nil, errors.New("No policy for service by mesh")
+}
+
+func (ap *AuthPolicies) LoadMeshPolicy(policies []*authv1alpha1.MeshPolicy) *AuthPolicies {
+	for _, policy := range policies {
+		if policy.Name != "default" {
+			// Mesh Policy must be named "default".
+			continue
+		}
+		ap.AddByMesh(meshName, policy)
+		continue
+	}
+	return ap
 }
 
 // LoadAuthPolicies is passed a list of Policies and returns an AuthPolicies
