@@ -89,7 +89,7 @@ var (
 					},
 				},
 				Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{
-					&istioauthv1alpha1.PeerAuthenticationMethod{},
+					// &istioauthv1alpha1.PeerAuthenticationMethod{},
 				},
 			},
 		},
@@ -192,9 +192,9 @@ var _ = Describe("LoadAuthPolicies", func() {
 
 var _ = Describe("AuthPolicyIsMtls", func() {
 	It("should evaluate no-mtls-peer as false", func() {
-		Expect(AuthPolicyIsMtls(apFooOff)).To(BeFalse())
+		Expect(AuthPolicyIsMtls(apFooOff)).To(Equal(MTLSSetting_DISABLED))
 	})
 	It("should evaluate empty-mtls-peer as true", func() {
-		Expect(AuthPolicyIsMtls(apFooPortsBarOn)).To(BeTrue())
+		Expect(AuthPolicyIsMtls(apFooPortsBarOn)).To(Equal(MTLSSetting_ENABLED))
 	})
 })
