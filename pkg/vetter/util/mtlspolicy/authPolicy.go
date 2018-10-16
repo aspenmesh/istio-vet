@@ -18,6 +18,7 @@ package mtlspolicyutil
 
 import (
 	"errors"
+	// "fmt"
 	"strings"
 
 	authv1alpha1 "github.com/aspenmesh/istio-client-go/pkg/apis/authentication/v1alpha1"
@@ -193,154 +194,6 @@ func getMTLSBool(mtlsState MTLSSetting, policy *authv1alpha1.Policy) (bool, *aut
 	}
 }
 
-// TLSDetailsByPort walks through Auth Policies at the port level and returns the mtlsState for the requested resource. It returns the mTls state for the parent resource if there is no policy for the requested resource.
-func (ap *AuthPolicies) TLSDetailsByPort(s Service, port uint32) (MTLSSetting, *authv1alpha1.Policy, error) {
-	policies := ap.ByPort(s, port)
-	if len(policies) > 1 {
-		return MTLSSetting_UNKNOWN, nil, errors.New("Conflicting policies for port")
-	}
-	if len(policies) == 1 {
-		return AuthPolicyIsMtls(policies[0]), policies[0], nil
-	}
-	// If there are no policies for the port, return mtlsState for parent resource.
-	return ap.TLSDetailsByName(s)
-}
-
-// TLSByPort wraps TLSDetailsByPort and returns a boolean.
-func (ap *AuthPolicies) TLSByPort(s Service, port uint32) (bool, *authv1alpha1.Policy, error) {
-	mtlsState, policy, err := ap.TLSDetailsByPort(s, port)
-	if err != nil {
-		// The false status is actually bogus because we we unable to determine the mTls status.
-		return false, nil, err
-	}
-	return getMTLSBool(mtlsState, policy)
-}
-
-// TLSDetailsByName walks through Auth Policies at the port and name level, and returns the mtlsState for the requested resource. It returns the mTls state for the parent resource if there is no policy for the requested resource.
-func (ap *AuthPolicies) TLSDetailsByName(s Service) (MTLSSetting, *authv1alpha1.Policy, error) {
-	policies := ap.ByName(s)
-	if len(policies) > 1 {
-		return MTLSSetting_UNKNOWN, nil, errors.New("Conflicting policies for service by name")
-	}
-	if len(policies) == 1 {
-		return AuthPolicyIsMtls(policies[0]), policies[0], nil
-	}
-	// If there are no policies for the service, return mtlsState for parent resource.
-	return ap.TLSDetailsByNamespace(s)
-}
-
-// TLSByName wraps TLSDetailsByName and returns a boolean.
-func (ap *AuthPolicies) TLSByName(s Service) (bool, *authv1alpha1.Policy, error) {
-	mtlsState, policy, err := ap.TLSDetailsByName(s)
-	if err != nil {
-		// The false status is actually bogus because we we unable to determine the mTls status.
-		return false, nil, err
-	}
-	return getMTLSBool(mtlsState, policy)
-}
-
-// TLSDetailsByNamespace walks through Auth Policies at the port, name, and namespace level and returns the mtlsState for the requested resource. It returns the mTls state for the parent resource if there is no policy for the requested resource.
-func (ap *AuthPolicies) TLSDetailsByNamespace(s Service) (MTLSSetting, *authv1alpha1.Policy, error) {
-	policies := ap.ByNamespace(s.Namespace)
-	if len(policies) > 1 {
-		return MTLSSetting_UNKNOWN, nil, errors.New("Conflicting policies for service by namespace")
-	}
-	if len(policies) == 1 {
-		return AuthPolicyIsMtls(policies[0]), policies[0], nil
-	}
-	// If there are no policies for the namespace, return mtlsState for parent resource. Note this function can't return a Mesh Policy since it's a different Type.
-	if len(ap.mesh) != 0 {
-		// fmt.Printf("\n got to if ap.mesh != nil: %v", ap.mesh)
-		mtlsState, _, err := ap.TLSDetailsByMesh()
-		return mtlsState, nil, err
-	} else {
-		// Due to refactor, this clause satisfies isNoteRequiredForMtlsProbe() where mtls for Mesh has been determined separately and there are no policies for any resources in the cluster except the mesh policy. In this case, all resources would be considered to have mTls disabled.
-		return MTLSSetting_DISABLED, nil, errors.New("Use Mesh Policy")
-	}
-}
-
-// TLSByNamespace wraps TLSDetailsByNamespace and returns a boolean.
-func (ap *AuthPolicies) TLSByNamespace(s Service) (bool, *authv1alpha1.Policy, error) {
-	mtlsState, policy, err := ap.TLSDetailsByNamespace(s)
-	if err != nil {
-		// The false status is actually bogus because we we unable to determine the mTls status.
-		return false, nil, err
-	}
-	return getMTLSBool(mtlsState, policy)
-}
-
-func (ap *AuthPolicies) TLSDetailsByMesh() (MTLSSetting, *authv1alpha1.MeshPolicy, error) {
-	policies := ap.ByMesh()
-	if len(policies) > 1 {
-		// There can be only one Mesh policy and it must be named "default"
-		return MTLSSetting_UNKNOWN, nil, errors.New("Conflicting policies for service by mesh")
-	}
-	if len(policies) == 1 {
-		return MeshPolicyIsMtls(policies[0]), policies[0], nil
-	}
-	// If there is no mesh policy, mTls is considered to be disabled for the cluster.
-	return MTLSSetting_DISABLED, nil, nil
-}
-
-// LoadMeshPolicy takes the mesh policy and adds it to an *AuthPolicy struct
-func (ap *AuthPolicies) LoadMeshPolicy(policies []*authv1alpha1.MeshPolicy) {
-	for _, policy := range policies {
-		if policy.Name != "default" {
-			// Mesh Policy must be named "default".
-			continue
-		}
-		ap.AddByMesh(meshName, policy)
-		continue
-	}
-
-}
-
-// *!*!* Force the user to pass in the mesh pol or an empty list.
-
-// LoadAuthPolicies is passed a list of Policies and returns an
-// AuthPolicies struct with maps of policies by port, name, and namespace.
-// The function separates the policies so that the namespace map only includes policies that are namespace-wide only, service map includes policies that are service-wide only, and port map includes policies that designate a target port.
-func LoadAuthPolicies(policies []*authv1alpha1.Policy) (*AuthPolicies, error) {
-	loaded := NewAuthPolicies()
-	for _, policy := range policies {
-		targets := policy.Spec.GetTargets()
-		if targets == nil || len(targets) == 0 {
-			// No targets: this is a namespace-wide policy.
-			if policy.Name != "default" {
-				// This policy is invalid according to docs.
-				continue
-			}
-			loaded.AddByNamespace(policy.Namespace, policy)
-			continue
-		}
-
-		// Policy has targets.
-		for _, target := range targets {
-			name := target.GetName()
-			if name == "" {
-				// According to docs, this is invalid.
-				continue
-			}
-			s := Service{Name: name, Namespace: policy.Namespace}
-			ports := target.GetPorts()
-			if ports == nil || len(ports) == 0 {
-				// This policy applies to a service by name
-				loaded.AddByName(s, policy)
-				continue
-			}
-
-			for _, port := range ports {
-				n := port.GetNumber()
-				if n == 0 {
-					continue
-				}
-				loaded.AddByPort(s, n, policy)
-			}
-		}
-	}
-	return loaded, nil
-}
-
 // paramIsMTls determines whether mTls is enabled for a policy when no modes are listed.
 // If a yaml file contains "- mtls: {}" or "- mtls: ", the Policy Object will be `spec":{"peers":[{"mtls":null}]}}` Istio Docs describe this as mTls-enabled. We can't use .GetMtls() because it will return nil in cases where the peer isn't mTls as well as in cases where mtls is listed but empty
 func paramIsMTls(peer *istioauthv1alpha1.PeerAuthenticationMethod) bool {
@@ -445,4 +298,152 @@ func IsGlobalMtlsEnabled(meshPolicies []*authv1alpha1.MeshPolicy) (bool, error) 
 			return false, errors.New("MeshPolicy is not named 'default'")
 		}
 	}
+}
+
+// TLSDetailsByPort walks through Auth Policies at the port level and returns the mtlsState for the requested resource. It returns the mTls state for the parent resource if there is no policy for the requested resource.
+func (ap *AuthPolicies) TLSDetailsByPort(s Service, port uint32) (MTLSSetting, *authv1alpha1.Policy, error) {
+	policies := ap.ByPort(s, port)
+	if len(policies) > 1 {
+		return MTLSSetting_UNKNOWN, nil, errors.New("Conflicting policies for port")
+	}
+	if len(policies) == 1 {
+		return AuthPolicyIsMtls(policies[0]), policies[0], nil
+	}
+	// If there are no policies for the port, return mtlsState for parent resource.
+	return ap.TLSDetailsByName(s)
+}
+
+// TLSByPort wraps TLSDetailsByPort and returns a boolean.
+func (ap *AuthPolicies) TLSByPort(s Service, port uint32) (bool, *authv1alpha1.Policy, error) {
+	mtlsState, policy, err := ap.TLSDetailsByPort(s, port)
+	if err != nil {
+		// The false status is actually bogus because we we unable to determine the mTls status.
+		return false, nil, err
+	}
+	return getMTLSBool(mtlsState, policy)
+}
+
+// TLSDetailsByName walks through Auth Policies at the port and name level, and returns the mtlsState for the requested resource. It returns the mTls state for the parent resource if there is no policy for the requested resource.
+func (ap *AuthPolicies) TLSDetailsByName(s Service) (MTLSSetting, *authv1alpha1.Policy, error) {
+	policies := ap.ByName(s)
+	if len(policies) > 1 {
+		return MTLSSetting_UNKNOWN, nil, errors.New("Conflicting policies for service by name")
+	}
+	if len(policies) == 1 {
+		return AuthPolicyIsMtls(policies[0]), policies[0], nil
+	}
+	// If there are no policies for the service, return mtlsState for parent resource.
+	return ap.TLSDetailsByNamespace(s)
+}
+
+// TLSByName wraps TLSDetailsByName and returns a boolean.
+func (ap *AuthPolicies) TLSByName(s Service) (bool, *authv1alpha1.Policy, error) {
+	mtlsState, policy, err := ap.TLSDetailsByName(s)
+	if err != nil {
+		// The false status is actually bogus because we we unable to determine the mTls status.
+		return false, nil, err
+	}
+	return getMTLSBool(mtlsState, policy)
+}
+
+// TLSDetailsByNamespace walks through Auth Policies at the port, name, and namespace level and returns the mtlsState for the requested resource. It returns the mTls state for the parent resource if there is no policy for the requested resource.
+func (ap *AuthPolicies) TLSDetailsByNamespace(s Service) (MTLSSetting, *authv1alpha1.Policy, error) {
+	policies := ap.ByNamespace(s.Namespace)
+	if len(policies) > 1 {
+		return MTLSSetting_UNKNOWN, nil, errors.New("Conflicting policies for service by namespace")
+	}
+	if len(policies) == 1 {
+		return AuthPolicyIsMtls(policies[0]), policies[0], nil
+	}
+	// If there are no policies for the namespace, return mtlsState for parent resource. Note this function can't return a Mesh Policy since it's a different Type.
+
+	if len(ap.mesh) != 0 {
+		mtlsState, _, err := ap.TLSDetailsByMesh()
+		return mtlsState, nil, err
+	} else {
+		// Due to refactor, this clause satisfies isNoteRequiredForMtlsProbe() where mtls for Mesh has been determined separately and there are no policies for any resources in the cluster except the mesh policy. In this case, all resources would be considered to have mTls disabled.
+		return MTLSSetting_DISABLED, nil, errors.New("Use Mesh Policy")
+	}
+}
+
+// TLSByNamespace wraps TLSDetailsByNamespace and returns a boolean.
+func (ap *AuthPolicies) TLSByNamespace(s Service) (bool, *authv1alpha1.Policy, error) {
+	mtlsState, policy, err := ap.TLSDetailsByNamespace(s)
+	if err != nil {
+		// The false status is actually bogus because we we unable to determine the mTls status.
+		return false, nil, err
+	}
+	return getMTLSBool(mtlsState, policy)
+}
+
+func (ap *AuthPolicies) TLSDetailsByMesh() (MTLSSetting, *authv1alpha1.MeshPolicy, error) {
+	policies := ap.ByMesh()
+	if len(policies) > 1 {
+		// There can be only one Mesh policy and it must be named "default"
+		return MTLSSetting_UNKNOWN, nil, errors.New("Conflicting policies for service by mesh")
+	}
+	if len(policies) == 1 {
+		return MeshPolicyIsMtls(policies[0]), policies[0], nil
+	}
+	// If there is no mesh policy, mTls is considered to be disabled for the cluster.
+	return MTLSSetting_DISABLED, nil, nil
+}
+
+// LoadMeshPolicy takes the mesh policy and adds it to an *AuthPolicy struct
+func (ap *AuthPolicies) LoadMeshPolicy(policies []*authv1alpha1.MeshPolicy) {
+	for _, policy := range policies {
+		if policy.Name != "default" {
+			// Mesh Policy must be named "default".
+			continue
+		}
+		ap.AddByMesh(meshName, policy)
+		continue
+	}
+
+}
+
+// *!*!* Force the user to pass in the mesh pol or an empty list.
+
+// LoadAuthPolicies is passed a list of Policies and returns an
+// AuthPolicies struct with maps of policies by port, name, and namespace.
+// The function separates the policies so that the namespace map only includes policies that are namespace-wide only, service map includes policies that are service-wide only, and port map includes policies that designate a target port.
+func LoadAuthPolicies(policies []*authv1alpha1.Policy) (*AuthPolicies, error) {
+	loaded := NewAuthPolicies()
+	for _, policy := range policies {
+		targets := policy.Spec.GetTargets()
+		if targets == nil || len(targets) == 0 {
+			// No targets: this is a namespace-wide policy.
+			if policy.Name != "default" {
+				// This policy is invalid according to docs.
+				continue
+			}
+			loaded.AddByNamespace(policy.Namespace, policy)
+			continue
+		}
+
+		// Policy has targets.
+		for _, target := range targets {
+			name := target.GetName()
+			if name == "" {
+				// According to docs, this is invalid.
+				continue
+			}
+			s := Service{Name: name, Namespace: policy.Namespace}
+			ports := target.GetPorts()
+			if ports == nil || len(ports) == 0 {
+				// This policy applies to a service by name
+				loaded.AddByName(s, policy)
+				continue
+			}
+
+			for _, port := range ports {
+				n := port.GetNumber()
+				if n == 0 {
+					continue
+				}
+				loaded.AddByPort(s, n, policy)
+			}
+		}
+	}
+	return loaded, nil
 }
