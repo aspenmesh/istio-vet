@@ -190,21 +190,6 @@ var _ = Describe("LoadAuthPolicies", func() {
 	})
 })
 
-var _ = Describe("GetClusterPortPolicies", func() {
-	It("should return port policies from the loaded AuthPolicies struct", func() {
-		loaded, err := LoadAuthPolicies([]*authv1alpha1.Policy{
-			apDefaultOn,
-			apFooOn,
-			apFooOff,
-			apFooBarOn,
-			apFooPortsBarOn,
-		})
-		Expect(err).To(Succeed())
-		portPolicies := loaded.GetClusterPortPolicies()
-		Expect(len(portPolicies)).To(Equal(1))
-	})
-})
-
 var _ = Describe("AuthPolicyIsMtls", func() {
 	It("should evaluate no-mtls-peer as false", func() {
 		Expect(AuthPolicyIsMtls(apFooOff)).To(BeFalse())

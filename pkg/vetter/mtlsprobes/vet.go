@@ -99,8 +99,12 @@ func isNoteRequiredForMtlsProbe(authPolicies *mtlspolicyutil.AuthPolicies, endpo
 		Name:      endpoint.Name,
 		Namespace: endpoint.Namespace}
 	mtls, _, err := authPolicies.TLSByPort(svc, probePort)
-	if err != nil {
-		// no policies were found for port, name or namespace, return status of globalMtls
+	if err != nil && err.Error() == "Use Mesh Policy" {
+		// TLSByPort was refactored to check for a mesh policy as part of the AuthPolicy struct. If mTls for the mesh policy is determined separately, this is the catch.
+		return globalMtls
+	} else if err != nil {
+		// TODO(BLaurenB): actually, an error here would mean that we couldn't determine the mtls state (likely conflicting policies). We should exit the function and throw an error or return false instead of allowing the vetter to write a note.
+		// (m-eaton ?) no policies were found for port, name or namespace, return status of globalMtls
 		return globalMtls
 	} else {
 		// policy was found, return the mTLS status of the policy
