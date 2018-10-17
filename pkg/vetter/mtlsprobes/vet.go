@@ -112,6 +112,28 @@ func isNoteRequiredForMtlsProbe(authPolicies *mtlspolicyutil.AuthPolicies, endpo
 	}
 }
 
+// // isNoteRequiredForMtlsProbe returns true if a note needs to be generated
+// // based off of auth policies related to the liveness/readiness probe
+// func isNoteRequiredForMtlsProbe(authPolicies *mtlspolicyutil.AuthPolicies, endpoint *corev1.Endpoints,
+// 	probePort uint32, globalMtls bool) bool {
+// 	// if the endpoint is nil, just return the status of globalMtls
+// 	if endpoint == nil {
+// 		return globalMtls
+// 	}
+// 	// create service
+// 	var svc mtlspolicyutil.Service = mtlspolicyutil.Service{
+// 		Name:      endpoint.Name,
+// 		Namespace: endpoint.Namespace}
+// 	mtls, _, err := authPolicies.TLSByPort(svc, probePort)
+// 	if err != nil {
+// 		// no policies were found for port, name or namespace, return status of globalMtls
+// 		return globalMtls
+// 	} else {
+// 		// policy was found, return the mTLS status of the policy
+// 		return mtls
+// 	}
+// }
+
 // Vet returns the list of generated notes
 func (m *MtlsProbes) Vet() ([]*apiv1.Note, error) {
 	var notes []*apiv1.Note
