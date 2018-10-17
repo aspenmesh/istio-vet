@@ -18,7 +18,6 @@ package mtlspolicyutil
 
 import (
 	"errors"
-	// "fmt"
 	"strings"
 
 	authv1alpha1 "github.com/aspenmesh/istio-client-go/pkg/apis/authentication/v1alpha1"
@@ -162,19 +161,21 @@ func (ap *AuthPolicies) ByPort(s Service, port uint32) []*authv1alpha1.Policy {
 }
 
 // ForEachPolByPort takes a callback and applies it to a range of policies by port
-func (ap *AuthPolicies) ForEachPolByPort(s Service, cb func(s Service, port uint32, policies []*authv1alpha1.Policy)) {
+func (ap *AuthPolicies) ForEachPolByPort(s Service, cb func(s Service, port uint32, policies []*authv1alpha1.Policy)) error {
 
 	ns, ok := ap.port[s.Namespace]
 	if !ok {
-		return
+		return errors.New("No policies for namespace that specify a port")
 	}
 	n, ok := ns[s.Name]
 	if !ok {
-		return
+		return errors.New("No policies for service that specify a port")
 	}
 	for port, policies := range n {
 		cb(s, port, policies)
+		return nil
 	}
+	return nil
 }
 
 // getMTLSBool returns a bool and error from the 4 possible enum mTls states.
