@@ -17,6 +17,7 @@ limitations under the License.
 package mtlspolicyutil
 
 import (
+	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -191,6 +192,7 @@ var (
 )
 
 var _ = Describe("LoadAuthPolicies", func() {
+	fmt.Printf("\n RUNNING TESTS")
 	It("should load policies", func() {
 		loaded, err := LoadAuthPolicies([]*authv1alpha1.Policy{
 			nsbarNs_On,
@@ -237,93 +239,57 @@ var _ = Describe("AuthPolicyIsMtls", func() {
 })
 
 var _ = Describe("test AuthPolicyIsMtls() through its callers", func() {
-	// Context("TLSDetailsByNamespace()", func() {
+	Context("TLSDetailsByNamespace()", func() {
 
-	// 	It("returns enabled when there is an enabled policy", func() {
-	// 		loadedOn, err := LoadAuthPolicies([]*authv1alpha1.Policy{
-	// 			nsbarNs_On,
-	// 		})
-	// 		loadedOn.LoadMeshPolicy([]*authv1alpha1.MeshPolicy{meshDefaultOn})
+		It("returns enabled when there is an enabled policy", func() {
+			loadedOn, err := LoadAuthPolicies([]*authv1alpha1.Policy{
+				nsbarNs_On,
+			})
+			loadedOn.LoadMeshPolicy([]*authv1alpha1.MeshPolicy{meshDefaultOn})
 
-	// 		Expect(err).To(BeNil())
-	// 		s := Service{Namespace: "barNs", Name: ""}
-	// 		mtlsStateOn, _, err1 := loadedOn.TLSDetailsByNamespace(s)
-	// 		Expect(err1).To(BeNil())
+			Expect(err).To(BeNil())
+			s := Service{Namespace: "barNs", Name: ""}
+			mtlsStateOn, _, err1 := loadedOn.TLSDetailsByNamespace(s)
+			Expect(err1).To(BeNil())
+			Expect(mtlsStateOn).To(Equal(MTLSSetting_ENABLED))
+		})
+		It("returns enabled when there is no policy for a namespace, but the mesh policy exists and is enabled", func() {
+			loadedNone, err := LoadAuthPolicies([]*authv1alpha1.Policy{})
+			Expect(err).To(BeNil())
+			loadedNone.LoadMeshPolicy([]*authv1alpha1.MeshPolicy{meshDefaultOn})
+			s := Service{Namespace: "barNs", Name: ""}
+			mtlsStateNone, _, err2 := loadedNone.TLSDetailsByNamespace(s)
+			Expect(err2).To(BeNil())
+			Expect(mtlsStateNone).To(Equal(MTLSSetting_ENABLED))
+		})
+	})
 
-	// 		Expect(mtlsStateOn).To(Equal(MTLSSetting_ENABLED))
-	// 	})
-	// 	It("returns enabled when there is no policy for a namespace, but the mesh policy exists and is enabled", func() {
-	// 		loadedNone, err := LoadAuthPolicies([]*authv1alpha1.Policy{})
-	// 		Expect(err).To(BeNil())
-	// 		loadedNone.LoadMeshPolicy([]*authv1alpha1.MeshPolicy{meshDefaultOn})
-	// 		s := Service{Namespace: "barNs", Name: ""}
-	// 		mtlsStateNone, _, err2 := loadedNone.TLSDetailsByNamespace(s)
-	// 		Expect(err2).To(BeNil())
-
-	// 		Expect(mtlsStateNone).To(Equal(MTLSSetting_ENABLED))
-	// 	})
-	// })
-	// Context("TLSDetailsByName()", func() {
-
-	// 	It("returns enabled when there is an enabled policy", func() {
-	// 		loadedOn, err := LoadAuthPolicies([]*authv1alpha1.Policy{
-	// 			nsDefault_apFooPorts_apBar_On,
-	// 		})
-	// 		Expect(err).To(BeNil())
-	// 		s := Service{Namespace: "barNs", Name: "foo"}
-	// 		mtlsStateOn, _, err1 := loadedOn.TLSDetailsByName(s)
-	// 		Expect(err1).To(BeNil())
-
-	// 		Expect(mtlsStateOn).To(Equal(MTLSSetting_ENABLED))
-	// 	})
-	// 	It("returns mixed when there is an enabled Port policy and disabled service policy", func() {
-	// 		loadedOn, err := LoadAuthPolicies([]*authv1alpha1.Policy{
-	// 			nsDefault_apFoo_Off,
-	// 			nsDefault_apFooPorts_apBar_On,
-	// 		})
-	// 		Expect(err).To(BeNil())
-	// 		s := Service{Namespace: "default", Name: "foo"}
-	// 		mtlsStateOn, _, err1 := loadedOn.TLSDetailsByName(s)
-	// 		Expect(err1).To(BeNil())
-
-	// 		Expect(mtlsStateOn).To(Equal(MTLSSetting_MIXED))
-	// 	})
-	// 	It("returns enabled when there is no policy for a service, but the namespace policy exists and is enabled", func() {
-	// 		loadedNone, err := LoadAuthPolicies([]*authv1alpha1.Policy{
-	// 			nsbarNs_On,
-	// 		})
-	// 		Expect(err).To(BeNil())
-	// 		s := Service{Namespace: "barNs", Name: ""}
-	// 		mtlsStateNone, _, err2 := loadedNone.TLSDetailsByName(s)
-	// 		Expect(err2).To(BeNil())
-
-	// 		Expect(mtlsStateNone).To(Equal(MTLSSetting_ENABLED))
-	// 	})
-	// })
-	Context("TLSDetailsByPort()", func() {
-
+	Context("TLSDetailsByName()", func() {
 		It("returns enabled when there is an enabled policy", func() {
 			loadedOn, err := LoadAuthPolicies([]*authv1alpha1.Policy{
 				nsDefault_apFooPorts_apBar_On,
 			})
 			Expect(err).To(BeNil())
-			s := Service{Namespace: "barNs", Name: "foo"}
-			mtlsStateOn, _, err1 := loadedOn.TLSDetailsByPort(s, 8443)
-			Expect(err1).To(BeNil())
+			s := Service{Namespace: "default", Name: "bar"}
+			mtlsStateOn, _, err1 := loadedOn.TLSDetailsByName(s)
 
+			Expect(err1).To(BeNil())
 			Expect(mtlsStateOn).To(Equal(MTLSSetting_ENABLED))
 		})
-		It("returns mixed when there is an enabled Port policy and disabled service policy", func() {
+		It("returns disabled when there is an enabled Port policy and disabled service policy", func() {
 			loadedOn, err := LoadAuthPolicies([]*authv1alpha1.Policy{
 				nsDefault_apFoo_Off,
 				nsDefault_apFooPorts_apBar_On,
 			})
 			Expect(err).To(BeNil())
 			s := Service{Namespace: "default", Name: "foo"}
-			mtlsStateOn, _, err1 := loadedOn.TLSDetailsByPort(s, 8443)
-			Expect(err1).To(BeNil())
 
-			Expect(mtlsStateOn).To(Equal(MTLSSetting_MIXED))
+			fmt.Printf("\n loadedOn.name: %v", loadedOn.name)
+			fmt.Printf("\n loadedOn.port: %v", loadedOn.port)
+			mtlsStateOn, _, err1 := loadedOn.TLSDetailsByName(s)
+
+			Expect(err1).To(BeNil())
+			Expect(mtlsStateOn).To(Equal(MTLSSetting_DISABLED))
 		})
 		It("returns enabled when there is no policy for a service, but the namespace policy exists and is enabled", func() {
 			loadedNone, err := LoadAuthPolicies([]*authv1alpha1.Policy{
@@ -331,9 +297,35 @@ var _ = Describe("test AuthPolicyIsMtls() through its callers", func() {
 			})
 			Expect(err).To(BeNil())
 			s := Service{Namespace: "barNs", Name: ""}
-			mtlsStateNone, _, err2 := loadedNone.TLSDetailsByPort(s, 8443)
-			Expect(err2).To(BeNil())
+			mtlsStateNone, _, err2 := loadedNone.TLSDetailsByName(s)
 
+			Expect(err2).To(BeNil())
+			Expect(mtlsStateNone).To(Equal(MTLSSetting_ENABLED))
+		})
+	})
+	Context("TLSDetailsByPort()", func() {
+
+		It("returns enabled when there is an enabled policy", func() {
+			loadedOn, err := LoadAuthPolicies([]*authv1alpha1.Policy{
+				nsDefault_apFooPorts_apBar_On,
+			})
+			Expect(err).To(BeNil())
+			s := Service{Namespace: "default", Name: "foo"}
+			mtlsStateOn, _, err1 := loadedOn.TLSDetailsByPort(s, 8443)
+
+			Expect(err1).To(BeNil())
+			Expect(mtlsStateOn).To(Equal(MTLSSetting_ENABLED))
+		})
+
+		It("returns enabled when there is no policy for a target service Port, but a service policy exists and is enabled", func() {
+			loadedNone, err := LoadAuthPolicies([]*authv1alpha1.Policy{
+				nsDefault_apFoo_apBar_On,
+			})
+			Expect(err).To(BeNil())
+			s := Service{Namespace: "default", Name: "foo"}
+			mtlsStateNone, _, err2 := loadedNone.TLSDetailsByPort(s, 8443)
+
+			Expect(err2).To(BeNil())
 			Expect(mtlsStateNone).To(Equal(MTLSSetting_ENABLED))
 		})
 	})

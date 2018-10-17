@@ -18,6 +18,7 @@ package mtlspolicyutil
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	authv1alpha1 "github.com/aspenmesh/istio-client-go/pkg/apis/authentication/v1alpha1"
@@ -303,7 +304,9 @@ func IsGlobalMtlsEnabled(meshPolicies []*authv1alpha1.MeshPolicy) (bool, error) 
 
 // TLSDetailsByPort walks through Auth Policies at the port level and returns the mtlsState for the requested resource. It returns the mTls state for the parent resource if there is no policy for the requested resource.
 func (ap *AuthPolicies) TLSDetailsByPort(s Service, port uint32) (MTLSSetting, *authv1alpha1.Policy, error) {
+	fmt.Printf("\n IN TLSDetailsByPort(): %v", s)
 	policies := ap.ByPort(s, port)
+	fmt.Printf("\n policies: %v", policies)
 	if len(policies) > 1 {
 		return MTLSSetting_UNKNOWN, nil, errors.New("Conflicting policies for port")
 	}
@@ -326,7 +329,10 @@ func (ap *AuthPolicies) TLSByPort(s Service, port uint32) (bool, *authv1alpha1.P
 
 // TLSDetailsByName walks through Auth Policies at the port and name level, and returns the mtlsState for the requested resource. It returns the mTls state for the parent resource if there is no policy for the requested resource.
 func (ap *AuthPolicies) TLSDetailsByName(s Service) (MTLSSetting, *authv1alpha1.Policy, error) {
+
+	fmt.Printf("\n IN TLSDetailsByName() s: %v", s)
 	policies := ap.ByName(s)
+	fmt.Printf("\n policies: %v", policies)
 	if len(policies) > 1 {
 		return MTLSSetting_UNKNOWN, nil, errors.New("Conflicting policies for service by name")
 	}
@@ -349,7 +355,9 @@ func (ap *AuthPolicies) TLSByName(s Service) (bool, *authv1alpha1.Policy, error)
 
 // TLSDetailsByNamespace walks through Auth Policies at the port, name, and namespace level and returns the mtlsState for the requested resource. It returns the mTls state for the parent resource if there is no policy for the requested resource.
 func (ap *AuthPolicies) TLSDetailsByNamespace(s Service) (MTLSSetting, *authv1alpha1.Policy, error) {
+	fmt.Printf("\n IN TLSDetailsByNamespace() s: %v", s)
 	policies := ap.ByNamespace(s.Namespace)
+	fmt.Printf("\n policies: %v", policies)
 	if len(policies) > 1 {
 		return MTLSSetting_UNKNOWN, nil, errors.New("Conflicting policies for service by namespace")
 	}
