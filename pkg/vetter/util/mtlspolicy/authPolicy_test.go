@@ -18,7 +18,7 @@ package mtlspolicyutil
 
 import (
 	"errors"
-	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -248,7 +248,6 @@ var (
 )
 
 var _ = Describe("LoadAuthPolicies and LoadMeshPolicy", func() {
-	fmt.Printf("\n RUNNING TESTS")
 	It("should load policies", func() {
 		loaded, err := LoadAuthPolicies([]*authv1alpha1.Policy{
 			nsbarNs_On,
@@ -339,9 +338,6 @@ var _ = Describe("test AuthPolicyIsMtls() through its callers", func() {
 			})
 			Expect(err).To(BeNil())
 			s := Service{Namespace: "default", Name: "foo"}
-
-			fmt.Printf("\n loadedOn.name: %v", loadedOn.name)
-			fmt.Printf("\n loadedOn.port: %v", loadedOn.port)
 			mtlsStateOn, _, err1 := loadedOn.TLSDetailsByName(s)
 
 			Expect(err1).To(BeNil())
