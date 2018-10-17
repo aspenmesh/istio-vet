@@ -17,6 +17,7 @@ limitations under the License.
 package mtlspolicyutil
 
 import (
+	"errors"
 	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -189,9 +190,64 @@ var (
 			},
 		},
 	}
+	peersPermissive = []*istioauthv1alpha1.PeerAuthenticationMethod{
+		&istioauthv1alpha1.PeerAuthenticationMethod{
+			Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{
+				Mtls: &istioauthv1alpha1.MutualTls{
+					Mode: istioauthv1alpha1.MutualTls_PERMISSIVE,
+				},
+			},
+		},
+	}
+	peersStrict = []*istioauthv1alpha1.PeerAuthenticationMethod{
+		&istioauthv1alpha1.PeerAuthenticationMethod{
+			Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{
+				Mtls: &istioauthv1alpha1.MutualTls{
+					Mode: istioauthv1alpha1.MutualTls_STRICT,
+				},
+			},
+		},
+	}
+	peersMixed = []*istioauthv1alpha1.PeerAuthenticationMethod{
+		&istioauthv1alpha1.PeerAuthenticationMethod{
+			Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{
+				Mtls: &istioauthv1alpha1.MutualTls{
+					Mode: istioauthv1alpha1.MutualTls_PERMISSIVE,
+				},
+			},
+		},
+		&istioauthv1alpha1.PeerAuthenticationMethod{
+			Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{
+				Mtls: &istioauthv1alpha1.MutualTls{},
+			},
+		},
+		&istioauthv1alpha1.PeerAuthenticationMethod{
+			Params: &istioauthv1alpha1.PeerAuthenticationMethod_Jwt{},
+		},
+	}
+	peersEnabledPlusJWT = []*istioauthv1alpha1.PeerAuthenticationMethod{
+		&istioauthv1alpha1.PeerAuthenticationMethod{
+			Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{
+				Mtls: &istioauthv1alpha1.MutualTls{},
+			},
+		},
+		&istioauthv1alpha1.PeerAuthenticationMethod{
+			Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{},
+		},
+		&istioauthv1alpha1.PeerAuthenticationMethod{
+			Params: &istioauthv1alpha1.PeerAuthenticationMethod_Jwt{},
+		},
+	}
+	peersDisabled = []*istioauthv1alpha1.PeerAuthenticationMethod{
+		&istioauthv1alpha1.PeerAuthenticationMethod{},
+		&istioauthv1alpha1.PeerAuthenticationMethod{
+			Params: &istioauthv1alpha1.PeerAuthenticationMethod_Jwt{},
+		},
+	}
+	peersEmpty = []*istioauthv1alpha1.PeerAuthenticationMethod{}
 )
 
-var _ = Describe("LoadAuthPolicies", func() {
+var _ = Describe("LoadAuthPolicies and LoadMeshPolicy", func() {
 	fmt.Printf("\n RUNNING TESTS")
 	It("should load policies", func() {
 		loaded, err := LoadAuthPolicies([]*authv1alpha1.Policy{
@@ -331,73 +387,43 @@ var _ = Describe("test AuthPolicyIsMtls() through its callers", func() {
 	})
 })
 
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-
 var _ = Describe("getModeFromPeers()", func() {
 	Context("getModeFromPeers() takes a set of PeerAuthenticationMethods and returns a single mTls Mode", func() {
-		peersPermissive := []*istioauthv1alpha1.PeerAuthenticationMethod{
-			&istioauthv1alpha1.PeerAuthenticationMethod{
-				Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{
-					Mtls: &istioauthv1alpha1.MutualTls{
-						Mode: istioauthv1alpha1.MutualTls_PERMISSIVE,
-					},
-				},
-			},
-		}
-		peersStrict := []*istioauthv1alpha1.PeerAuthenticationMethod{
-			&istioauthv1alpha1.PeerAuthenticationMethod{
-				Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{
-					Mtls: &istioauthv1alpha1.MutualTls{
-						Mode: istioauthv1alpha1.MutualTls_STRICT,
-					},
-				},
-			},
-		}
-		peersMixed := []*istioauthv1alpha1.PeerAuthenticationMethod{
-			&istioauthv1alpha1.PeerAuthenticationMethod{
-				Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{
-					Mtls: &istioauthv1alpha1.MutualTls{
-						Mode: istioauthv1alpha1.MutualTls_PERMISSIVE,
-					},
-				},
-			},
-			&istioauthv1alpha1.PeerAuthenticationMethod{
-				Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{
-					Mtls: &istioauthv1alpha1.MutualTls{},
-				},
-			},
-			&istioauthv1alpha1.PeerAuthenticationMethod{
-				Params: &istioauthv1alpha1.PeerAuthenticationMethod_Jwt{},
-			},
-		}
-		peersEnabledPlusJWT := []*istioauthv1alpha1.PeerAuthenticationMethod{
-			&istioauthv1alpha1.PeerAuthenticationMethod{
-				Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{
-					Mtls: &istioauthv1alpha1.MutualTls{},
-				},
-			},
-			&istioauthv1alpha1.PeerAuthenticationMethod{
-				Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{},
-			},
-			&istioauthv1alpha1.PeerAuthenticationMethod{
-				Params: &istioauthv1alpha1.PeerAuthenticationMethod_Jwt{},
-			},
-		}
-		peersDisabled := []*istioauthv1alpha1.PeerAuthenticationMethod{
-			&istioauthv1alpha1.PeerAuthenticationMethod{},
-			&istioauthv1alpha1.PeerAuthenticationMethod{
-				Params: &istioauthv1alpha1.PeerAuthenticationMethod_Jwt{},
-			},
-		}
+		It("when passed valid policies with a target port", func() {
+			loadedOn, err := LoadAuthPolicies([]*authv1alpha1.Policy{
+				nsDefault_apFooPorts_apBar_On,
+				nsDefault_apFoo_apBar_On,
+				nsbarNs_On,
+			})
+			Expect(err).To(BeNil())
+			s := Service{Namespace: "default", Name: "foo"}
+			var enabled, disabled, mixed, unknown int
+			cb := func(s Service, port uint32, policies []*authv1alpha1.Policy) {
+				if len(policies) == 1 {
+					mtlsState := AuthPolicyIsMtls(policies[0])
+					switch state := mtlsState; {
+					case state == MTLSSetting_MIXED:
+						mixed++
+					case state == MTLSSetting_ENABLED:
+						enabled++
+					case state == MTLSSetting_DISABLED:
+						disabled++
+					}
+				} else {
+					unknown++
+				}
+			}
+			err = loadedOn.ForEachPolByPort(s, cb)
+
+			Expect(err).To(BeNil())
+			Expect(enabled).To(Equal(1))
+
+		})
+	})
+})
+var _ = Describe("getModeFromPeers()", func() {
+	Context("getModeFromPeers() takes a set of PeerAuthenticationMethods and returns a single mTls Mode", func() {
+
 		It("returns MIXED when len() == 1 && Mode is set to permissive", func() {
 			mtlsState := getModeFromPeers(peersPermissive)
 			Expect(mtlsState).To(Equal(MTLSSetting_MIXED))
@@ -417,6 +443,21 @@ var _ = Describe("getModeFromPeers()", func() {
 		})
 		It("returns DISABLED when there are no mtls auth methods present", func() {
 			mtlsState := getModeFromPeers(peersDisabled)
+			Expect(mtlsState).To(Equal(MTLSSetting_DISABLED))
+		})
+	})
+})
+var _ = Describe("evaluateMTlsForPeer()", func() {
+	Context("takes a set of peers and the peerIsOptional setting, and returns an mTls setting", func() {
+
+		It("when peerIsOptional is true, it returns MIXED", func() {
+			pio := true
+			mtlsState := evaluateMTlsForPeer(peersEnabledPlusJWT, pio)
+			Expect(mtlsState).To(Equal(MTLSSetting_MIXED))
+		})
+		It("when there are no peers, pio is ignored and mtls is DISABLED", func() {
+			pio := true
+			mtlsState := evaluateMTlsForPeer(peersEmpty, pio)
 			Expect(mtlsState).To(Equal(MTLSSetting_DISABLED))
 		})
 	})
@@ -448,212 +489,105 @@ var _ = Describe("paramIsMTls()", func() {
 	})
 })
 
-// Context("testing functions that use policies", func() {
-// 	// ----- Begin Set Up -----
-// 	policy_On_NSBar_SvcDefault_YesPeers_NoTargets := &authv1alpha1.Policy{
-// 		TypeMeta: metav1.TypeMeta{
-// 			Kind:       "Policy",
-// 			APIVersion: "authentication.istio.io/v1alpha1",
-// 		},
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name:      "default",
-// 			Namespace: "namespaceBar",
-// 		},
-// 		Spec: authv1alpha1.PolicySpec{
-// 			Policy: istioauthv1alpha1.Policy{
-// 				Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{
-// 					&istioauthv1alpha1.PeerAuthenticationMethod{
-// 						Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{},
-// 					},
-// 				},
-// 			},
-// 		},
-// 	}
-// 	policy_On_NSBar_SvcDefault_YesPeers_NoTargets_PeerOpt := &authv1alpha1.Policy{
-// 		TypeMeta: metav1.TypeMeta{
-// 			Kind:       "Policy",
-// 			APIVersion: "authentication.istio.io/v1alpha1",
-// 		},
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name:      "default",
-// 			Namespace: "namespaceBar",
-// 		},
-// 		Spec: authv1alpha1.PolicySpec{
-// 			Policy: istioauthv1alpha1.Policy{
-// 				Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{
-// 					&istioauthv1alpha1.PeerAuthenticationMethod{
-// 						Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{},
-// 					},
-// 				},
-// 				PeerIsOptional: true,
-// 			},
-// 		},
-// 	}
-// 	policy_Off_NSBar_SvcDefault_NoPeers_NoTargets := &authv1alpha1.Policy{
-// 		TypeMeta: metav1.TypeMeta{
-// 			Kind:       "Policy",
-// 			APIVersion: "authentication.istio.io/v1alpha1",
-// 		},
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name:      "default",
-// 			Namespace: "namespaceBar",
-// 		},
-// 		Spec: authv1alpha1.PolicySpec{
-// 			Policy: istioauthv1alpha1.Policy{},
-// 		},
-// 	}
+type expectedValue struct {
+	input       []*authv1alpha1.MeshPolicy
+	mtlsEnabled bool
+	err         error
+}
 
-// 	policy_Off_NSDefault_SvcDefault_NoPeers_NoTargets := &authv1alpha1.Policy{
-// 		TypeMeta: metav1.TypeMeta{
-// 			Kind:       "Policy",
-// 			APIVersion: "authentication.istio.io/v1alpha1",
-// 		},
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name:      "default",
-// 			Namespace: "default",
-// 		},
-// 		Spec: authv1alpha1.PolicySpec{
-// 			Policy: istioauthv1alpha1.Policy{},
-// 		},
-// 	}
+var (
+	defaultOn = &authv1alpha1.MeshPolicy{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "MeshPolicy",
+			APIVersion: "authentication.istio.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "default",
+		},
+		Spec: authv1alpha1.MeshPolicySpec{
+			Policy: istioauthv1alpha1.Policy{
+				Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{
+					&istioauthv1alpha1.PeerAuthenticationMethod{
+						Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{},
+					},
+				},
+			},
+		},
+	}
 
-// 	policy_On_NSDefault_SvcpolicyForNSDefaultTargetFoo_YesPeers_YesTargets := &authv1alpha1.Policy{
-// 		TypeMeta: metav1.TypeMeta{
-// 			Kind:       "Policy",
-// 			APIVersion: "authentication.istio.io/v1alpha1",
-// 		},
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name:      "policyForNSDefaultTargetFoo",
-// 			Namespace: "default",
-// 		},
-// 		Spec: authv1alpha1.PolicySpec{
-// 			Policy: istioauthv1alpha1.Policy{
-// 				Targets: []*istioauthv1alpha1.TargetSelector{
-// 					&istioauthv1alpha1.TargetSelector{
-// 						Name: "foo",
-// 					},
-// 				},
-// 				Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{
-// 					&istioauthv1alpha1.PeerAuthenticationMethod{},
-// 				},
-// 			},
-// 		},
-// 	}
+	defaultOff = &authv1alpha1.MeshPolicy{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "MeshPolicy",
+			APIVersion: "authentication.istio.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "default",
+		},
+		Spec: authv1alpha1.MeshPolicySpec{
+			Policy: istioauthv1alpha1.Policy{
+				Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{},
+			},
+		},
+	}
 
-// 	nsNameDefault := "default"
-// 	nsNameNSBar := "namespaceBar"
-// 	meshPolMTlsState := MTLSSetting_MIXED
-// 	policiesEmpty := []*authv1alpha1.Policy{}
+	nonDefaultNamedOn = &authv1alpha1.MeshPolicy{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "MeshPolicy",
+			APIVersion: "authentication.istio.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "named",
+		},
+		Spec: authv1alpha1.MeshPolicySpec{
+			Policy: istioauthv1alpha1.Policy{
+				Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{
+					&istioauthv1alpha1.PeerAuthenticationMethod{
+						Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{},
+					},
+				},
+			},
+		},
+	}
+)
 
-// 	policies1 := []*authv1alpha1.Policy{
-// 		policy_On_NSBar_SvcDefault_YesPeers_NoTargets,
-// 		policy_On_NSDefault_SvcpolicyForNSDefaultTargetFoo_YesPeers_YesTargets,
-// 	}
-// 	policies2 := []*authv1alpha1.Policy{
-// 		policy_Off_NSBar_SvcDefault_NoPeers_NoTargets,
-// 		policy_Off_NSDefault_SvcDefault_NoPeers_NoTargets,
-// 		policy_On_NSDefault_SvcpolicyForNSDefaultTargetFoo_YesPeers_YesTargets,
-// 	}
-// 	policies3 := []*authv1alpha1.Policy{
-// 		policy_Off_NSBar_SvcDefault_NoPeers_NoTargets,
-// 		policy_On_NSBar_SvcDefault_YesPeers_NoTargets,
-// 	}
-// 	policies4 := []*authv1alpha1.Policy{
-// 		policy_On_NSBar_SvcDefault_YesPeers_NoTargets_PeerOpt,
-// 		policy_Off_NSDefault_SvcDefault_NoPeers_NoTargets,
-// 		policy_On_NSDefault_SvcpolicyForNSDefaultTargetFoo_YesPeers_YesTargets,
-// 	}
-// 	policies5 := []*authv1alpha1.Policy{
-// 		policy_Off_NSBar_SvcDefault_NoPeers_NoTargets,
-// 		policy_On_NSBar_SvcDefault_YesPeers_NoTargets,
-// 	}
-// 	policies6 := []*authv1alpha1.Policy{
-// 		policy_On_NSBar_SvcDefault_YesPeers_NoTargets,
-// 	}
-// 	policies7 := []*authv1alpha1.Policy{
-// 		policy_Off_NSBar_SvcDefault_NoPeers_NoTargets,
-// 	}
-// 	// ----- End Set Up -----
-//
-//
-//
-//
-//
-//
-//
-//
-//
-// 	Context(" AuthPolicyIsMtls()", func() {
-// 		It("takes a set of empty policies for a resource and returns the fallback mtlsState", func() {
-// 			// policiesEmpty has two equally specific policies
-// 			mtlsState := AuthPolicyIsMtls(policiesEmpty)
-// 			Expect(mtlsState).To(Equal(MTLSSetting_MIXED))
-// 		})
-// 		It("takes a set of equally specific policies for a resource and returns UNKNOWN", func() {
-// 			// policies5 has two equally specific policies
-// 			mtlsState := AuthPolicyIsMtls(policies5)
-// 			Expect(mtlsState).To(Equal(MTLSSetting_UNKNOWN))
-// 		})
-// 		It("takes a set of one policy for a resource and returns the correct state", func() {
-// 			// policies6 has one policy which is disabled
-// 			mtlsState := AuthPolicyIsMtls(policies6)
-// 			Expect(mtlsState).To(Equal(MTLSSetting_ENABLED))
-// 		})
-// 		It("takes a set of one policy for a resource and returns the correct state", func() {
-// 			// policies7 has one policy which is disabled
-// 			mtlsState := AuthPolicyIsMtls(policies7)
-// 			Expect(mtlsState).To(Equal(MTLSSetting_DISABLED))
-// 		})
-// 	})
-// })
-//
-//
-//
-//
-//
-//
-//
-//
+var _ = Describe("IsGlobalMtlsEnabled and MeshPolicyIsMtls", func() {
+	var expectedValues = []expectedValue{
+		expectedValue{
+			input:       []*authv1alpha1.MeshPolicy{},
+			mtlsEnabled: false,
+			err:         nil,
+		},
+		expectedValue{
+			input:       []*authv1alpha1.MeshPolicy{defaultOn, defaultOff},
+			mtlsEnabled: false,
+			err:         errors.New(""),
+		},
+		expectedValue{
+			input:       []*authv1alpha1.MeshPolicy{defaultOn},
+			mtlsEnabled: true,
+			err:         nil,
+		},
+		expectedValue{
+			input:       []*authv1alpha1.MeshPolicy{defaultOff},
+			mtlsEnabled: false,
+			err:         nil,
+		},
+		expectedValue{
+			input:       []*authv1alpha1.MeshPolicy{nonDefaultNamedOn},
+			mtlsEnabled: false,
+			err:         errors.New(""),
+		},
+	}
+	It("Should match the expected values", func() {
+		for i := 0; i < len(expectedValues); i++ {
+			mtlsEnabled, err := IsGlobalMtlsEnabled(expectedValues[i].input)
+			if expectedValues[i].err != nil {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+			Expect(mtlsEnabled).To(Equal(expectedValues[i].mtlsEnabled))
+		}
+	})
 
-// Context("determinePortPolObjMTLS()", func() {
-
-// 	It("returns MIXED if there are equally specific policies", func() {
-// 		nsName := "default"
-// 		svcName := "foo"
-// 		policies := []*authv1alpha1.Policy{
-// 			polOff_NSDefault_SvcFoo_Port8888, polOn_NSDefault_SvcFoo_Port8888,
-// 		}
-
-// 		clusterAuthPols, errLocal := LoadAuthPolicies(policies)
-// 		Expect(errLocal).To(BeNil())
-// 		svcPortPols := determinePortPolObjMTLS(nsName, svcName, clusterAuthPols, MTLSSetting_MIXED)
-// 		Expect(svcPortPols).To(Equal(MTLSSetting_MIXED))
-
-// 	})
-// 	It("returns MIXED if there are any policies for the same service and different ports which conflict", func() {
-// 		nsName := "default"
-// 		svcName := "foo"
-// 		policies := []*authv1alpha1.Policy{
-// 			polOn_NSDefault_SvcFoo_Port8888,
-// 			polOff_NSDefault_SvcFoo_Port8118,
-// 		}
-
-// 		clusterAuthPols, errLocal := LoadAuthPolicies(policies)
-// 		Expect(errLocal).To(BeNil())
-// 		svcPortPols := determinePortPolObjMTLS(nsName, svcName, clusterAuthPols, MTLSSetting_MIXED)
-// 		Expect(svcPortPols).To(Equal(MTLSSetting_MIXED))
-// 	})
-// 	It("returns ENABLED if there are any policies for the same service and same port which are all enabled", func() {
-// 		nsName := "default"
-// 		svcName := "foo"
-// 		policies := []*authv1alpha1.Policy{
-// 			polOn_NSDefault_SvcFoo_Port8888,
-// 			polOn_NSDefault_SvcFoo_Port8118,
-// 		}
-
-// 		clusterAuthPols, errLocal := LoadAuthPolicies(policies)
-// 		Expect(errLocal).To(BeNil())
-// 		svcPortPols := determinePortPolObjMTLS(nsName, svcName, clusterAuthPols, MTLSSetting_MIXED)
-// 		Expect(svcPortPols).To(Equal(MTLSSetting_ENABLED))
-// 	})
-// })
+})

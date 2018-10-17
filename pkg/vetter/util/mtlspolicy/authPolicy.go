@@ -244,7 +244,7 @@ func getModeFromPeers(peerAuthMethods []*istioauthv1alpha1.PeerAuthenticationMet
 	return mtlsState
 }
 
-// evaluateMTlsForPeer takes a set of peets and the peerIsOptional setting, and returns an mTls setting.
+// evaluateMTlsForPeer takes a set of peers and the peerIsOptional setting, and returns an mTls setting.
 // Once passed a set of peers and peerIsOptional setting, it returns the determined mTls state, or calls getModeFromPeers() to check its mTls state.
 func evaluateMTlsForPeer(peers []*istioauthv1alpha1.PeerAuthenticationMethod, peerOptional bool) MTLSSetting {
 	var mtlsState MTLSSetting
