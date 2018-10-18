@@ -372,7 +372,7 @@ func (ap *AuthPolicies) TLSDetailsByNamespace(s Service) (MTLSSetting, *authv1al
 		return mtlsState, nil, err
 	} else {
 		// Due to refactor, this clause satisfies isNoteRequiredForMtlsProbe() where mtls for Mesh has been determined separately and there are no policies for any resources in the cluster except the mesh policy. In this case, all resources would be considered to have mTls disabled.
-		return MTLSSetting_DISABLED, nil, nil
+		return MTLSSetting_DISABLED, nil, errors.New("Use Mesh Policy")
 	}
 }
 
