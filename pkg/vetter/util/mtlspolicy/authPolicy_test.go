@@ -17,6 +17,8 @@ limitations under the License.
 package mtlspolicyutil
 
 import (
+	"errors"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -26,7 +28,28 @@ import (
 )
 
 var (
-	apDefaultOn = &authv1alpha1.Policy{
+	meshDefaultOn = []*authv1alpha1.MeshPolicy{
+		&authv1alpha1.MeshPolicy{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "MeshPolicy",
+				APIVersion: "authentication.istio.io/v1alpha1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "default",
+			},
+			Spec: authv1alpha1.MeshPolicySpec{
+				Policy: istioauthv1alpha1.Policy{
+					Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{
+						&istioauthv1alpha1.PeerAuthenticationMethod{
+							Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	nsbarNs_On = &authv1alpha1.Policy{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Policy",
 			APIVersion: "authentication.istio.io/v1alpha1",
@@ -47,13 +70,29 @@ var (
 		},
 	}
 
-	apFooOn = &authv1alpha1.Policy{
+	nsbarNs_Off = &authv1alpha1.Policy{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Policy",
 			APIVersion: "authentication.istio.io/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "apFooOn",
+			Name:      "default",
+			Namespace: "barNs",
+		},
+		Spec: authv1alpha1.PolicySpec{
+			Policy: istioauthv1alpha1.Policy{
+				Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{},
+			},
+		},
+	}
+
+	nsDefault_apFoo_On = &authv1alpha1.Policy{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Policy",
+			APIVersion: "authentication.istio.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "nsDefault_apFoo_On",
 			Namespace: "default",
 		},
 		Spec: authv1alpha1.PolicySpec{
@@ -72,13 +111,13 @@ var (
 		},
 	}
 
-	apFooOff = &authv1alpha1.Policy{
+	nsDefault_apFoo_Off = &authv1alpha1.Policy{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Policy",
 			APIVersion: "authentication.istio.io/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "apFooOff",
+			Name:      "nsDefault_apFoo_Off",
 			Namespace: "default",
 		},
 		Spec: authv1alpha1.PolicySpec{
@@ -95,13 +134,13 @@ var (
 		},
 	}
 
-	apFooBarOn = &authv1alpha1.Policy{
+	nsDefault_apFoo_apBar_On = &authv1alpha1.Policy{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Policy",
 			APIVersion: "authentication.istio.io/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "apFooBarOn",
+			Name:      "nsDefault_apFoo_apBar_On",
 			Namespace: "default",
 		},
 		Spec: authv1alpha1.PolicySpec{
@@ -123,13 +162,13 @@ var (
 		},
 	}
 
-	apFooPortsBarOn = &authv1alpha1.Policy{
+	nsDefault_apFooPorts_apBar_On = &authv1alpha1.Policy{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Policy",
 			APIVersion: "authentication.istio.io/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "apFooPortsBarOn",
+			Name:      "nsDefault_apFooPorts_apBar_On",
 			Namespace: "default",
 		},
 		Spec: authv1alpha1.PolicySpec{
@@ -155,61 +194,522 @@ var (
 			},
 		},
 	}
+
+	peersPermissive = []*istioauthv1alpha1.PeerAuthenticationMethod{
+		&istioauthv1alpha1.PeerAuthenticationMethod{
+			Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{
+				Mtls: &istioauthv1alpha1.MutualTls{
+					Mode: istioauthv1alpha1.MutualTls_PERMISSIVE,
+				},
+			},
+		},
+	}
+
+	peersStrict = []*istioauthv1alpha1.PeerAuthenticationMethod{
+		&istioauthv1alpha1.PeerAuthenticationMethod{
+			Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{
+				Mtls: &istioauthv1alpha1.MutualTls{
+					Mode: istioauthv1alpha1.MutualTls_STRICT,
+				},
+			},
+		},
+	}
+
+	peersMixed = []*istioauthv1alpha1.PeerAuthenticationMethod{
+		&istioauthv1alpha1.PeerAuthenticationMethod{
+			Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{
+				Mtls: &istioauthv1alpha1.MutualTls{
+					Mode: istioauthv1alpha1.MutualTls_PERMISSIVE,
+				},
+			},
+		},
+		&istioauthv1alpha1.PeerAuthenticationMethod{
+			Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{
+				Mtls: &istioauthv1alpha1.MutualTls{},
+			},
+		},
+		&istioauthv1alpha1.PeerAuthenticationMethod{
+			Params: &istioauthv1alpha1.PeerAuthenticationMethod_Jwt{},
+		},
+	}
+
+	peersEnabledPlusJWT = []*istioauthv1alpha1.PeerAuthenticationMethod{
+		&istioauthv1alpha1.PeerAuthenticationMethod{
+			Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{
+				Mtls: &istioauthv1alpha1.MutualTls{},
+			},
+		},
+		&istioauthv1alpha1.PeerAuthenticationMethod{
+			Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{},
+		},
+		&istioauthv1alpha1.PeerAuthenticationMethod{
+			Params: &istioauthv1alpha1.PeerAuthenticationMethod_Jwt{},
+		},
+	}
+
+	peersDisabled = []*istioauthv1alpha1.PeerAuthenticationMethod{
+		&istioauthv1alpha1.PeerAuthenticationMethod{},
+		&istioauthv1alpha1.PeerAuthenticationMethod{
+			Params: &istioauthv1alpha1.PeerAuthenticationMethod_Jwt{},
+		},
+	}
+
+	peersEmpty = []*istioauthv1alpha1.PeerAuthenticationMethod{}
+
+	noTargets = []*istioauthv1alpha1.TargetSelector{}
 )
 
-var _ = Describe("LoadAuthPolicies", func() {
+func diyPolicy(nsName, polName string, peers []*istioauthv1alpha1.PeerAuthenticationMethod, targets []*istioauthv1alpha1.TargetSelector) *authv1alpha1.Policy {
+	return &authv1alpha1.Policy{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Policy",
+			APIVersion: "authentication.istio.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      polName,
+			Namespace: nsName,
+		},
+		Spec: authv1alpha1.PolicySpec{
+			Policy: istioauthv1alpha1.Policy{
+				Peers:   peers,
+				Targets: targets,
+			},
+		},
+	}
+}
+
+func targetWithPort(tName string, pNum uint32) []*istioauthv1alpha1.TargetSelector {
+	return []*istioauthv1alpha1.TargetSelector{
+		&istioauthv1alpha1.TargetSelector{
+			Name: tName,
+			Ports: []*istioauthv1alpha1.PortSelector{
+				&istioauthv1alpha1.PortSelector{
+					Port: &istioauthv1alpha1.PortSelector_Number{pNum},
+				},
+			},
+		},
+	}
+}
+
+func targetNoPort(tName string) []*istioauthv1alpha1.TargetSelector {
+	return []*istioauthv1alpha1.TargetSelector{
+		&istioauthv1alpha1.TargetSelector{
+			Name: tName,
+		},
+	}
+}
+
+var _ = Describe("Check TLS Details from AuthPolicies", func() {
+	loaded, loadErr := LoadAuthPolicies([]*authv1alpha1.Policy{
+		diyPolicy("ns1", "default", peersDisabled, noTargets),
+		diyPolicy("ns2", "pol-ns2-svc1", peersPermissive, targetNoPort("ns2-svc1")),
+		diyPolicy("ns3", "pol-ns3-svc1", peersStrict, targetNoPort("ns3-svc1")),
+		diyPolicy("ns3", "pol-ns3-svc1", peersEmpty, targetNoPort("ns3-svc1")),
+		diyPolicy("ns4", "pol-ns4-svc1", peersStrict, targetWithPort("ns4-svc1", uint32(8123))),
+		diyPolicy("ns4", "pol-ns4-svc2", peersPermissive, targetWithPort("ns4-svc2", uint32(8456))),
+	}, meshDefaultOn)
+
+	It("returns the correct mtlsState for each resource", func() {
+		Expect(loadErr).To(BeNil())
+
+		ns1, pol, err := loaded.TLSDetailsByNamespace(Service{Namespace: "ns1"})
+		Expect(err).To(BeNil())
+		Expect(pol).ToNot(BeNil())
+		Expect(ns1).To(Equal(MTLSSetting_DISABLED))
+
+		ns2svc1, pol, err := loaded.TLSDetailsByName(Service{Namespace: "ns2", Name: "ns2-svc1"})
+		Expect(err).To(BeNil())
+		Expect(pol).ToNot(BeNil())
+		Expect(ns2svc1).To(Equal(MTLSSetting_MIXED))
+
+		ns3svc1, pol, err := loaded.TLSDetailsByName(Service{Namespace: "ns3", Name: "ns3-svc1"})
+		Expect(err).Should(MatchError("Conflicting policies for service by name"))
+		Expect(pol).To(BeNil())
+		Expect(ns3svc1).To(Equal(MTLSSetting_UNKNOWN))
+
+		ns4svc1, pol, err := loaded.TLSDetailsByPort(Service{Namespace: "ns4", Name: "ns4-svc1"}, uint32(8123))
+		Expect(err).To(BeNil())
+		Expect(pol).ToNot(BeNil())
+		Expect(ns4svc1).To(Equal(MTLSSetting_ENABLED))
+
+		ns4svc2, pol, err := loaded.TLSDetailsByPort(Service{Namespace: "ns4", Name: "ns4-svc2"}, uint32(8456))
+		Expect(err).To(BeNil())
+		Expect(pol).ToNot(BeNil())
+		Expect(ns4svc2).To(Equal(MTLSSetting_MIXED))
+
+	})
+})
+
+var _ = Describe("LoadAuthPolicies and LoadMeshPolicy", func() {
 	It("should load policies", func() {
 		loaded, err := LoadAuthPolicies([]*authv1alpha1.Policy{
-			apDefaultOn,
-			apFooOn,
-			apFooOff,
-			apFooBarOn,
-			apFooPortsBarOn,
-		})
-		Expect(err).To(Succeed())
+			nsbarNs_On,
+			nsDefault_apFoo_On,
+			nsDefault_apFoo_Off,
+			nsDefault_apFoo_apBar_On,
+			nsDefault_apFooPorts_apBar_On,
+		}, meshDefaultOn)
+		Expect(err).To(BeNil())
+
 		foo := Service{Namespace: "default", Name: "foo"}
 		bar := Service{Namespace: "default", Name: "bar"}
-		Expect(loaded.ByNamespace("barNs")).To(Equal([]*authv1alpha1.Policy{apDefaultOn}))
+
+		Expect(loaded.ByMesh()).To(Equal(meshDefaultOn))
+		Expect(loaded.ByNamespace("barNs")).To(Equal([]*authv1alpha1.Policy{nsbarNs_On}))
 		Expect(loaded.ByNamespace("default")).To(Equal([]*authv1alpha1.Policy{}))
 
 		Expect(loaded.ByName(foo)).To(Equal([]*authv1alpha1.Policy{
-			apFooOn,
-			apFooOff,
-			apFooBarOn,
-			// no apFooPortsBarOn because that is only for foo:8443, not foo
+			nsDefault_apFoo_On,
+			nsDefault_apFoo_Off,
+			nsDefault_apFoo_apBar_On,
+			// no nsDefault_apFooPorts_apBar_On because that is only for foo:8443, not foo
 		}))
 		Expect(loaded.ByName(bar)).To(Equal([]*authv1alpha1.Policy{
-			apFooBarOn,
-			// apFooPortsBarOn because that is for bar (not bar:8443)
-			apFooPortsBarOn,
+			nsDefault_apFoo_apBar_On,
+			// nsDefault_apFooPorts_apBar_On because that is for bar (not bar:8443)
+			nsDefault_apFooPorts_apBar_On,
 		}))
 
-		Expect(loaded.ByPort(foo, 8443)).To(Equal([]*authv1alpha1.Policy{apFooPortsBarOn}))
+		Expect(loaded.ByPort(foo, 8443)).To(Equal([]*authv1alpha1.Policy{nsDefault_apFooPorts_apBar_On}))
 		Expect(loaded.ByPort(foo, 1000)).To(Equal([]*authv1alpha1.Policy{}))
 		Expect(loaded.ByPort(bar, 8443)).To(Equal([]*authv1alpha1.Policy{}))
 	})
 })
 
-var _ = Describe("GetClusterPortPolicies", func() {
-	It("should return port policies from the loaded AuthPolicies struct", func() {
-		loaded, err := LoadAuthPolicies([]*authv1alpha1.Policy{
-			apDefaultOn,
-			apFooOn,
-			apFooOff,
-			apFooBarOn,
-			apFooPortsBarOn,
-		})
-		Expect(err).To(Succeed())
-		portPolicies := loaded.GetClusterPortPolicies()
-		Expect(len(portPolicies)).To(Equal(1))
+var _ = Describe("AuthPolicyIsMtls", func() {
+	It("should evaluate no-mtls-peer as false", func() {
+		Expect(AuthPolicyIsMtls(nsDefault_apFoo_Off)).To(Equal(MTLSSetting_DISABLED))
+	})
+	It("should evaluate empty-mtls-peer as true", func() {
+		Expect(AuthPolicyIsMtls(nsDefault_apFooPorts_apBar_On)).To(Equal(MTLSSetting_ENABLED))
 	})
 })
 
-var _ = Describe("AuthPolicyIsMtls", func() {
-	It("should evaluate no-mtls-peer as false", func() {
-		Expect(AuthPolicyIsMtls(apFooOff)).To(BeFalse())
+var _ = Describe("TLS Details", func() {
+	Context("TLSDetailsByNamespace()", func() {
+
+		It("returns enabled when there is an enabled policy", func() {
+			loadedOn, err := LoadAuthPolicies([]*authv1alpha1.Policy{
+				nsbarNs_On,
+			}, meshDefaultOn)
+
+			Expect(err).To(BeNil())
+			s := Service{Namespace: "barNs", Name: ""}
+			mtlsStateOn, _, err1 := loadedOn.TLSDetailsByNamespace(s)
+			Expect(err1).To(BeNil())
+			Expect(mtlsStateOn).To(Equal(MTLSSetting_ENABLED))
+		})
+		It("returns enabled when there is no policy for a namespace, but the mesh policy exists and is enabled", func() {
+			loadedNone, err := LoadAuthPolicies([]*authv1alpha1.Policy{}, meshDefaultOn)
+			Expect(err).To(BeNil())
+			s := Service{Namespace: "barNs", Name: ""}
+			mtlsStateNone, _, err2 := loadedNone.TLSDetailsByNamespace(s)
+			Expect(err2).To(BeNil())
+			Expect(mtlsStateNone).To(Equal(MTLSSetting_ENABLED))
+		})
 	})
-	It("should evaluate empty-mtls-peer as true", func() {
-		Expect(AuthPolicyIsMtls(apFooPortsBarOn)).To(BeTrue())
+
+	Context("TLSDetailsByName()", func() {
+		It("returns enabled when there is an enabled policy", func() {
+			loadedOn, err := LoadAuthPolicies([]*authv1alpha1.Policy{
+				nsDefault_apFooPorts_apBar_On,
+			}, nil)
+			Expect(err).To(BeNil())
+			s := Service{Namespace: "default", Name: "bar"}
+			mtlsStateOn, _, err1 := loadedOn.TLSDetailsByName(s)
+
+			Expect(err1).To(BeNil())
+			Expect(mtlsStateOn).To(Equal(MTLSSetting_ENABLED))
+		})
+		It("returns disabled when there is an enabled Port policy and disabled service policy", func() {
+			loadedOn, err := LoadAuthPolicies([]*authv1alpha1.Policy{
+				nsDefault_apFoo_Off,
+				nsDefault_apFooPorts_apBar_On,
+			}, nil)
+			Expect(err).To(BeNil())
+			s := Service{Namespace: "default", Name: "foo"}
+			mtlsStateOn, _, err1 := loadedOn.TLSDetailsByName(s)
+
+			Expect(err1).To(BeNil())
+			Expect(mtlsStateOn).To(Equal(MTLSSetting_DISABLED))
+		})
+		It("returns enabled when there is no policy for a service, but the namespace policy exists and is enabled", func() {
+			loadedNone, err := LoadAuthPolicies([]*authv1alpha1.Policy{
+				nsbarNs_On,
+			}, nil)
+			Expect(err).To(BeNil())
+			s := Service{Namespace: "barNs", Name: ""}
+			mtlsStateNone, _, err2 := loadedNone.TLSDetailsByName(s)
+
+			Expect(err2).To(BeNil())
+			Expect(mtlsStateNone).To(Equal(MTLSSetting_ENABLED))
+		})
 	})
+	Context("TLSDetailsByPort()", func() {
+
+		It("returns enabled when there is an enabled policy", func() {
+			loadedOn, err := LoadAuthPolicies([]*authv1alpha1.Policy{
+				nsDefault_apFooPorts_apBar_On,
+			}, nil)
+			Expect(err).To(BeNil())
+			s := Service{Namespace: "default", Name: "foo"}
+			mtlsStateOn, _, err1 := loadedOn.TLSDetailsByPort(s, 8443)
+
+			Expect(err1).To(BeNil())
+			Expect(mtlsStateOn).To(Equal(MTLSSetting_ENABLED))
+		})
+
+		It("returns enabled when there is no policy for a target service Port, but a service policy exists and is enabled", func() {
+			loadedNone, err := LoadAuthPolicies([]*authv1alpha1.Policy{
+				nsDefault_apFoo_apBar_On,
+			}, nil)
+			Expect(err).To(BeNil())
+			s := Service{Namespace: "default", Name: "foo"}
+			mtlsStateNone, _, err2 := loadedNone.TLSDetailsByPort(s, 8443)
+
+			Expect(err2).To(BeNil())
+			Expect(mtlsStateNone).To(Equal(MTLSSetting_ENABLED))
+		})
+	})
+})
+
+var _ = Describe("ForEachPolByPort()", func() {
+	Context("tallies the right mtlsState when an AuthPolicies struct is checked for port policies", func() {
+		var enabled, disabled, mixed, unknown int
+		BeforeEach(func() {
+			enabled, disabled, mixed, unknown = 0, 0, 0, 0
+		})
+
+		cb := func(policies []*authv1alpha1.Policy) {
+			if len(policies) == 1 {
+				mtlsState := AuthPolicyIsMtls(policies[0])
+				switch state := mtlsState; {
+				case state == MTLSSetting_MIXED:
+					mixed++
+				case state == MTLSSetting_ENABLED:
+					enabled++
+				case state == MTLSSetting_DISABLED:
+					disabled++
+				}
+			} else {
+				unknown++
+			}
+		}
+
+		It("when passed valid policies with target ports", func() {
+			loadedOn, err := LoadAuthPolicies([]*authv1alpha1.Policy{
+				diyPolicy("default", "default", peersDisabled, noTargets),
+				diyPolicy("default", "pol-1", peersStrict, targetWithPort("foo", uint32(8123))),
+				diyPolicy("default", "pol-2", peersPermissive, targetWithPort("foo", uint32(8456))),
+				diyPolicy("default", "pol-3", peersDisabled, targetWithPort("foo", uint32(8789))),
+				diyPolicy("default", "pol-4", peersEnabledPlusJWT, targetWithPort("foo", uint32(8000))),
+				diyPolicy("default", "pol-5", peersDisabled, targetWithPort("foo", uint32(8999))),
+				diyPolicy("default", "pol-6", peersDisabled, targetWithPort("foo", uint32(8999))),
+			}, nil)
+			Expect(err).To(BeNil())
+			s := Service{Namespace: "default", Name: "foo"}
+			loadedOn.ForEachPolByPort(s, cb)
+
+			Expect(enabled).To(Equal(2))
+			Expect(disabled).To(Equal(1))
+			Expect(mixed).To(Equal(1))
+			Expect(unknown).To(Equal(1))
+		})
+		It("when passed valid policies with different target ports", func() {
+			loadedOn, err := LoadAuthPolicies([]*authv1alpha1.Policy{
+				diyPolicy("default", "default", peersDisabled, noTargets),
+				diyPolicy("default", "pol-2", peersDisabled, targetWithPort("bar", uint32(8888))),
+				diyPolicy("default", "pol-3", peersPermissive, targetWithPort("foo", uint32(8765))),
+			}, nil)
+			Expect(err).To(BeNil())
+			s := Service{Namespace: "default", Name: "foo"}
+			loadedOn.ForEachPolByPort(s, cb)
+
+			Expect(disabled).To(Equal(0))
+			Expect(mixed).To(Equal(1))
+		})
+		It("when passed valid policies with NO target port", func() {
+			loadedOn, err := LoadAuthPolicies([]*authv1alpha1.Policy{
+				diyPolicy("default", "default", peersDisabled, noTargets),
+				diyPolicy("ns-2", "default", peersPermissive, targetNoPort("svc-1")),
+			}, nil)
+			Expect(err).To(BeNil())
+			s := Service{Namespace: "default", Name: "foo"}
+			loadedOn.ForEachPolByPort(s, cb)
+
+			Expect(enabled).To(Equal(0))
+			Expect(disabled).To(Equal(0))
+			Expect(enabled).To(Equal(0))
+			Expect(enabled).To(Equal(0))
+		})
+	})
+})
+
+var _ = Describe("getModeFromPeers()", func() {
+	Context("getModeFromPeers() takes a set of PeerAuthenticationMethods and returns a single mTls Mode", func() {
+
+		It("returns MIXED when len() == 1 && Mode is set to permissive", func() {
+			mtlsState := getModeFromPeers(peersPermissive)
+			Expect(mtlsState).To(Equal(MTLSSetting_MIXED))
+		})
+		It("returns ENABLED when len() == 1 && the Mode is STRICT", func() {
+			mtlsState := getModeFromPeers(peersStrict)
+			Expect(mtlsState).To(Equal(MTLSSetting_ENABLED))
+		})
+		It("returns MIXED when PERMISSIVE is set and there are multiple options enabling mtls", func() {
+
+			mtlsState := getModeFromPeers(peersMixed)
+			Expect(mtlsState).To(Equal(MTLSSetting_MIXED))
+		})
+		It("returns ENABLED when there are multiple options enabling auth", func() {
+			mtlsState := getModeFromPeers(peersEnabledPlusJWT)
+			Expect(mtlsState).To(Equal(MTLSSetting_ENABLED))
+		})
+		It("returns DISABLED when there are no mtls auth methods present", func() {
+			mtlsState := getModeFromPeers(peersDisabled)
+			Expect(mtlsState).To(Equal(MTLSSetting_DISABLED))
+		})
+	})
+})
+
+var _ = Describe("evaluateMTlsForPeer()", func() {
+	Context("takes a set of peers and the peerIsOptional setting, and returns an mTls setting", func() {
+
+		It("when peerIsOptional is true, it returns MIXED", func() {
+			pio := true
+			mtlsState := evaluateMTlsForPeer(peersEnabledPlusJWT, pio)
+			Expect(mtlsState).To(Equal(MTLSSetting_MIXED))
+		})
+		It("when there are no peers, pio is ignored and mtls is DISABLED", func() {
+			pio := true
+			mtlsState := evaluateMTlsForPeer(peersEmpty, pio)
+			Expect(mtlsState).To(Equal(MTLSSetting_DISABLED))
+		})
+	})
+})
+
+var _ = Describe("paramIsMTls()", func() {
+	Context("paramIsMTls()", func() {
+		It("determines whether mtls is enabled for a Peer", func() {
+
+			peer := istioauthv1alpha1.PeerAuthenticationMethod{
+				Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{},
+			}
+			peer2 := istioauthv1alpha1.PeerAuthenticationMethod{
+				Params: &istioauthv1alpha1.PeerAuthenticationMethod_Jwt{},
+			}
+			peer3 := istioauthv1alpha1.PeerAuthenticationMethod{
+				Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{
+					Mtls: &istioauthv1alpha1.MutualTls{},
+				},
+			}
+
+			Expect(paramIsMTls(&peer)).To(BeTrue())
+			Expect(paramIsMTls(&peer2)).To(BeFalse())
+			Expect(paramIsMTls(&peer3)).To(BeTrue())
+		})
+	})
+})
+
+type expectedValue struct {
+	input       []*authv1alpha1.MeshPolicy
+	mtlsEnabled bool
+	err         error
+}
+
+var (
+	defaultOn = &authv1alpha1.MeshPolicy{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "MeshPolicy",
+			APIVersion: "authentication.istio.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "default",
+		},
+		Spec: authv1alpha1.MeshPolicySpec{
+			Policy: istioauthv1alpha1.Policy{
+				Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{
+					&istioauthv1alpha1.PeerAuthenticationMethod{
+						Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{},
+					},
+				},
+			},
+		},
+	}
+
+	defaultOff = &authv1alpha1.MeshPolicy{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "MeshPolicy",
+			APIVersion: "authentication.istio.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "default",
+		},
+		Spec: authv1alpha1.MeshPolicySpec{
+			Policy: istioauthv1alpha1.Policy{
+				Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{},
+			},
+		},
+	}
+
+	nonDefaultNamedOn = &authv1alpha1.MeshPolicy{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "MeshPolicy",
+			APIVersion: "authentication.istio.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "named",
+		},
+		Spec: authv1alpha1.MeshPolicySpec{
+			Policy: istioauthv1alpha1.Policy{
+				Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{
+					&istioauthv1alpha1.PeerAuthenticationMethod{
+						Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{},
+					},
+				},
+			},
+		},
+	}
+)
+
+var _ = Describe("IsGlobalMtlsEnabled and MeshPolicyIsMtls", func() {
+	var expectedValues = []expectedValue{
+		expectedValue{
+			input:       []*authv1alpha1.MeshPolicy{},
+			mtlsEnabled: false,
+			err:         nil,
+		},
+		expectedValue{
+			input:       []*authv1alpha1.MeshPolicy{defaultOn, defaultOff},
+			mtlsEnabled: false,
+			err:         errors.New(""),
+		},
+		expectedValue{
+			input:       []*authv1alpha1.MeshPolicy{defaultOn},
+			mtlsEnabled: true,
+			err:         nil,
+		},
+		expectedValue{
+			input:       []*authv1alpha1.MeshPolicy{defaultOff},
+			mtlsEnabled: false,
+			err:         nil,
+		},
+		expectedValue{
+			input:       []*authv1alpha1.MeshPolicy{nonDefaultNamedOn},
+			mtlsEnabled: false,
+			err:         errors.New(""),
+		},
+	}
+	It("Should match the expected values", func() {
+		for i := 0; i < len(expectedValues); i++ {
+			mtlsEnabled, err := IsGlobalMtlsEnabled(expectedValues[i].input)
+			if expectedValues[i].err != nil {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+			Expect(mtlsEnabled).To(Equal(expectedValues[i].mtlsEnabled))
+		}
+	})
+
 })

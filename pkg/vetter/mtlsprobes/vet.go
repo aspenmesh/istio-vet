@@ -98,12 +98,18 @@ func isNoteRequiredForMtlsProbe(authPolicies *mtlspolicyutil.AuthPolicies, endpo
 	var svc mtlspolicyutil.Service = mtlspolicyutil.Service{
 		Name:      endpoint.Name,
 		Namespace: endpoint.Namespace}
-	mtls, _, err := authPolicies.TLSByPort(svc, probePort)
+	mtls, ap, err := authPolicies.TLSByPort(svc, probePort)
 	if err != nil {
-		// no policies were found for port, name or namespace, return status of globalMtls
+		// (m-eaton ?) no policies were found for port, name or namespace, return status of globalMtls
+		// (BLaurenB): err could actually mean conflicting policies, in which case it might need to be handled differently.
+		return globalMtls
+	} else if ap == nil {
+		// (BLaurenB):We didn't find any auth policies that applied, so either
+		// a mesh policy made us choose mtls, or we didn't find anything.
+		// In both cases, globalMtls will be the right mtls state
 		return globalMtls
 	} else {
-		// policy was found, return the mTLS status of the policy
+		// (BLaurenB): policy was found, return the mTLS status of the policy
 		return mtls
 	}
 }
@@ -126,15 +132,17 @@ func (m *MtlsProbes) Vet() ([]*apiv1.Note, error) {
 		glog.Errorln("Unable to retreive auth policies")
 		return nil, err
 	}
-	authPolicies, err := mtlspolicyutil.LoadAuthPolicies(policyList)
-	if err != nil {
-		glog.Errorln("Unable to load auth policies")
-		return nil, err
-	}
+
 	// get global mTLS policy
 	meshPolicyList, err := m.mpLister.List(labels.Everything())
 	if err != nil {
 		glog.Errorf("Failed to retrieve MeshPolicies: %s", err)
+		return nil, err
+	}
+	// (BLaurenB): to account for update to authPolicy.go, this function needs to take a list of mesh policies. Since the mesh policies are handled separately, we still need to determine globalMtls via IsGlobalMtlsEnabled()
+	authPolicies, err := mtlspolicyutil.LoadAuthPolicies(policyList, meshPolicyList)
+	if err != nil {
+		glog.Errorln("Unable to load auth policies")
 		return nil, err
 	}
 	globalMtls, err := mtlspolicyutil.IsGlobalMtlsEnabled(meshPolicyList)
