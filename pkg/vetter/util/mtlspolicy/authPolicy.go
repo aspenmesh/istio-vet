@@ -28,7 +28,6 @@ import (
 type MTLSSetting int32
 
 const (
-	meshName = "mesh"
 	// Unknown if state cannot be determined
 	MTLSSetting_UNKNOWN MTLSSetting = 0
 	// Enabled if mTLS is turned on
@@ -293,6 +292,7 @@ func IsGlobalMtlsEnabled(meshPolicies []*authv1alpha1.MeshPolicy) (bool, error) 
 func (ap *AuthPolicies) TLSDetailsByPort(s Service, port uint32) (MTLSSetting, *authv1alpha1.Policy, error) {
 	policies := ap.ByPort(s, port)
 	if len(policies) > 1 {
+		// TODO (BLaurenB) We think that in Istio 0.8, non-conflicting policies (or identical policies) will "work" because the behavior requested will be the same regardless of which one Istio chooses. We may need to handle this differently.
 		return MTLSSetting_UNKNOWN, nil, errors.New("Conflicting policies for port")
 	}
 	if len(policies) == 1 {
@@ -309,8 +309,7 @@ func (ap *AuthPolicies) TLSByPort(s Service, port uint32) (bool, *authv1alpha1.P
 		// The false status is actually bogus because we we unable to determine the mTls status.
 		return false, nil, err
 	}
-	ok := getMTLSBool(mtlsState)
-	return ok, policy, err
+	return getMTLSBool(mtlsState), policy, err
 }
 
 // TLSDetailsByName walks through Auth Policies at the port and name level, and returns the mtlsState for the requested resource. It returns the mTls state for the parent resource if there is no policy for the requested resource.
@@ -318,6 +317,7 @@ func (ap *AuthPolicies) TLSDetailsByName(s Service) (MTLSSetting, *authv1alpha1.
 
 	policies := ap.ByName(s)
 	if len(policies) > 1 {
+		// TODO (BLaurenB) We think that in Istio 0.8, non-conflicting policies (or identical policies) will "work" because the behavior requested will be the same regardless of which one Istio chooses. We may need to handle this differently.
 		return MTLSSetting_UNKNOWN, nil, errors.New("Conflicting policies for service by name")
 	}
 	if len(policies) == 1 {
@@ -334,28 +334,22 @@ func (ap *AuthPolicies) TLSByName(s Service) (bool, *authv1alpha1.Policy, error)
 		// The false status is actually bogus because we we unable to determine the mTls status.
 		return false, nil, err
 	}
-	ok := getMTLSBool(mtlsState)
-	return ok, policy, err
+	return getMTLSBool(mtlsState), policy, err
 }
 
 // TLSDetailsByNamespace walks through Auth Policies at the port, name, and namespace level and returns the mtlsState for the requested resource. It returns the mTls state for the parent resource if there is no policy for the requested resource.
 func (ap *AuthPolicies) TLSDetailsByNamespace(s Service) (MTLSSetting, *authv1alpha1.Policy, error) {
 	policies := ap.ByNamespace(s.Namespace)
 	if len(policies) > 1 {
+		// TODO (BLaurenB) We think that in Istio 0.8, non-conflicting policies (or identical policies) will "work" because the behavior requested will be the same regardless of which one Istio chooses. We may need to handle this differently.
 		return MTLSSetting_UNKNOWN, nil, errors.New("Conflicting policies for service by namespace")
 	}
 	if len(policies) == 1 {
 		return AuthPolicyIsMtls(policies[0]), policies[0], nil
 	}
 	// If there are no policies for the namespace, return mtlsState for parent resource. Note this function can't return a Mesh Policy since it's a different Type.
-
-	if len(ap.mesh) != 0 {
-		mtlsState, _, err := ap.TLSDetailsByMesh()
-		return mtlsState, nil, err
-	} else {
-		// Due to refactor, this clause satisfies isNoteRequiredForMtlsProbe() where mtls for Mesh has been determined separately and there are no policies for any resources in the cluster except the mesh policy. In this case, all resources would be considered to have mTls disabled.
-		return MTLSSetting_DISABLED, nil, errors.New("Use Mesh Policy")
-	}
+	mtlsState, _, err := ap.TLSDetailsByMesh()
+	return mtlsState, nil, err
 }
 
 // TLSByNamespace wraps TLSDetailsByNamespace and returns a boolean.
@@ -365,8 +359,7 @@ func (ap *AuthPolicies) TLSByNamespace(s Service) (bool, *authv1alpha1.Policy, e
 		// The false status is actually bogus because we we unable to determine the mTls status.
 		return false, nil, err
 	}
-	ok := getMTLSBool(mtlsState)
-	return ok, policy, err
+	return getMTLSBool(mtlsState), policy, err
 }
 
 func (ap *AuthPolicies) TLSDetailsByMesh() (MTLSSetting, *authv1alpha1.MeshPolicy, error) {
@@ -381,8 +374,6 @@ func (ap *AuthPolicies) TLSDetailsByMesh() (MTLSSetting, *authv1alpha1.MeshPolic
 	// If there is no mesh policy, mTls is considered to be disabled for the cluster.
 	return MTLSSetting_DISABLED, nil, nil
 }
-
-// *!*!* Force the user to pass in the mesh pol or an empty list.
 
 // LoadAuthPolicies is passed a list of Policies and returns an
 // AuthPolicies struct with maps of policies by port, name, and namespace.
