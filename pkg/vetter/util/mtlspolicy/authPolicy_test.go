@@ -28,19 +28,21 @@ import (
 )
 
 var (
-	meshDefaultOn = &authv1alpha1.MeshPolicy{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "MeshPolicy",
-			APIVersion: "authentication.istio.io/v1alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "default",
-		},
-		Spec: authv1alpha1.MeshPolicySpec{
-			Policy: istioauthv1alpha1.Policy{
-				Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{
-					&istioauthv1alpha1.PeerAuthenticationMethod{
-						Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{},
+	meshDefaultOn = []*authv1alpha1.MeshPolicy{
+		&authv1alpha1.MeshPolicy{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "MeshPolicy",
+				APIVersion: "authentication.istio.io/v1alpha1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "default",
+			},
+			Spec: authv1alpha1.MeshPolicySpec{
+				Policy: istioauthv1alpha1.Policy{
+					Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{
+						&istioauthv1alpha1.PeerAuthenticationMethod{
+							Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{},
+						},
 					},
 				},
 			},
@@ -264,7 +266,7 @@ func diyPolicy(nsName, polName string, peers []*istioauthv1alpha1.PeerAuthentica
 	}
 }
 
-func targets(tName string, pNum uint32) []*istioauthv1alpha1.TargetSelector {
+func targetWithPort(tName string, pNum uint32) []*istioauthv1alpha1.TargetSelector {
 	return []*istioauthv1alpha1.TargetSelector{
 		&istioauthv1alpha1.TargetSelector{
 			Name: tName,
@@ -273,6 +275,13 @@ func targets(tName string, pNum uint32) []*istioauthv1alpha1.TargetSelector {
 					Port: &istioauthv1alpha1.PortSelector_Number{pNum},
 				},
 			},
+		},
+	}
+}
+func targetNoPort(tName string) []*istioauthv1alpha1.TargetSelector {
+	return []*istioauthv1alpha1.TargetSelector{
+		&istioauthv1alpha1.TargetSelector{
+			Name: tName,
 		},
 	}
 }
@@ -285,13 +294,13 @@ var _ = Describe("LoadAuthPolicies and LoadMeshPolicy", func() {
 			nsDefault_apFoo_Off,
 			nsDefault_apFoo_apBar_On,
 			nsDefault_apFooPorts_apBar_On,
-		}, []*authv1alpha1.MeshPolicy{meshDefaultOn})
+		}, meshDefaultOn)
 		Expect(err).To(BeNil())
 
 		foo := Service{Namespace: "default", Name: "foo"}
 		bar := Service{Namespace: "default", Name: "bar"}
 
-		Expect(loaded.ByMesh()).To(Equal([]*authv1alpha1.MeshPolicy{meshDefaultOn}))
+		Expect(loaded.ByMesh()).To(Equal(meshDefaultOn))
 		Expect(loaded.ByNamespace("barNs")).To(Equal([]*authv1alpha1.Policy{nsbarNs_On}))
 		Expect(loaded.ByNamespace("default")).To(Equal([]*authv1alpha1.Policy{}))
 
@@ -328,7 +337,7 @@ var _ = Describe("TLS Details", func() {
 		It("returns enabled when there is an enabled policy", func() {
 			loadedOn, err := LoadAuthPolicies([]*authv1alpha1.Policy{
 				nsbarNs_On,
-			}, []*authv1alpha1.MeshPolicy{meshDefaultOn})
+			}, meshDefaultOn)
 
 			Expect(err).To(BeNil())
 			s := Service{Namespace: "barNs", Name: ""}
@@ -337,7 +346,7 @@ var _ = Describe("TLS Details", func() {
 			Expect(mtlsStateOn).To(Equal(MTLSSetting_ENABLED))
 		})
 		It("returns enabled when there is no policy for a namespace, but the mesh policy exists and is enabled", func() {
-			loadedNone, err := LoadAuthPolicies([]*authv1alpha1.Policy{}, []*authv1alpha1.MeshPolicy{meshDefaultOn})
+			loadedNone, err := LoadAuthPolicies([]*authv1alpha1.Policy{}, meshDefaultOn)
 			Expect(err).To(BeNil())
 			s := Service{Namespace: "barNs", Name: ""}
 			mtlsStateNone, _, err2 := loadedNone.TLSDetailsByNamespace(s)
@@ -434,23 +443,44 @@ var _ = Describe("ForEachPolByPort()", func() {
 		}
 		// make some test cases that have multiple policies that hit the cb so that I can count the tallies. Maybe one big one and then have expects that match all the tallies. FRPBP(s) takes a service.
 
-		XIt("when passed valid policies with a target port", func() {
+		It("when passed valid policies with target ports", func() {
 			loadedOn, err := LoadAuthPolicies([]*authv1alpha1.Policy{
-				nsbarNs_Off,
-				diyPolicy("default", "pol-1", peersDisabled, noTargets),
-				diyPolicy("default", "pol-2", peersStrict, targets("foo", uint32(8888))),
-				diyPolicy("default", "pol-3", peersStrict, targets("foo", uint32(8765))),
+				diyPolicy("default", "default", peersDisabled, noTargets),
+				diyPolicy("default", "pol-1", peersStrict, targetWithPort("foo", uint32(8123))),
+				diyPolicy("default", "pol-2", peersPermissive, targetWithPort("foo", uint32(8456))),
+				diyPolicy("default", "pol-3", peersDisabled, targetWithPort("foo", uint32(8789))),
+				diyPolicy("default", "pol-4", peersEnabledPlusJWT, targetWithPort("foo", uint32(8000))),
+				diyPolicy("default", "pol-5", peersDisabled, targetWithPort("foo", uint32(8999))),
+				diyPolicy("default", "pol-6", peersDisabled, targetWithPort("foo", uint32(8999))),
 			}, nil)
 			Expect(err).To(BeNil())
 			s := Service{Namespace: "default", Name: "foo"}
 			loadedOn.ForEachPolByPort(s, cb)
 
 			Expect(enabled).To(Equal(2))
+			Expect(disabled).To(Equal(1))
+			Expect(mixed).To(Equal(1))
+			Expect(unknown).To(Equal(1))
+
+		})
+		It("when passed valid policies with different target ports", func() {
+			loadedOn, err := LoadAuthPolicies([]*authv1alpha1.Policy{
+				diyPolicy("default", "default", peersDisabled, noTargets),
+				diyPolicy("default", "pol-2", peersDisabled, targetWithPort("bar", uint32(8888))),
+				diyPolicy("default", "pol-3", peersPermissive, targetWithPort("foo", uint32(8765))),
+			}, nil)
+			Expect(err).To(BeNil())
+			s := Service{Namespace: "default", Name: "foo"}
+			loadedOn.ForEachPolByPort(s, cb)
+
+			Expect(disabled).To(Equal(0))
+			Expect(mixed).To(Equal(1))
 
 		})
 		It("when passed valid policies with NO target port", func() {
 			loadedOn, err := LoadAuthPolicies([]*authv1alpha1.Policy{
-				nsbarNs_On,
+				diyPolicy("default", "default", peersDisabled, noTargets),
+				diyPolicy("ns-2", "default", peersPermissive, targetNoPort("svc-1")),
 			}, nil)
 			Expect(err).To(BeNil())
 			s := Service{Namespace: "default", Name: "foo"}
