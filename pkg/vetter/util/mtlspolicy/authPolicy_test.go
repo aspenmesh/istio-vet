@@ -18,7 +18,6 @@ package mtlspolicyutil
 
 import (
 	"errors"
-	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -243,6 +242,7 @@ var (
 		},
 	}
 	peersEmpty = []*istioauthv1alpha1.PeerAuthenticationMethod{}
+	noTargets  = []*istioauthv1alpha1.TargetSelector{}
 )
 
 func diyPolicy(nsName, polName string, peers []*istioauthv1alpha1.PeerAuthenticationMethod, targets []*istioauthv1alpha1.TargetSelector) *authv1alpha1.Policy {
@@ -412,9 +412,9 @@ var _ = Describe("TLS Details", func() {
 
 var _ = Describe("ForEachPolByPort()", func() {
 	Context("tallies the right mtlsState when an AuthPolicies struct is checked for port policies", func() {
-		var enabled, disabled, mixed, unknown, noPol int
+		var enabled, disabled, mixed, unknown int
 		BeforeEach(func() {
-			enabled, disabled, mixed, unknown, noPol = 0, 0, 0, 0, 0
+			enabled, disabled, mixed, unknown = 0, 0, 0, 0
 		})
 
 		cb := func(policies []*authv1alpha1.Policy) {
@@ -428,22 +428,24 @@ var _ = Describe("ForEachPolByPort()", func() {
 				case state == MTLSSetting_DISABLED:
 					disabled++
 				}
-			} else if len(policies) == 0 {
-				noPol++
 			} else {
 				unknown++
 			}
 		}
+		// make some test cases that have multiple policies that hit the cb so that I can count the tallies. Maybe one big one and then have expects that match all the tallies. FRPBP(s) takes a service.
+
 		XIt("when passed valid policies with a target port", func() {
 			loadedOn, err := LoadAuthPolicies([]*authv1alpha1.Policy{
-				nsDefault_apFooPorts_apBar_On,
 				nsbarNs_Off,
+				diyPolicy("default", "pol-1", peersDisabled, noTargets),
+				diyPolicy("default", "pol-2", peersStrict, targets("foo", uint32(8888))),
+				diyPolicy("default", "pol-3", peersStrict, targets("foo", uint32(8765))),
 			}, nil)
 			Expect(err).To(BeNil())
 			s := Service{Namespace: "default", Name: "foo"}
 			loadedOn.ForEachPolByPort(s, cb)
 
-			Expect(enabled).To(Equal(1))
+			Expect(enabled).To(Equal(2))
 
 		})
 		It("when passed valid policies with NO target port", func() {
@@ -452,11 +454,12 @@ var _ = Describe("ForEachPolByPort()", func() {
 			}, nil)
 			Expect(err).To(BeNil())
 			s := Service{Namespace: "default", Name: "foo"}
-			fmt.Printf("\nwhen passed valid policies with NO target port: %v", nsbarNs_On)
 			loadedOn.ForEachPolByPort(s, cb)
 
 			Expect(enabled).To(Equal(0))
-			Expect(noPol).To(Equal(1))
+			Expect(disabled).To(Equal(0))
+			Expect(enabled).To(Equal(0))
+			Expect(enabled).To(Equal(0))
 
 		})
 	})

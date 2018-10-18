@@ -156,12 +156,10 @@ func (ap *AuthPolicies) ByPort(s Service, port uint32) []*authv1alpha1.Policy {
 func (ap *AuthPolicies) ForEachPolByPort(s Service, cb func(policies []*authv1alpha1.Policy)) {
 	nsPortPols, ok := ap.port[s.Namespace]
 	if !ok {
-		cb([]*authv1alpha1.Policy{})
 		return
 	}
 	nPortPols, ok := nsPortPols[s.Name]
 	if !ok {
-		cb([]*authv1alpha1.Policy{})
 		return
 	}
 	for _, policies := range nPortPols {
@@ -172,17 +170,17 @@ func (ap *AuthPolicies) ForEachPolByPort(s Service, cb func(policies []*authv1al
 // getMTLSBool returns a bool and error from the 4 possible enum mTls states.
 // Mixed counts as enabled since it allows enabled traffic, but it returns an error in case the caller needs to know if the true status means it's enabled-only, or enabled in a way that allows other traffic.
 // Unknown counts as disabled since we cannot tell the caller that the status is mTls enabled. It returns an error in case the caller needs to know if the false status means that the false status is actually bogus because we we unable to determine the mTls status.
-func getMTLSBool(mtlsState MTLSSetting, policy *authv1alpha1.Policy) (bool, *authv1alpha1.Policy, error) {
-	// pass in the policy to maintain the structure of returns for callers pre-refactor.
+func getMTLSBool(mtlsState MTLSSetting) bool {
+	// pass in the policy to maintain the structure of returns for callers pre-Oct2018-refactor.
 	switch checkState := mtlsState; {
 	case checkState == MTLSSetting_ENABLED:
-		return true, policy, nil
+		return true
 	case checkState == MTLSSetting_UNKNOWN:
-		return false, policy, errors.New("mTLS status is Unknown")
+		return false
 	case checkState == MTLSSetting_MIXED:
-		return true, policy, errors.New("mTLS status is Mixed")
+		return true
 	default:
-		return false, policy, nil
+		return false
 	}
 }
 
@@ -284,8 +282,8 @@ func IsGlobalMtlsEnabled(meshPolicies []*authv1alpha1.MeshPolicy) (bool, error) 
 	} else {
 		if strings.EqualFold(meshPolicies[0].ObjectMeta.Name, "default") {
 			mtlsState := MeshPolicyIsMtls(meshPolicies[0])
-			meshMTls, _, err := getMTLSBool(mtlsState, nil)
-			return meshMTls, err
+			ok := getMTLSBool(mtlsState)
+			return ok, nil
 		} else {
 			return false, errors.New("MeshPolicy is not named 'default'")
 		}
@@ -312,8 +310,8 @@ func (ap *AuthPolicies) TLSByPort(s Service, port uint32) (bool, *authv1alpha1.P
 		// The false status is actually bogus because we we unable to determine the mTls status.
 		return false, nil, err
 	}
-
-	return getMTLSBool(mtlsState, policy)
+	ok := getMTLSBool(mtlsState)
+	return ok, policy, err
 }
 
 // TLSDetailsByName walks through Auth Policies at the port and name level, and returns the mtlsState for the requested resource. It returns the mTls state for the parent resource if there is no policy for the requested resource.
@@ -337,7 +335,8 @@ func (ap *AuthPolicies) TLSByName(s Service) (bool, *authv1alpha1.Policy, error)
 		// The false status is actually bogus because we we unable to determine the mTls status.
 		return false, nil, err
 	}
-	return getMTLSBool(mtlsState, policy)
+	ok := getMTLSBool(mtlsState)
+	return ok, policy, err
 }
 
 // TLSDetailsByNamespace walks through Auth Policies at the port, name, and namespace level and returns the mtlsState for the requested resource. It returns the mTls state for the parent resource if there is no policy for the requested resource.
@@ -367,7 +366,8 @@ func (ap *AuthPolicies) TLSByNamespace(s Service) (bool, *authv1alpha1.Policy, e
 		// The false status is actually bogus because we we unable to determine the mTls status.
 		return false, nil, err
 	}
-	return getMTLSBool(mtlsState, policy)
+	ok := getMTLSBool(mtlsState)
+	return ok, policy, err
 }
 
 func (ap *AuthPolicies) TLSDetailsByMesh() (MTLSSetting, *authv1alpha1.MeshPolicy, error) {
