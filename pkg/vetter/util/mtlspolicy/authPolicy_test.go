@@ -48,6 +48,7 @@ var (
 			},
 		},
 	}
+
 	nsbarNs_On = &authv1alpha1.Policy{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Policy",
@@ -68,6 +69,7 @@ var (
 			},
 		},
 	}
+
 	nsbarNs_Off = &authv1alpha1.Policy{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Policy",
@@ -83,6 +85,7 @@ var (
 			},
 		},
 	}
+
 	nsDefault_apFoo_On = &authv1alpha1.Policy{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Policy",
@@ -107,6 +110,7 @@ var (
 			},
 		},
 	}
+
 	nsDefault_apFoo_Off = &authv1alpha1.Policy{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Policy",
@@ -129,6 +133,7 @@ var (
 			},
 		},
 	}
+
 	nsDefault_apFoo_apBar_On = &authv1alpha1.Policy{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Policy",
@@ -156,6 +161,7 @@ var (
 			},
 		},
 	}
+
 	nsDefault_apFooPorts_apBar_On = &authv1alpha1.Policy{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Policy",
@@ -188,6 +194,7 @@ var (
 			},
 		},
 	}
+
 	peersPermissive = []*istioauthv1alpha1.PeerAuthenticationMethod{
 		&istioauthv1alpha1.PeerAuthenticationMethod{
 			Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{
@@ -197,6 +204,7 @@ var (
 			},
 		},
 	}
+
 	peersStrict = []*istioauthv1alpha1.PeerAuthenticationMethod{
 		&istioauthv1alpha1.PeerAuthenticationMethod{
 			Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{
@@ -206,6 +214,7 @@ var (
 			},
 		},
 	}
+
 	peersMixed = []*istioauthv1alpha1.PeerAuthenticationMethod{
 		&istioauthv1alpha1.PeerAuthenticationMethod{
 			Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{
@@ -223,6 +232,7 @@ var (
 			Params: &istioauthv1alpha1.PeerAuthenticationMethod_Jwt{},
 		},
 	}
+
 	peersEnabledPlusJWT = []*istioauthv1alpha1.PeerAuthenticationMethod{
 		&istioauthv1alpha1.PeerAuthenticationMethod{
 			Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{
@@ -236,14 +246,17 @@ var (
 			Params: &istioauthv1alpha1.PeerAuthenticationMethod_Jwt{},
 		},
 	}
+
 	peersDisabled = []*istioauthv1alpha1.PeerAuthenticationMethod{
 		&istioauthv1alpha1.PeerAuthenticationMethod{},
 		&istioauthv1alpha1.PeerAuthenticationMethod{
 			Params: &istioauthv1alpha1.PeerAuthenticationMethod_Jwt{},
 		},
 	}
+
 	peersEmpty = []*istioauthv1alpha1.PeerAuthenticationMethod{}
-	noTargets  = []*istioauthv1alpha1.TargetSelector{}
+
+	noTargets = []*istioauthv1alpha1.TargetSelector{}
 )
 
 func diyPolicy(nsName, polName string, peers []*istioauthv1alpha1.PeerAuthenticationMethod, targets []*istioauthv1alpha1.TargetSelector) *authv1alpha1.Policy {
@@ -591,12 +604,9 @@ var _ = Describe("paramIsMTls()", func() {
 				},
 			}
 
-			ok := paramIsMTls(&peer)
-			Expect(ok).To(BeTrue())
-			ok = paramIsMTls(&peer2)
-			Expect(ok).To(BeFalse())
-			ok = paramIsMTls(&peer3)
-			Expect(ok).To(BeTrue())
+			Expect(paramIsMTls(&peer)).To(BeTrue())
+			Expect(paramIsMTls(&peer2)).To(BeFalse())
+			Expect(paramIsMTls(&peer3)).To(BeTrue())
 		})
 	})
 })

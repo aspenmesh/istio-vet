@@ -135,7 +135,6 @@ func (ap *AuthPolicies) ByName(s Service) []*authv1alpha1.Policy {
 
 // ByPort is passed a Service and a port number and returns the Policy in the
 // AuthPolicies port map for that port number
-
 func (ap *AuthPolicies) ByPort(s Service, port uint32) []*authv1alpha1.Policy {
 	ns, ok := ap.port[s.Namespace]
 	if !ok {
