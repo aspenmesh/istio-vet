@@ -100,7 +100,8 @@ func isNoteRequiredForMtlsProbe(authPolicies *mtlspolicyutil.AuthPolicies, endpo
 		Namespace: endpoint.Namespace}
 	mtls, _, err := authPolicies.TLSByPort(svc, probePort)
 	if err != nil {
-		// no policies were found for port, name or namespace, return status of globalMtls
+		// (m-eaton ?) no policies were found for port, name or namespace, return status of globalMtls
+		// (BLaurenB): err could actually mean conflicting policies, in which case it might need to be handled differently.
 		return globalMtls
 	} else {
 		// policy was found, return the mTLS status of the policy

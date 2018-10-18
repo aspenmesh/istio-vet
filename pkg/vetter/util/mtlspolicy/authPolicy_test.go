@@ -48,7 +48,6 @@ var (
 			},
 		},
 	}
-
 	nsbarNs_On = &authv1alpha1.Policy{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Policy",
@@ -278,6 +277,7 @@ func targetWithPort(tName string, pNum uint32) []*istioauthv1alpha1.TargetSelect
 		},
 	}
 }
+
 func targetNoPort(tName string) []*istioauthv1alpha1.TargetSelector {
 	return []*istioauthv1alpha1.TargetSelector{
 		&istioauthv1alpha1.TargetSelector{
@@ -285,6 +285,47 @@ func targetNoPort(tName string) []*istioauthv1alpha1.TargetSelector {
 		},
 	}
 }
+
+var _ = Describe("Check TLS Details from AuthPolicies", func() {
+	loaded, loadErr := LoadAuthPolicies([]*authv1alpha1.Policy{
+		diyPolicy("ns1", "default", peersDisabled, noTargets),
+		diyPolicy("ns2", "pol-ns2-svc1", peersPermissive, targetNoPort("ns2-svc1")),
+		diyPolicy("ns3", "pol-ns3-svc1", peersStrict, targetNoPort("ns3-svc1")),
+		diyPolicy("ns3", "pol-ns3-svc1", peersEmpty, targetNoPort("ns3-svc1")),
+		diyPolicy("ns4", "pol-ns4-svc1", peersStrict, targetWithPort("ns4-svc1", uint32(8123))),
+		diyPolicy("ns4", "pol-ns4-svc2", peersPermissive, targetWithPort("ns4-svc2", uint32(8456))),
+	}, meshDefaultOn)
+
+	It("returns the correct mtlsState for each resource", func() {
+		Expect(loadErr).To(BeNil())
+
+		ns1, pol, err := loaded.TLSDetailsByNamespace(Service{Namespace: "ns1"})
+		Expect(err).To(BeNil())
+		Expect(pol).ToNot(BeNil())
+		Expect(ns1).To(Equal(MTLSSetting_DISABLED))
+
+		ns2svc1, pol, err := loaded.TLSDetailsByName(Service{Namespace: "ns2", Name: "ns2-svc1"})
+		Expect(err).To(BeNil())
+		Expect(pol).ToNot(BeNil())
+		Expect(ns2svc1).To(Equal(MTLSSetting_MIXED))
+
+		ns3svc1, pol, err := loaded.TLSDetailsByName(Service{Namespace: "ns3", Name: "ns3-svc1"})
+		Expect(err).Should(MatchError("Conflicting policies for service by name"))
+		Expect(pol).To(BeNil())
+		Expect(ns3svc1).To(Equal(MTLSSetting_UNKNOWN))
+
+		ns4svc1, pol, err := loaded.TLSDetailsByPort(Service{Namespace: "ns4", Name: "ns4-svc1"}, uint32(8123))
+		Expect(err).To(BeNil())
+		Expect(pol).ToNot(BeNil())
+		Expect(ns4svc1).To(Equal(MTLSSetting_ENABLED))
+
+		ns4svc2, pol, err := loaded.TLSDetailsByPort(Service{Namespace: "ns4", Name: "ns4-svc2"}, uint32(8456))
+		Expect(err).To(BeNil())
+		Expect(pol).ToNot(BeNil())
+		Expect(ns4svc2).To(Equal(MTLSSetting_MIXED))
+
+	})
+})
 
 var _ = Describe("LoadAuthPolicies and LoadMeshPolicy", func() {
 	It("should load policies", func() {
@@ -441,7 +482,6 @@ var _ = Describe("ForEachPolByPort()", func() {
 				unknown++
 			}
 		}
-		// make some test cases that have multiple policies that hit the cb so that I can count the tallies. Maybe one big one and then have expects that match all the tallies. FRPBP(s) takes a service.
 
 		It("when passed valid policies with target ports", func() {
 			loadedOn, err := LoadAuthPolicies([]*authv1alpha1.Policy{
@@ -461,7 +501,6 @@ var _ = Describe("ForEachPolByPort()", func() {
 			Expect(disabled).To(Equal(1))
 			Expect(mixed).To(Equal(1))
 			Expect(unknown).To(Equal(1))
-
 		})
 		It("when passed valid policies with different target ports", func() {
 			loadedOn, err := LoadAuthPolicies([]*authv1alpha1.Policy{
@@ -475,7 +514,6 @@ var _ = Describe("ForEachPolByPort()", func() {
 
 			Expect(disabled).To(Equal(0))
 			Expect(mixed).To(Equal(1))
-
 		})
 		It("when passed valid policies with NO target port", func() {
 			loadedOn, err := LoadAuthPolicies([]*authv1alpha1.Policy{
@@ -490,10 +528,10 @@ var _ = Describe("ForEachPolByPort()", func() {
 			Expect(disabled).To(Equal(0))
 			Expect(enabled).To(Equal(0))
 			Expect(enabled).To(Equal(0))
-
 		})
 	})
 })
+
 var _ = Describe("getModeFromPeers()", func() {
 	Context("getModeFromPeers() takes a set of PeerAuthenticationMethods and returns a single mTls Mode", func() {
 
@@ -520,6 +558,7 @@ var _ = Describe("getModeFromPeers()", func() {
 		})
 	})
 })
+
 var _ = Describe("evaluateMTlsForPeer()", func() {
 	Context("takes a set of peers and the peerIsOptional setting, and returns an mTls setting", func() {
 
