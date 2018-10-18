@@ -153,22 +153,20 @@ func (ap *AuthPolicies) ByPort(s Service, port uint32) []*authv1alpha1.Policy {
 }
 
 // ForEachPolByPort takes a callback and applies it to a range of policies by port
-func (ap *AuthPolicies) ForEachPolByPort(s Service, cb func(s Service, port uint32, policies []*authv1alpha1.Policy)) error {
-
-	ns, ok := ap.port[s.Namespace]
+func (ap *AuthPolicies) ForEachPolByPort(s Service, cb func(policies []*authv1alpha1.Policy)) {
+	nsPortPols, ok := ap.port[s.Namespace]
 	if !ok {
-		return errors.New("No policies for namespace that specify a port")
+		cb([]*authv1alpha1.Policy{})
+		return
 	}
-	n, ok := ns[s.Name]
+	nPortPols, ok := nsPortPols[s.Name]
 	if !ok {
-		return errors.New("No policies for service that specify a port")
+		cb([]*authv1alpha1.Policy{})
+		return
 	}
-	for port, policies := range n {
-		cb(s, port, policies)
-		// per Andrew: Shouldn't return nil because that checks out of the function and prevents the processing of additional policies. I don't think that's actually true. Still, he wants this whole function to not return an error. I need to handle the case of no port policies somewhere else and let the for loop just do its thing.
-		return nil
+	for _, policies := range nPortPols {
+		cb(policies)
 	}
-	return nil
 }
 
 // getMTLSBool returns a bool and error from the 4 possible enum mTls states.
