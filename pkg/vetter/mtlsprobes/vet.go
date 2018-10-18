@@ -99,40 +99,14 @@ func isNoteRequiredForMtlsProbe(authPolicies *mtlspolicyutil.AuthPolicies, endpo
 		Name:      endpoint.Name,
 		Namespace: endpoint.Namespace}
 	mtls, _, err := authPolicies.TLSByPort(svc, probePort)
-	if err != nil && err.Error() == "Use Mesh Policy" {
-		// TLSByPort was refactored to check for a mesh policy as part of the AuthPolicy struct. If mTls for the mesh policy is determined separately, this is the catch.
+	if err != nil {
+		// no policies were found for port, name or namespace, return status of globalMtls
 		return globalMtls
-	} else if err != nil {
-		// TODO(BLaurenB): actually, an error here would mean that we couldn't determine the mtls state (likely conflicting policies). We should exit the function and throw an error or return false instead of allowing the vetter to write a note.
-		// (m-eaton ?) no policies were found for port, name or namespace, return status of globalMtls
-		return false
 	} else {
 		// policy was found, return the mTLS status of the policy
 		return mtls
 	}
 }
-
-// // isNoteRequiredForMtlsProbe returns true if a note needs to be generated
-// // based off of auth policies related to the liveness/readiness probe
-// func isNoteRequiredForMtlsProbe(authPolicies *mtlspolicyutil.AuthPolicies, endpoint *corev1.Endpoints,
-// 	probePort uint32, globalMtls bool) bool {
-// 	// if the endpoint is nil, just return the status of globalMtls
-// 	if endpoint == nil {
-// 		return globalMtls
-// 	}
-// 	// create service
-// 	var svc mtlspolicyutil.Service = mtlspolicyutil.Service{
-// 		Name:      endpoint.Name,
-// 		Namespace: endpoint.Namespace}
-// 	mtls, _, err := authPolicies.TLSByPort(svc, probePort)
-// 	if err != nil {
-// 		// no policies were found for port, name or namespace, return status of globalMtls
-// 		return globalMtls
-// 	} else {
-// 		// policy was found, return the mTLS status of the policy
-// 		return mtls
-// 	}
-// }
 
 // Vet returns the list of generated notes
 func (m *MtlsProbes) Vet() ([]*apiv1.Note, error) {
@@ -152,7 +126,8 @@ func (m *MtlsProbes) Vet() ([]*apiv1.Note, error) {
 		glog.Errorln("Unable to retreive auth policies")
 		return nil, err
 	}
-	authPolicies, err := mtlspolicyutil.LoadAuthPolicies(policyList)
+	// (BLaurenB: to account for update to authPolicy.go, this function needs to take a list of mesh policies. Since the mesh policies are handled separately, passing in nil)
+	authPolicies, err := mtlspolicyutil.LoadAuthPolicies(policyList, nil)
 	if err != nil {
 		glog.Errorln("Unable to load auth policies")
 		return nil, err

@@ -288,7 +288,7 @@ var _ = Describe("Know when mTLS is correctly configured for a liveness/readines
 			It("Returns false when an empty auth policy list is passed and global mTLS is disabled",
 				func() {
 					policyList = []*authv1alpha1api.Policy{}
-					authPolicies, err = mtlspolicyutil.LoadAuthPolicies(policyList)
+					authPolicies, err = mtlspolicyutil.LoadAuthPolicies(policyList, nil)
 					Expect(err).NotTo(HaveOccurred())
 					globalMtls = false
 					generateNote = isNoteRequiredForMtlsProbe(authPolicies, Endpoint1, probePort1, globalMtls)
@@ -297,7 +297,7 @@ var _ = Describe("Know when mTLS is correctly configured for a liveness/readines
 
 			It("Returns false when endpoint is nil and global mTLS is disabled", func() {
 				policyList = []*authv1alpha1api.Policy{Policy1}
-				authPolicies, err = mtlspolicyutil.LoadAuthPolicies(policyList)
+				authPolicies, err = mtlspolicyutil.LoadAuthPolicies(policyList, nil)
 				Expect(err).NotTo(HaveOccurred())
 				globalMtls = false
 				generateNote = isNoteRequiredForMtlsProbe(authPolicies, nilEndpoint, probePort1, globalMtls)
@@ -309,7 +309,7 @@ var _ = Describe("Know when mTLS is correctly configured for a liveness/readines
 				func() {
 					// empty policy list
 					policyList = []*authv1alpha1api.Policy{}
-					authPolicies, err = mtlspolicyutil.LoadAuthPolicies(policyList)
+					authPolicies, err = mtlspolicyutil.LoadAuthPolicies(policyList, nil)
 					Expect(err).NotTo(HaveOccurred())
 					globalMtls = true
 					generateNote = isNoteRequiredForMtlsProbe(authPolicies, Endpoint1, probePort1, globalMtls)
@@ -318,7 +318,7 @@ var _ = Describe("Know when mTLS is correctly configured for a liveness/readines
 
 			It("Returns true when endpoint is nil and global mTLS is disabled", func() {
 				policyList = []*authv1alpha1api.Policy{Policy1}
-				authPolicies, err = mtlspolicyutil.LoadAuthPolicies(policyList)
+				authPolicies, err = mtlspolicyutil.LoadAuthPolicies(policyList, nil)
 				Expect(err).NotTo(HaveOccurred())
 				globalMtls = true
 				generateNote = isNoteRequiredForMtlsProbe(authPolicies, nilEndpoint, probePort1, globalMtls)
@@ -330,7 +330,7 @@ var _ = Describe("Know when mTLS is correctly configured for a liveness/readines
 				func() {
 					// global mTLS enabled
 					policyList = []*authv1alpha1api.Policy{Policy1}
-					authPolicies, err = mtlspolicyutil.LoadAuthPolicies(policyList)
+					authPolicies, err = mtlspolicyutil.LoadAuthPolicies(policyList, nil)
 					Expect(err).NotTo(HaveOccurred())
 					globalMtls = true
 					generateNote = isNoteRequiredForMtlsProbe(authPolicies, Endpoint1, probePort1, globalMtls)
@@ -345,7 +345,7 @@ var _ = Describe("Know when mTLS is correctly configured for a liveness/readines
 				func() {
 					// global mTLS enabled
 					policyList = []*authv1alpha1api.Policy{Policy2}
-					authPolicies, err = mtlspolicyutil.LoadAuthPolicies(policyList)
+					authPolicies, err = mtlspolicyutil.LoadAuthPolicies(policyList, nil)
 					Expect(err).NotTo(HaveOccurred())
 					globalMtls = true
 					generateNote = isNoteRequiredForMtlsProbe(authPolicies, Endpoint1, probePort1, globalMtls)
@@ -360,7 +360,7 @@ var _ = Describe("Know when mTLS is correctly configured for a liveness/readines
 				func() {
 					// global mTLS enabled
 					policyList = []*authv1alpha1api.Policy{Policy3}
-					authPolicies, err = mtlspolicyutil.LoadAuthPolicies(policyList)
+					authPolicies, err = mtlspolicyutil.LoadAuthPolicies(policyList, nil)
 					Expect(err).NotTo(HaveOccurred())
 					globalMtls = true
 					generateNote = isNoteRequiredForMtlsProbe(authPolicies, Endpoint1, probePort1, globalMtls)
@@ -375,7 +375,7 @@ var _ = Describe("Know when mTLS is correctly configured for a liveness/readines
 				func() {
 					// global mTLS enabled
 					policyList = []*authv1alpha1api.Policy{Policy4}
-					authPolicies, err = mtlspolicyutil.LoadAuthPolicies(policyList)
+					authPolicies, err = mtlspolicyutil.LoadAuthPolicies(policyList, nil)
 					Expect(err).NotTo(HaveOccurred())
 					globalMtls = true
 					generateNote = isNoteRequiredForMtlsProbe(authPolicies, Endpoint1, probePort1, globalMtls)
@@ -390,7 +390,7 @@ var _ = Describe("Know when mTLS is correctly configured for a liveness/readines
 				func() {
 					// global mTLS enabled
 					policyList = []*authv1alpha1api.Policy{Policy5}
-					authPolicies, err = mtlspolicyutil.LoadAuthPolicies(policyList)
+					authPolicies, err = mtlspolicyutil.LoadAuthPolicies(policyList, nil)
 					Expect(err).NotTo(HaveOccurred())
 					globalMtls = true
 					generateNote = isNoteRequiredForMtlsProbe(authPolicies, Endpoint1, probePort1, globalMtls)
@@ -405,7 +405,7 @@ var _ = Describe("Know when mTLS is correctly configured for a liveness/readines
 				func() {
 					// global mTLS enabled
 					policyList = []*authv1alpha1api.Policy{Policy6}
-					authPolicies, err = mtlspolicyutil.LoadAuthPolicies(policyList)
+					authPolicies, err = mtlspolicyutil.LoadAuthPolicies(policyList, nil)
 					Expect(err).NotTo(HaveOccurred())
 					globalMtls = true
 					generateNote = isNoteRequiredForMtlsProbe(authPolicies, Endpoint1, probePort1, globalMtls)
@@ -420,7 +420,7 @@ var _ = Describe("Know when mTLS is correctly configured for a liveness/readines
 				func() {
 					// global mTLS enabled
 					policyList = []*authv1alpha1api.Policy{Policy3, Policy2}
-					authPolicies, err = mtlspolicyutil.LoadAuthPolicies(policyList)
+					authPolicies, err = mtlspolicyutil.LoadAuthPolicies(policyList, nil)
 					Expect(err).NotTo(HaveOccurred())
 					globalMtls = true
 					generateNote = isNoteRequiredForMtlsProbe(authPolicies, Endpoint1, probePort1, globalMtls)

@@ -18,7 +18,6 @@ package mtlspolicyutil
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	authv1alpha1 "github.com/aspenmesh/istio-client-go/pkg/apis/authentication/v1alpha1"
@@ -40,7 +39,6 @@ const (
 	MTLSSetting_MIXED MTLSSetting = 3
 )
 
-type policiesByMeshMap map[string][]*authv1alpha1.MeshPolicy
 type policiesByNamespaceMap map[string][]*authv1alpha1.Policy
 type policiesByNameMap map[string][]*authv1alpha1.Policy
 type policiesByNamespaceNameMap map[string]policiesByNameMap
@@ -50,7 +48,7 @@ type policiesByNamespaceNamePortMap map[string]policiesByNamePortMap
 
 // AuthPolicies holds maps of Istio authorization policies by port, name, namespace
 type AuthPolicies struct {
-	mesh      policiesByMeshMap
+	mesh      []*authv1alpha1.MeshPolicy
 	namespace policiesByNamespaceMap
 	name      policiesByNamespaceNameMap
 	port      policiesByNamespaceNamePortMap
@@ -60,7 +58,7 @@ type AuthPolicies struct {
 // LoadAuthPolicies
 func NewAuthPolicies() *AuthPolicies {
 	return &AuthPolicies{
-		mesh:      make(policiesByMeshMap),
+		mesh:      []*authv1alpha1.MeshPolicy{},
 		namespace: make(policiesByNamespaceMap),
 		name:      make(policiesByNamespaceNameMap),
 		port:      make(policiesByNamespaceNamePortMap),
@@ -68,9 +66,8 @@ func NewAuthPolicies() *AuthPolicies {
 }
 
 // AddByMesh adds a Policy to the AuthPolicies mesh map
-func (ap *AuthPolicies) AddByMesh(mesh string, policy *authv1alpha1.MeshPolicy) {
-	m := ap.mesh[mesh]
-	ap.mesh[mesh] = append(m, policy)
+func (ap *AuthPolicies) AddByMesh(mp *authv1alpha1.MeshPolicy) {
+	ap.mesh = append(ap.mesh, mp)
 }
 
 // AddByNamespace adds a Policy to the AuthPolicies namespace map
@@ -109,18 +106,12 @@ func (ap *AuthPolicies) AddByPort(s Service, port uint32, policy *authv1alpha1.P
 // ByMesh is passed a mesh and returns the Policy in the AuthPolicies
 // mesh map for that mesh
 func (ap *AuthPolicies) ByMesh() []*authv1alpha1.MeshPolicy {
-	// Currently only UI for 1 cluster. MeshPolicy must be named "default".
-	m, ok := ap.mesh[meshName]
-	if !ok {
-		return []*authv1alpha1.MeshPolicy{}
-	}
-	return m
+	return ap.mesh
 }
 
 // ByNamespace is passed a namespace and returns the Policy in the AuthPolicies
 // namespace map for that namespace
 func (ap *AuthPolicies) ByNamespace(namespace string) []*authv1alpha1.Policy {
-
 	n, ok := ap.namespace[namespace]
 	if !ok {
 		return []*authv1alpha1.Policy{}
@@ -174,6 +165,7 @@ func (ap *AuthPolicies) ForEachPolByPort(s Service, cb func(s Service, port uint
 	}
 	for port, policies := range n {
 		cb(s, port, policies)
+		// per Andrew: Shouldn't return nil because that checks out of the function and prevents the processing of additional policies. I don't think that's actually true. Still, he wants this whole function to not return an error. I need to handle the case of no port policies somewhere else and let the for loop just do its thing.
 		return nil
 	}
 	return nil
@@ -304,9 +296,7 @@ func IsGlobalMtlsEnabled(meshPolicies []*authv1alpha1.MeshPolicy) (bool, error) 
 
 // TLSDetailsByPort walks through Auth Policies at the port level and returns the mtlsState for the requested resource. It returns the mTls state for the parent resource if there is no policy for the requested resource.
 func (ap *AuthPolicies) TLSDetailsByPort(s Service, port uint32) (MTLSSetting, *authv1alpha1.Policy, error) {
-	fmt.Printf("\n IN TLSDetailsByPort(): %v", s)
 	policies := ap.ByPort(s, port)
-	fmt.Printf("\n policies: %v", policies)
 	if len(policies) > 1 {
 		return MTLSSetting_UNKNOWN, nil, errors.New("Conflicting policies for port")
 	}
@@ -331,9 +321,7 @@ func (ap *AuthPolicies) TLSByPort(s Service, port uint32) (bool, *authv1alpha1.P
 // TLSDetailsByName walks through Auth Policies at the port and name level, and returns the mtlsState for the requested resource. It returns the mTls state for the parent resource if there is no policy for the requested resource.
 func (ap *AuthPolicies) TLSDetailsByName(s Service) (MTLSSetting, *authv1alpha1.Policy, error) {
 
-	fmt.Printf("\n IN TLSDetailsByName() s: %v", s)
 	policies := ap.ByName(s)
-	fmt.Printf("\n policies: %v", policies)
 	if len(policies) > 1 {
 		return MTLSSetting_UNKNOWN, nil, errors.New("Conflicting policies for service by name")
 	}
@@ -356,9 +344,7 @@ func (ap *AuthPolicies) TLSByName(s Service) (bool, *authv1alpha1.Policy, error)
 
 // TLSDetailsByNamespace walks through Auth Policies at the port, name, and namespace level and returns the mtlsState for the requested resource. It returns the mTls state for the parent resource if there is no policy for the requested resource.
 func (ap *AuthPolicies) TLSDetailsByNamespace(s Service) (MTLSSetting, *authv1alpha1.Policy, error) {
-	fmt.Printf("\n IN TLSDetailsByNamespace() s: %v", s)
 	policies := ap.ByNamespace(s.Namespace)
-	fmt.Printf("\n policies: %v", policies)
 	if len(policies) > 1 {
 		return MTLSSetting_UNKNOWN, nil, errors.New("Conflicting policies for service by namespace")
 	}
@@ -399,26 +385,17 @@ func (ap *AuthPolicies) TLSDetailsByMesh() (MTLSSetting, *authv1alpha1.MeshPolic
 	return MTLSSetting_DISABLED, nil, nil
 }
 
-// LoadMeshPolicy takes the mesh policy and adds it to an *AuthPolicy struct
-func (ap *AuthPolicies) LoadMeshPolicy(policies []*authv1alpha1.MeshPolicy) {
-	for _, policy := range policies {
-		if policy.Name != "default" {
-			// Mesh Policy must be named "default".
-			continue
-		}
-		ap.AddByMesh(meshName, policy)
-		continue
-	}
-
-}
-
 // *!*!* Force the user to pass in the mesh pol or an empty list.
 
 // LoadAuthPolicies is passed a list of Policies and returns an
 // AuthPolicies struct with maps of policies by port, name, and namespace.
 // The function separates the policies so that the namespace map only includes policies that are namespace-wide only, service map includes policies that are service-wide only, and port map includes policies that designate a target port.
-func LoadAuthPolicies(policies []*authv1alpha1.Policy) (*AuthPolicies, error) {
+func LoadAuthPolicies(policies []*authv1alpha1.Policy,
+	meshPolicies []*authv1alpha1.MeshPolicy) (*AuthPolicies, error) {
 	loaded := NewAuthPolicies()
+	for _, mp := range meshPolicies {
+		loaded.AddByMesh(mp)
+	}
 	for _, policy := range policies {
 		targets := policy.Spec.GetTargets()
 		if targets == nil || len(targets) == 0 {
@@ -430,7 +407,6 @@ func LoadAuthPolicies(policies []*authv1alpha1.Policy) (*AuthPolicies, error) {
 			loaded.AddByNamespace(policy.Namespace, policy)
 			continue
 		}
-
 		// Policy has targets.
 		for _, target := range targets {
 			name := target.GetName()

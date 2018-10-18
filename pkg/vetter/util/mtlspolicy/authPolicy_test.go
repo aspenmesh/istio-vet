@@ -249,20 +249,20 @@ var (
 
 var _ = Describe("LoadAuthPolicies and LoadMeshPolicy", func() {
 	It("should load policies", func() {
+		meshPol := []*authv1alpha1.MeshPolicy{meshDefaultOn}
 		loaded, err := LoadAuthPolicies([]*authv1alpha1.Policy{
 			nsbarNs_On,
 			nsDefault_apFoo_On,
 			nsDefault_apFoo_Off,
 			nsDefault_apFoo_apBar_On,
 			nsDefault_apFooPorts_apBar_On,
-		})
+		}, meshPol)
 		Expect(err).To(BeNil())
-		loaded.LoadMeshPolicy([]*authv1alpha1.MeshPolicy{meshDefaultOn})
 
 		foo := Service{Namespace: "default", Name: "foo"}
 		bar := Service{Namespace: "default", Name: "bar"}
 
-		Expect(loaded.ByMesh()).To(Equal([]*authv1alpha1.MeshPolicy{meshDefaultOn}))
+		Expect(loaded.ByMesh()).To(Equal(meshPol))
 		Expect(loaded.ByNamespace("barNs")).To(Equal([]*authv1alpha1.Policy{nsbarNs_On}))
 		Expect(loaded.ByNamespace("default")).To(Equal([]*authv1alpha1.Policy{}))
 
@@ -299,8 +299,7 @@ var _ = Describe("test AuthPolicyIsMtls() through its callers", func() {
 		It("returns enabled when there is an enabled policy", func() {
 			loadedOn, err := LoadAuthPolicies([]*authv1alpha1.Policy{
 				nsbarNs_On,
-			})
-			loadedOn.LoadMeshPolicy([]*authv1alpha1.MeshPolicy{meshDefaultOn})
+			}, []*authv1alpha1.MeshPolicy{meshDefaultOn})
 
 			Expect(err).To(BeNil())
 			s := Service{Namespace: "barNs", Name: ""}
@@ -309,9 +308,8 @@ var _ = Describe("test AuthPolicyIsMtls() through its callers", func() {
 			Expect(mtlsStateOn).To(Equal(MTLSSetting_ENABLED))
 		})
 		It("returns enabled when there is no policy for a namespace, but the mesh policy exists and is enabled", func() {
-			loadedNone, err := LoadAuthPolicies([]*authv1alpha1.Policy{})
+			loadedNone, err := LoadAuthPolicies([]*authv1alpha1.Policy{}, []*authv1alpha1.MeshPolicy{meshDefaultOn})
 			Expect(err).To(BeNil())
-			loadedNone.LoadMeshPolicy([]*authv1alpha1.MeshPolicy{meshDefaultOn})
 			s := Service{Namespace: "barNs", Name: ""}
 			mtlsStateNone, _, err2 := loadedNone.TLSDetailsByNamespace(s)
 			Expect(err2).To(BeNil())
@@ -323,7 +321,7 @@ var _ = Describe("test AuthPolicyIsMtls() through its callers", func() {
 		It("returns enabled when there is an enabled policy", func() {
 			loadedOn, err := LoadAuthPolicies([]*authv1alpha1.Policy{
 				nsDefault_apFooPorts_apBar_On,
-			})
+			}, nil)
 			Expect(err).To(BeNil())
 			s := Service{Namespace: "default", Name: "bar"}
 			mtlsStateOn, _, err1 := loadedOn.TLSDetailsByName(s)
@@ -335,7 +333,7 @@ var _ = Describe("test AuthPolicyIsMtls() through its callers", func() {
 			loadedOn, err := LoadAuthPolicies([]*authv1alpha1.Policy{
 				nsDefault_apFoo_Off,
 				nsDefault_apFooPorts_apBar_On,
-			})
+			}, nil)
 			Expect(err).To(BeNil())
 			s := Service{Namespace: "default", Name: "foo"}
 			mtlsStateOn, _, err1 := loadedOn.TLSDetailsByName(s)
@@ -346,7 +344,7 @@ var _ = Describe("test AuthPolicyIsMtls() through its callers", func() {
 		It("returns enabled when there is no policy for a service, but the namespace policy exists and is enabled", func() {
 			loadedNone, err := LoadAuthPolicies([]*authv1alpha1.Policy{
 				nsbarNs_On,
-			})
+			}, nil)
 			Expect(err).To(BeNil())
 			s := Service{Namespace: "barNs", Name: ""}
 			mtlsStateNone, _, err2 := loadedNone.TLSDetailsByName(s)
@@ -360,7 +358,7 @@ var _ = Describe("test AuthPolicyIsMtls() through its callers", func() {
 		It("returns enabled when there is an enabled policy", func() {
 			loadedOn, err := LoadAuthPolicies([]*authv1alpha1.Policy{
 				nsDefault_apFooPorts_apBar_On,
-			})
+			}, nil)
 			Expect(err).To(BeNil())
 			s := Service{Namespace: "default", Name: "foo"}
 			mtlsStateOn, _, err1 := loadedOn.TLSDetailsByPort(s, 8443)
@@ -372,7 +370,7 @@ var _ = Describe("test AuthPolicyIsMtls() through its callers", func() {
 		It("returns enabled when there is no policy for a target service Port, but a service policy exists and is enabled", func() {
 			loadedNone, err := LoadAuthPolicies([]*authv1alpha1.Policy{
 				nsDefault_apFoo_apBar_On,
-			})
+			}, nil)
 			Expect(err).To(BeNil())
 			s := Service{Namespace: "default", Name: "foo"}
 			mtlsStateNone, _, err2 := loadedNone.TLSDetailsByPort(s, 8443)
@@ -390,7 +388,7 @@ var _ = Describe("getModeFromPeers()", func() {
 				nsDefault_apFooPorts_apBar_On,
 				nsDefault_apFoo_apBar_On,
 				nsbarNs_On,
-			})
+			}, nil)
 			Expect(err).To(BeNil())
 			s := Service{Namespace: "default", Name: "foo"}
 			var enabled, disabled, mixed, unknown int
