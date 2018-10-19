@@ -1,17 +1,16 @@
 /*
 Copyright 2018 Aspen Mesh Authors.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+this file except in compliance with the License. You may obtain a copy of the
+License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+Unless required by applicable law or agreed to in writing, software distributed
+under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
 */
 
 package mtlspolicyutil
@@ -45,7 +44,8 @@ type policiesByPortMap map[uint32][]*authv1alpha1.Policy
 type policiesByNamePortMap map[string]policiesByPortMap
 type policiesByNamespaceNamePortMap map[string]policiesByNamePortMap
 
-// AuthPolicies holds maps of Istio authorization policies by port, name, namespace
+// AuthPolicies holds maps of Istio authorization policies by port, name,
+// namespace
 type AuthPolicies struct {
 	mesh      []*authv1alpha1.MeshPolicy
 	namespace policiesByNamespaceMap
@@ -102,8 +102,8 @@ func (ap *AuthPolicies) AddByPort(s Service, port uint32, policy *authv1alpha1.P
 	name[port] = append(p, policy)
 }
 
-// ByMesh is passed a mesh and returns the Policy in the AuthPolicies
-// mesh map for that mesh
+// ByMesh is passed a mesh and returns the Policy in the AuthPolicies mesh map
+// for that mesh
 func (ap *AuthPolicies) ByMesh() []*authv1alpha1.MeshPolicy {
 	return ap.mesh
 }
@@ -150,7 +150,8 @@ func (ap *AuthPolicies) ByPort(s Service, port uint32) []*authv1alpha1.Policy {
 	return p
 }
 
-// ForEachPolByPort takes a callback and applies it to a range of policies by port
+// ForEachPolByPort takes a callback and applies it to a range of policies by
+// port
 func (ap *AuthPolicies) ForEachPolByPort(s Service, cb func(policies []*authv1alpha1.Policy)) {
 	nsPortPols, ok := ap.port[s.Namespace]
 	if !ok {
@@ -166,10 +167,16 @@ func (ap *AuthPolicies) ForEachPolByPort(s Service, cb func(policies []*authv1al
 }
 
 // getMTLSBool returns a bool and error from the 4 possible enum mTls states.
-// Mixed counts as enabled since it allows enabled traffic, but it returns an error in case the caller needs to know if the true status means it's enabled-only, or enabled in a way that allows other traffic.
-// Unknown counts as disabled since we cannot tell the caller that the status is mTls enabled. It returns an error in case the caller needs to know if the false status means that the false status is actually bogus because we we unable to determine the mTls status.
+// Mixed counts as enabled since it allows enabled traffic, but it returns an
+// error in case the caller needs to know if the true status means it's
+// enabled-only, or enabled in a way that allows other traffic. Unknown counts
+// as disabled since we cannot tell the caller that the status is mTls enabled.
+// It returns an error in case the caller needs to know if the false status
+// means that the false status is actually bogus because we we unable to
+// determine the mTls status.
 func getMTLSBool(mtlsState MTLSSetting) bool {
-	// pass in the policy to maintain the structure of returns for callers pre-Oct2018-refactor.
+	// pass in the policy to maintain the structure of returns for callers
+	// pre-Oct2018-refactor.
 	switch checkState := mtlsState; {
 	case checkState == MTLSSetting_ENABLED:
 		return true
@@ -182,28 +189,41 @@ func getMTLSBool(mtlsState MTLSSetting) bool {
 	}
 }
 
-// paramIsMTls determines whether mTls is enabled for a policy when no modes are listed.
-// If a yaml file contains "- mtls: {}" or "- mtls: ", the Policy Object will be `spec":{"peers":[{"mtls":null}]}}` Istio Docs describe this as mTls-enabled. We can't use .GetMtls() because it will return nil in cases where the peer isn't mTls as well as in cases where mtls is listed but empty
+// paramIsMTls determines whether mTls is enabled for a policy when no modes are
+// listed. If a yaml file contains "- mtls: ", the Policy Object will be
+// `"spec":{"peers":[{"mtls":null}]}` Istio Docs describe this as mTls-DISABLED.
+// If a yaml file contains "- mtls: {}", the Policy Object will be
+// `"spec":{"peers":[{"mtls": {}}]}` Istio Docs describe this as mTls-ENABLED.
+// We can't use .GetMtls() because it will return nil in cases where the peer
+// isn't mTls as well as in cases where mtls is listed but empty. paramIsMTls()
+// checks whether the peer list's params can be coerced into a
+// PeerAuthenticationMethod_Mtls which accounts for a null versus {} mtls entry.
 func paramIsMTls(peer *istioauthv1alpha1.PeerAuthenticationMethod) bool {
 	_, ok := peer.GetParams().(*istioauthv1alpha1.PeerAuthenticationMethod_Mtls)
 	if ok {
+		// `"spec":{"peers":[{"mtls": {}}]}` means enabled
 		return true
 	}
+	// `"spec":{"peers":[{"mtls":null}]}` means disabled
 	return false
 }
 
-// getModeFromPeers takes a set of peers and returns an mTls setting
-// Once passed a set of peerAuthMethods, getModeFromPeers() checks whether each is an mTls setting or a JWT, then if it's mTls, it checks the mode for its setting.
+// getModeFromPeers takes a set of peers and returns an mTls setting Once passed
+// a set of peerAuthMethods, getModeFromPeers() checks whether each is an mTls
+// setting or a JWT, then if it's mTls, it checks the mode for its setting.
 func getModeFromPeers(peerAuthMethods []*istioauthv1alpha1.PeerAuthenticationMethod) MTLSSetting {
 	var mtlsState MTLSSetting
 	// peerAuthMethods is checked for being Empty in the calling function.
 
-	// Per peerAuthMethod, check if it lists mtls in any way, then check for mtls Mode. Count the number of enabled or mixed methods to determine the final mtls state for this policy.
+	// Per peerAuthMethod, check if it lists mtls in any way, then check for
+	// mtls Mode. Count the number of enabled or mixed methods to determine the
+	// final mtls state for this policy.
 	var enabled, mixed int
 	for _, pam := range peerAuthMethods {
 		// PeerAuthenticationMethod could be JWT or multiple mtls settings.
 		if pam.GetMtls() != nil {
-			// A peer sections exists with mTls enabled, so check its Mode for STRICT or PERMISSIVE.
+			// A peer sections exists with mTls enabled, so check its Mode for
+			// STRICT or PERMISSIVE.
 			peerMode := pam.GetMtls().GetMode()
 			if peerMode == istioauthv1alpha1.MutualTls_STRICT {
 				enabled++
@@ -211,15 +231,19 @@ func getModeFromPeers(peerAuthMethods []*istioauthv1alpha1.PeerAuthenticationMet
 				mixed++
 			}
 		} else {
-			// A peer section exists, but the peer authentication methods are the odd cases where "- mtls: {}" or "- mtls : ", so GetMtls() will return nil even though Istio considers these cases to be enabled.  paramIsMTls() checks for these enabled cases.
+			// A peer section exists, but the peer authentication methods are
+			// the odd cases where "- mtls: {}" or "- mtls : ", so GetMtls()
+			// will return nil even though Istio considers "- mtls: {}" to be
+			// enabled.  paramIsMTls() checks for these both cases.
 			if paramIsMTls(pam) {
 				enabled++
 			}
 		}
 	}
-	// If there is any occurrance of mixed, nothing else matters.
-	// If !mixed, check for enabled
-	// DISABLED will be returned in cases where there is a Peer Authentication Method, but it is JWT instead of mTls and there is no other mTls setting for the policy
+	// If there is any occurrance of mixed, nothing else matters. If !mixed,
+	// check for enabled DISABLED will be returned in cases where there is a
+	// Peer Authentication Method, but it is JWT instead of mTls and there is no
+	// other mTls setting for the policy
 	if mixed != 0 {
 		mtlsState = MTLSSetting_MIXED
 	} else if enabled != 0 {
@@ -230,8 +254,10 @@ func getModeFromPeers(peerAuthMethods []*istioauthv1alpha1.PeerAuthenticationMet
 	return mtlsState
 }
 
-// evaluateMTlsForPeer takes a set of peers and the peerIsOptional setting, and returns an mTls setting.
-// Once passed a set of peers and peerIsOptional setting, it returns the determined mTls state, or calls getModeFromPeers() to check its mTls state.
+// evaluateMTlsForPeer takes a set of peers and the peerIsOptional setting, and
+// returns an mTls setting. Once passed a set of peers and peerIsOptional
+// setting, it returns the determined mTls state, or calls getModeFromPeers() to
+// check its mTls state.
 func evaluateMTlsForPeer(peers []*istioauthv1alpha1.PeerAuthenticationMethod, peerOptional bool) MTLSSetting {
 	var mtlsState MTLSSetting
 	// Check to see if Peers has a list of peerAuthMethods or is empty.
@@ -239,7 +265,10 @@ func evaluateMTlsForPeer(peers []*istioauthv1alpha1.PeerAuthenticationMethod, pe
 		// If Peers exists && is empty, Istio considers it mtls-disabled
 		mtlsState = MTLSSetting_DISABLED
 	} else if peerOptional == true {
-		// If Peers has at least one item in the list, check to see if the user set PeerIsOptional == true. If so, this overrides any other mtls settings. Functionality is broken in Istio1.0, but is fixed as of Istio 1.3
+		// If Peers has at least one item in the list, check to see if the user
+		// set PeerIsOptional == true. If so, this overrides any other mtls
+		// settings. Functionality is broken in Istio1.0, but is fixed as of
+		// Istio 1.3
 		mtlsState = MTLSSetting_MIXED
 	} else {
 		mtlsState = getModeFromPeers(peers)
@@ -247,8 +276,10 @@ func evaluateMTlsForPeer(peers []*istioauthv1alpha1.PeerAuthenticationMethod, pe
 	return mtlsState
 }
 
-// MeshPolicyIsMtls returns true if the passed Policy has mTLS enabled.
-// The duplicaiton in code for MeshPolicyIsMtls and AuthPolicyIsMtls is because the two objects are different and cannot use the same code. Once peers have been accessed, the two kinds of policy can use the same code.
+// MeshPolicyIsMtls returns true if the passed Policy has mTLS enabled. The
+// duplicaiton in code for MeshPolicyIsMtls and AuthPolicyIsMtls is because the
+// two objects are a different type and cannot use the same code. Once peers
+// have been accessed, the two kinds of policy can use the same code.
 func MeshPolicyIsMtls(policy *authv1alpha1.MeshPolicy) MTLSSetting {
 	peers := policy.Spec.GetPeers()
 	if peers == nil {
@@ -258,8 +289,10 @@ func MeshPolicyIsMtls(policy *authv1alpha1.MeshPolicy) MTLSSetting {
 	return evaluateMTlsForPeer(peers, peerOptional)
 }
 
-// AuthPolicyIsMtls returns true if the passed Policy has mTLS enabled.
-// The duplicaiton in code for MeshPolicyIsMtls and AuthPolicyIsMtls is because the two objects are different and cannot use the same code. Once peers have been accessed, the two kinds of policy can use the same code.
+// AuthPolicyIsMtls returns true if the passed Policy has mTLS enabled. The
+// duplicaiton in code for MeshPolicyIsMtls and AuthPolicyIsMtls is because the
+// two objects are a different type and cannot use the same code. Once peers
+// have been accessed, the two kinds of policy can use the same code.
 func AuthPolicyIsMtls(policy *authv1alpha1.Policy) MTLSSetting {
 	peers := policy.Spec.GetPeers()
 	if peers == nil {
@@ -288,17 +321,23 @@ func IsGlobalMtlsEnabled(meshPolicies []*authv1alpha1.MeshPolicy) (bool, error) 
 	}
 }
 
-// TLSDetailsByPort walks through Auth Policies at the port level and returns the mtlsState for the requested resource. It returns the mTls state for the parent resource if there is no policy for the requested resource.
+// TLSDetailsByPort walks through Auth Policies at the port level and returns
+// the mtlsState for the requested resource. It returns the mTls state for the
+// parent resource if there is no policy for the requested resource.
 func (ap *AuthPolicies) TLSDetailsByPort(s Service, port uint32) (MTLSSetting, *authv1alpha1.Policy, error) {
 	policies := ap.ByPort(s, port)
 	if len(policies) > 1 {
-		// TODO (BLaurenB) We think that in Istio 0.8, non-conflicting policies (or identical policies) will "work" because the behavior requested will be the same regardless of which one Istio chooses. We may need to handle this differently.
+		// TODO (BLaurenB) We think that in Istio 0.8, non-conflicting policies
+		// (or identical policies) will "work" because the behavior requested
+		// will be the same regardless of which one Istio chooses. We may need
+		// to handle this differently.
 		return MTLSSetting_UNKNOWN, nil, errors.New("Conflicting policies for port")
 	}
 	if len(policies) == 1 {
 		return AuthPolicyIsMtls(policies[0]), policies[0], nil
 	}
-	// If there are no policies for the port, return mtlsState for parent resource.
+	// If there are no policies for the port, return mtlsState for parent
+	// resource.
 	return ap.TLSDetailsByName(s)
 }
 
@@ -306,24 +345,31 @@ func (ap *AuthPolicies) TLSDetailsByPort(s Service, port uint32) (MTLSSetting, *
 func (ap *AuthPolicies) TLSByPort(s Service, port uint32) (bool, *authv1alpha1.Policy, error) {
 	mtlsState, policy, err := ap.TLSDetailsByPort(s, port)
 	if err != nil {
-		// The false status is actually bogus because we we unable to determine the mTls status.
+		// The false status is actually bogus because we we unable to determine
+		// the mTls status.
 		return false, nil, err
 	}
 	return getMTLSBool(mtlsState), policy, err
 }
 
-// TLSDetailsByName walks through Auth Policies at the port and name level, and returns the mtlsState for the requested resource. It returns the mTls state for the parent resource if there is no policy for the requested resource.
+// TLSDetailsByName walks through Auth Policies at the port and name level, and
+// returns the mtlsState for the requested resource. It returns the mTls state
+// for the parent resource if there is no policy for the requested resource.
 func (ap *AuthPolicies) TLSDetailsByName(s Service) (MTLSSetting, *authv1alpha1.Policy, error) {
 
 	policies := ap.ByName(s)
 	if len(policies) > 1 {
-		// TODO (BLaurenB) We think that in Istio 0.8, non-conflicting policies (or identical policies) will "work" because the behavior requested will be the same regardless of which one Istio chooses. We may need to handle this differently.
+		// TODO (BLaurenB) We think that in Istio 0.8, non-conflicting policies
+		// (or identical policies) will "work" because the behavior requested
+		// will be the same regardless of which one Istio chooses. We may need
+		// to handle this differently.
 		return MTLSSetting_UNKNOWN, nil, errors.New("Conflicting policies for service by name")
 	}
 	if len(policies) == 1 {
 		return AuthPolicyIsMtls(policies[0]), policies[0], nil
 	}
-	// If there are no policies for the service, return mtlsState for parent resource.
+	// If there are no policies for the service, return mtlsState for parent
+	// resource.
 	return ap.TLSDetailsByNamespace(s)
 }
 
@@ -331,23 +377,32 @@ func (ap *AuthPolicies) TLSDetailsByName(s Service) (MTLSSetting, *authv1alpha1.
 func (ap *AuthPolicies) TLSByName(s Service) (bool, *authv1alpha1.Policy, error) {
 	mtlsState, policy, err := ap.TLSDetailsByName(s)
 	if err != nil {
-		// The false status is actually bogus because we we unable to determine the mTls status.
+		// The false status is actually bogus because we we unable to determine
+		// the mTls status.
 		return false, nil, err
 	}
 	return getMTLSBool(mtlsState), policy, err
 }
 
-// TLSDetailsByNamespace walks through Auth Policies at the port, name, and namespace level and returns the mtlsState for the requested resource. It returns the mTls state for the parent resource if there is no policy for the requested resource.
+// TLSDetailsByNamespace walks through Auth Policies at the port, name, and
+// namespace level and returns the mtlsState for the requested resource. It
+// returns the mTls state for the parent resource if there is no policy for the
+// requested resource.
 func (ap *AuthPolicies) TLSDetailsByNamespace(s Service) (MTLSSetting, *authv1alpha1.Policy, error) {
 	policies := ap.ByNamespace(s.Namespace)
 	if len(policies) > 1 {
-		// TODO (BLaurenB) We think that in Istio 0.8, non-conflicting policies (or identical policies) will "work" because the behavior requested will be the same regardless of which one Istio chooses. We may need to handle this differently.
+		// TODO (BLaurenB) We think that in Istio 0.8, non-conflicting policies
+		// (or identical policies) will "work" because the behavior requested
+		// will be the same regardless of which one Istio chooses. We may need
+		// to handle this differently.
 		return MTLSSetting_UNKNOWN, nil, errors.New("Conflicting policies for service by namespace")
 	}
 	if len(policies) == 1 {
 		return AuthPolicyIsMtls(policies[0]), policies[0], nil
 	}
-	// If there are no policies for the namespace, return mtlsState for parent resource. Note this function can't return a Mesh Policy since it's a different Type.
+	// If there are no policies for the namespace, return mtlsState for parent
+	// resource. Note this function can't return a Mesh Policy since it's a
+	// different Type.
 	mtlsState, _, err := ap.TLSDetailsByMesh()
 	return mtlsState, nil, err
 }
@@ -356,7 +411,8 @@ func (ap *AuthPolicies) TLSDetailsByNamespace(s Service) (MTLSSetting, *authv1al
 func (ap *AuthPolicies) TLSByNamespace(s Service) (bool, *authv1alpha1.Policy, error) {
 	mtlsState, policy, err := ap.TLSDetailsByNamespace(s)
 	if err != nil {
-		// The false status is actually bogus because we we unable to determine the mTls status.
+		// The false status is actually bogus because we we unable to determine
+		// the mTls status.
 		return false, nil, err
 	}
 	return getMTLSBool(mtlsState), policy, err
@@ -371,13 +427,16 @@ func (ap *AuthPolicies) TLSDetailsByMesh() (MTLSSetting, *authv1alpha1.MeshPolic
 	if len(policies) == 1 {
 		return MeshPolicyIsMtls(policies[0]), policies[0], nil
 	}
-	// If there is no mesh policy, mTls is considered to be disabled for the cluster.
+	// If there is no mesh policy, mTls is considered to be disabled for the
+	// cluster.
 	return MTLSSetting_DISABLED, nil, nil
 }
 
-// LoadAuthPolicies is passed a list of Policies and returns an
-// AuthPolicies struct with maps of policies by port, name, and namespace.
-// The function separates the policies so that the namespace map only includes policies that are namespace-wide only, service map includes policies that are service-wide only, and port map includes policies that designate a target port.
+// LoadAuthPolicies is passed a list of Policies and returns an AuthPolicies
+// struct with maps of policies by port, name, and namespace. The function
+// separates the policies so that the namespace map only includes policies that
+// are namespace-wide only, service map includes policies that are service-wide
+// only, and port map includes policies that designate a target port.
 func LoadAuthPolicies(policies []*authv1alpha1.Policy,
 	meshPolicies []*authv1alpha1.MeshPolicy) (*AuthPolicies, error) {
 	loaded := NewAuthPolicies()
