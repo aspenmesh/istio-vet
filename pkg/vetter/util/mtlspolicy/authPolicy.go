@@ -183,12 +183,16 @@ func getMTLSBool(mtlsState MTLSSetting) bool {
 }
 
 // paramIsMTls determines whether mTls is enabled for a policy when no modes are listed.
-// If a yaml file contains "- mtls: {}" or "- mtls: ", the Policy Object will be `spec":{"peers":[{"mtls":null}]}}` Istio Docs describe this as mTls-enabled. We can't use .GetMtls() because it will return nil in cases where the peer isn't mTls as well as in cases where mtls is listed but empty
+// If a yaml file contains "- mtls: ", the Policy Object will be `"spec":{"peers":[{"mtls":null}]}` Istio Docs describe this as mTls-DISABLED.
+// If a yaml file contains "- mtls: {}", the Policy Object will be `"spec":{"peers":[{"mtls": {}}]}` Istio Docs describe this as mTls-ENABLED.
+// We can't use .GetMtls() because it will return nil in cases where the peer isn't mTls as well as in cases where mtls is listed but empty. paramIsMTls() checks whether the peer list's params can be coerced into a PeerAuthenticationMethod_Mtls which accounts for a null versus {} mtls entry.
 func paramIsMTls(peer *istioauthv1alpha1.PeerAuthenticationMethod) bool {
 	_, ok := peer.GetParams().(*istioauthv1alpha1.PeerAuthenticationMethod_Mtls)
 	if ok {
+		// `"spec":{"peers":[{"mtls": {}}]}` means enabled
 		return true
 	}
+	// `"spec":{"peers":[{"mtls":null}]}` means disabled
 	return false
 }
 
@@ -211,7 +215,7 @@ func getModeFromPeers(peerAuthMethods []*istioauthv1alpha1.PeerAuthenticationMet
 				mixed++
 			}
 		} else {
-			// A peer section exists, but the peer authentication methods are the odd cases where "- mtls: {}" or "- mtls : ", so GetMtls() will return nil even though Istio considers these cases to be enabled.  paramIsMTls() checks for these enabled cases.
+			// A peer section exists, but the peer authentication methods are the odd cases where "- mtls: {}" or "- mtls : ", so GetMtls() will return nil even though Istio considers "- mtls: {}" to be enabled.  paramIsMTls() checks for these both cases.
 			if paramIsMTls(pam) {
 				enabled++
 			}
@@ -248,7 +252,7 @@ func evaluateMTlsForPeer(peers []*istioauthv1alpha1.PeerAuthenticationMethod, pe
 }
 
 // MeshPolicyIsMtls returns true if the passed Policy has mTLS enabled.
-// The duplicaiton in code for MeshPolicyIsMtls and AuthPolicyIsMtls is because the two objects are different and cannot use the same code. Once peers have been accessed, the two kinds of policy can use the same code.
+// The duplicaiton in code for MeshPolicyIsMtls and AuthPolicyIsMtls is because the two objects are a different type and cannot use the same code. Once peers have been accessed, the two kinds of policy can use the same code.
 func MeshPolicyIsMtls(policy *authv1alpha1.MeshPolicy) MTLSSetting {
 	peers := policy.Spec.GetPeers()
 	if peers == nil {
@@ -259,7 +263,7 @@ func MeshPolicyIsMtls(policy *authv1alpha1.MeshPolicy) MTLSSetting {
 }
 
 // AuthPolicyIsMtls returns true if the passed Policy has mTLS enabled.
-// The duplicaiton in code for MeshPolicyIsMtls and AuthPolicyIsMtls is because the two objects are different and cannot use the same code. Once peers have been accessed, the two kinds of policy can use the same code.
+// The duplicaiton in code for MeshPolicyIsMtls and AuthPolicyIsMtls is because the two objects are a different type and cannot use the same code. Once peers have been accessed, the two kinds of policy can use the same code.
 func AuthPolicyIsMtls(policy *authv1alpha1.Policy) MTLSSetting {
 	peers := policy.Spec.GetPeers()
 	if peers == nil {
