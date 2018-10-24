@@ -115,3 +115,9 @@ It includes:
 
 More details about vetters can be found in the individual vetters package
 documentation.
+
+## Contributing
+Individuals or business entities who contribute to this project must have
+completed and submitted the [F5® Contributor License Agreement](https://github.com/aspenmesh/cla/raw/master/f5-cla.pdf)
+to [cla@aspenmesh.io](mailto:cla@aspenmesh.io) prior to their code submission
+being included in this project. Please include your github username in the CLA email.
