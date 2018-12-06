@@ -165,13 +165,13 @@ func (m *MtlsProbes) Vet() ([]*apiv1.Note, error) {
 					(c.ReadinessProbe != nil && c.ReadinessProbe.Exec == nil) {
 					// get port for the probe
 					var probePort intstr.IntOrString
-					if c.LivenessProbe.Handler.HTTPGet != nil {
+					if c.LivenessProbe != nil && c.LivenessProbe.Handler.HTTPGet != nil {
 						probePort = c.LivenessProbe.Handler.HTTPGet.Port
-					} else if c.LivenessProbe.Handler.TCPSocket != nil {
+					} else if c.LivenessProbe != nil && c.LivenessProbe.Handler.TCPSocket != nil {
 						probePort = c.LivenessProbe.Handler.TCPSocket.Port
-					} else if c.ReadinessProbe.Handler.HTTPGet != nil {
+					} else if c.ReadinessProbe != nil && c.ReadinessProbe.Handler.HTTPGet != nil {
 						probePort = c.ReadinessProbe.Handler.HTTPGet.Port
-					} else {
+					} else if c.ReadinessProbe != nil && c.ReadinessProbe.TCPSocket != nil {
 						probePort = c.ReadinessProbe.Handler.TCPSocket.Port
 					}
 					var intstrptr *intstr.IntOrString = &probePort
