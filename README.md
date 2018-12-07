@@ -113,6 +113,9 @@ It includes:
     This vetter generates warning if a pod in the mesh is associated with
     multiple services.
 
+  * [danglingroutedestinationhost](https://github.com/aspenmesh/istio-vet/blob/master/pkg/vetter/danglingroutedestinationhost/README.md) -
+    This vetter generates warnings if the route destination host in virtual service resource points to services which don't exists in the cluster.
+
 More details about vetters can be found in the individual vetters package
 documentation.
 
