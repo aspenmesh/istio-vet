@@ -14,8 +14,6 @@ RUN curl -s -L \
  && echo "287b08291e14f1fae8ba44374b26a2b12eb941af3497ed0ca649253e21ba2f83 /go/bin/dep" | sha256sum -c - \
  && chmod +x /go/bin/dep
 
-RUN go get github.com/golang/protobuf/protoc-gen-go
-
 RUN curl -L -O \
     https://github.com/google/protobuf/releases/download/v3.4.0/protoc-3.4.0-linux-x86_64.zip \
  && echo 'e4b51de1b75813e62d6ecdde582efa798586e09b5beaebfb866ae7c9eaadace4 protoc-3.4.0-linux-x86_64.zip' | sha256sum -c - \
@@ -25,6 +23,8 @@ RUN curl -L -O \
 # Install the locked go deps into vendor
 COPY Gopkg.lock Gopkg.toml ./
 RUN dep ensure -vendor-only
+
+RUN go install ./vendor/github.com/golang/protobuf/protoc-gen-go
 
 COPY Makefile Makefile
 
