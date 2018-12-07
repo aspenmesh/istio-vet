@@ -25,6 +25,7 @@ import (
 	"github.com/aspenmesh/istio-vet/pkg/meshclient"
 	"github.com/aspenmesh/istio-vet/pkg/vetter"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/applabel"
+	"github.com/aspenmesh/istio-vet/pkg/vetter/conflictingvirtualservicehost"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/danglingroutedestinationhost"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/meshversion"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/mtlsprobes"
@@ -91,6 +92,7 @@ func vet(cmd *cobra.Command, args []string) error {
 		vetter.Vetter(serviceportprefix.NewVetter(informerFactory)),
 		vetter.Vetter(serviceassociation.NewVetter(informerFactory)),
 		vetter.Vetter(danglingroutedestinationhost.NewVetter(informerFactory)),
+		vetter.Vetter(conflictingvirtualservicehost.NewVetter(informerFactory)),
 	}
 
 	stopCh := make(chan struct{})
