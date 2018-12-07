@@ -116,6 +116,10 @@ It includes:
   * [danglingroutedestinationhost](https://github.com/aspenmesh/istio-vet/blob/master/pkg/vetter/danglingroutedestinationhost/README.md) -
     This vetter generates warnings if the route destination host in virtual service resource points to services which don't exists in the cluster.
 
+  * [conflictingvirtualservicehost](https://github.com/aspenmesh/istio-vet/blob/master/pkg/vetter/conflictingvirtualservicehost/README.md) -
+    This vetter generates warnings if the same host is defined in multiple
+    virtual service resources.
+
 More details about vetters can be found in the individual vetters package
 documentation.
 
