@@ -120,6 +120,9 @@ It includes:
     This vetter generates warnings if the same host is defined in multiple
     virtual service resources.
 
+  * [authpolicy](https://github.com/aspenmesh/istio-vet/blob/master/pkg/vetter/authpolicy/README.md) -
+    This vetter generates warnings if there are more than one authentication policy for the same target.
+
 More details about vetters can be found in the individual vetters package
 documentation.
 
