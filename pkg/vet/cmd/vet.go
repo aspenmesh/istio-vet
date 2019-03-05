@@ -35,6 +35,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/informers"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 )
 
 func printNote(level, summary, msg string) {
