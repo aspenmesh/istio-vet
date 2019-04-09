@@ -11,14 +11,17 @@ recognized prefix or is unnamed, traffic on the port is treated as plain TCP or
 UDP depending on the port protocol.
 
 Port names of the form `<protocol>-<suffix>` or `<protocol`> are allowed for
-the following protocols:
+the following protocols as of Istio 1.1.0:
 
 * http
 * http2
+* https
 * grpc
 * mongo
 * redis
 * tcp
+* tls
+* udp
 
 Note that `tcp` protocol prefix can be used to indicate that the port
 is for TCP protocol. Service ports with protocol type UDP are also excluded

@@ -112,10 +112,13 @@ type IstioInjectConfig struct {
 var istioSupportedServicePrefix = []string{
 	"http", "http-",
 	"http2", "http2-",
+	"https", "https-",
 	"grpc", "grpc-",
 	"mongo", "mongo-",
 	"redis", "redis-",
-	"tcp", "tcp-"}
+	"tcp", "tcp-",
+	"tls", "tls-",
+	"udp", "udp-"}
 
 var defaultExemptedNamespaces = map[string]bool{
 	"kube-system":  true,
