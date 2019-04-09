@@ -177,7 +177,7 @@ func (m *MtlsProbes) Vet() ([]*apiv1.Note, error) {
 					}
 					var intstrptr *intstr.IntOrString = &probePort
 					probePortNum := uint32(intstrptr.IntValue())
-					if probePortNum == 0  {
+					if probePortNum == 0 {
 						// TODO(m-eaton): handle port names by finding the corresponding port
 						// number
 						glog.Errorln("Probe port is a name, skipping to next pod")
@@ -194,8 +194,8 @@ func (m *MtlsProbes) Vet() ([]*apiv1.Note, error) {
 							continue
 						}
 						// Extracts the statusPort from the config.
-						statusPort := util.ProxyStatusPort(c)
-						if statusPort == probePortNum {
+						statusPort, errPort := util.ProxyStatusPort(c.Args)
+						if errPort == nil && statusPort == probePortNum {
 							glog.Infof("Skipping mTLS check as the sidecar status port is used.")
 							continue
 						}

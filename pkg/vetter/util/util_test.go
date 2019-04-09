@@ -122,3 +122,86 @@ var _ = Describe("Converting configmap to SidecarInjectionSpec", func() {
 	})
 
 })
+
+var _ = Describe("Test ProxyStatusPort", func() {
+	It("Finds an override that is not 15020", func() {
+
+		// Actual list from a kubectl get pods ratings-v1-76f4c9765f-n8w45 -o yaml call (so what we should have
+		//  at run time.
+		testArgs := []string{"proxy",
+			"sidecar",
+			"--domain",
+			"$(POD_NAMESPACE).svc.cluster.local",
+			"--configPath",
+			"/etc/istio/proxy",
+			"--binaryPath",
+			"/usr/local/bin/envoy",
+			"--serviceCluster",
+			"atings.$(POD_NAMESPACE)",
+			"--drainDuration",
+			"5s",
+			"--parentShutdownDuration",
+			"m0s",
+			"--discoveryAddress",
+			"istio-pilot.istio-system:15011",
+			"--zipkinAddress",
+			"zipkin.istio-system:9411",
+			"--connectTimeout",
+			"0s",
+			"--proxyAdminPort",
+			"15000",
+			"--concurrency",
+			"2",
+			"--controlPlaneAuthPolicy",
+			"UTUAL_TLS",
+			"--statusPort",
+			"15020",
+			"--applicationPorts",
+			"9080",
+		}
+		port, err := ProxyStatusPort(testArgs)
+		Expect(port == 15020)
+		Expect(err == nil)
+
+		// Fail to parse a number value for statusPort
+		testArgs1 := []string{"proxy",
+			"sidecar",
+			"--domain",
+			"--statusPort",
+			"junk",
+		}
+		port, err = ProxyStatusPort(testArgs1)
+		Expect(port == kubernetesProxyStatusPortDefault)
+		Expect(err != nil)
+
+		// Status port is not the default
+		testArgs = []string{"proxy",
+			"sidecar",
+			"--domain",
+			"--statusPort",
+			"12345",
+		}
+		port, err = ProxyStatusPort(testArgs)
+		Expect(port == 12345)
+		Expect(err == nil)
+
+		// No statusPort defined
+		testArgs = []string{"proxy",
+			"sidecar",
+			"--domain",
+		}
+		port, err = ProxyStatusPort(testArgs)
+		Expect(port == kubernetesProxyStatusPortDefault)
+		Expect(err != nil)
+
+		// statusPort defined but not specified!
+		testArgs = []string{"proxy",
+			"sidecar",
+			"--domain",
+			"--statusPort",
+		}
+		port, err = ProxyStatusPort(testArgs)
+		Expect(port == kubernetesProxyStatusPortDefault)
+		Expect(err != nil)
+	})
+})

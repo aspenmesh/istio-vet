@@ -65,6 +65,7 @@ const (
 		" Enable initializer and automatic sidecar injection to use "
 	kubernetesServiceName     = "kubernetes"
 	kubernetesProxyStatusPort = "--statusPort"
+	kubernetesProxyStatusPortDefault = 15020
 )
 
 var istioInjectNamespaceLabel = map[string]string{
@@ -484,23 +485,24 @@ func ConvertHostnameToFQDN(hostname string, namespace string) (string, error) {
 	return hostname + "." + namespace + KubernetesDomainSuffix, nil
 }
 
+// ProxyStatusPort
 // Extract status port from the cmd arguments for a given container, or
 //  default that is 15020 (as per Istio 1.1 doc, global.proxy.statusPort
 //  at https://istio.io/docs/reference/config/installation-options-changes/
-func ProxyStatusPort(container corev1.Container) uint32 {
-	var statusPort uint32 = 15020
+func ProxyStatusPort(args []string) (uint32, error) {
+	var statusPort uint32 = kubernetesProxyStatusPortDefault
 
-	for index, key := range container.Args {
+	for index, key := range args {
 		// Key we are looking for - hopefully followed by an argument specifying its value. If not, return default
-		if key == kubernetesProxyStatusPort && index < len(container.Args)-1 {
+		if key == kubernetesProxyStatusPort && index < len(args)-1 {
 			// Next entry should be the port...
-			overridePort, err := strconv.ParseUint(container.Args[index+1], 10, 32)
+			overridePort, err := strconv.ParseUint(args[index+1], 10, 32)
 			if err != nil {
-				return statusPort
+				return statusPort, err
 			} else {
-				return uint32(overridePort)
+				return uint32(overridePort), nil
 			}
 		}
 	}
-	return statusPort
+	return statusPort, errors.New("cannot find proxy status port.")
 }
