@@ -94,6 +94,7 @@ func isNoteRequiredForMtlsProbe(authPolicies *mtlspolicyutil.AuthPolicies, endpo
 	if endpoint == nil {
 		return globalMtls
 	}
+	glog.Infof("Checking mtls probe for probe port %v, pod %v", probePort, endpoint.GetName())
 	// create service
 	var svc mtlspolicyutil.Service = mtlspolicyutil.Service{
 		Name:      endpoint.Name,
@@ -102,14 +103,17 @@ func isNoteRequiredForMtlsProbe(authPolicies *mtlspolicyutil.AuthPolicies, endpo
 	if err != nil {
 		// (m-eaton ?) no policies were found for port, name or namespace, return status of globalMtls
 		// (BLaurenB): err could actually mean conflicting policies, in which case it might need to be handled differently.
+		glog.Infof("TLSByPort error. No policies found for %v, pod %v. Returning globalMtls = %v", probePort, endpoint.GetName(), globalMtls)
 		return globalMtls
 	} else if ap == nil {
 		// (BLaurenB):We didn't find any auth policies that applied, so either
 		// a mesh policy made us choose mtls, or we didn't find anything.
 		// In both cases, globalMtls will be the right mtls state
+		glog.Infof("ap == nil. No policies found for %v, pod %v. Returning globalMtls = %v", probePort, endpoint.GetName(), globalMtls)
 		return globalMtls
 	} else {
 		// (BLaurenB): policy was found, return the mTLS status of the policy
+		glog.Infof("Policy found for %v, pod %v. Returning mtls = %v", probePort, endpoint.GetName(), mtls)
 		return mtls
 	}
 }
@@ -139,6 +143,7 @@ func (m *MtlsProbes) Vet() ([]*apiv1.Note, error) {
 		glog.Errorf("Failed to retrieve MeshPolicies: %s", err)
 		return nil, err
 	}
+	glog.Infof("Mesh policies: %v", meshPolicyList)
 	// (BLaurenB): to account for update to authPolicy.go, this function needs to take a list of mesh policies. Since the mesh policies are handled separately, we still need to determine globalMtls via IsGlobalMtlsEnabled()
 	authPolicies, err := mtlspolicyutil.LoadAuthPolicies(policyList, meshPolicyList)
 	if err != nil {
@@ -176,7 +181,7 @@ func (m *MtlsProbes) Vet() ([]*apiv1.Note, error) {
 					}
 					var intstrptr *intstr.IntOrString = &probePort
 					probePortNum := uint32(intstrptr.IntValue())
-					if probePortNum == 0 {
+					if probePortNum == 0  {
 						// TODO(m-eaton): handle port names by finding the corresponding port
 						// number
 						glog.Errorln("Probe port is a name, skipping to next pod")
@@ -185,10 +190,17 @@ func (m *MtlsProbes) Vet() ([]*apiv1.Note, error) {
 						glog.Errorln("Probe port number is out of range, skipping to next pod")
 						continue
 					} else {
+
 						// get endpoint for the pod
 						podEndpoint, err := getPodEndpoint(endpointsList, p)
 						if err != nil {
 							glog.Errorln("Error getting pod endpoint, skipping to next pod")
+							continue
+						}
+						// Extracts the statusPort from the config.
+						statusPort := util.StatusPort(c)
+						if statusPort == probePortNum {
+							glog.Infof("Skipping mTLS check as the sidecar status port is used.")
 							continue
 						}
 						// check to see if mTLS needs to be disabled for the probe

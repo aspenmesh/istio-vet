@@ -22,10 +22,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"text/template"
 
-	v1alpha3 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
+	"github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	netv1alpha3 "github.com/aspenmesh/istio-client-go/pkg/client/listers/networking/v1alpha3"
 	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
 	"github.com/cnf/structhash"
@@ -480,4 +481,25 @@ func ConvertHostnameToFQDN(hostname string, namespace string) (string, error) {
 	}
 	// need to return Fully Qualified Domain Name
 	return hostname + "." + namespace + KubernetesDomainSuffix, nil
+}
+
+// Extract status port from the cmd arguments for a given container, or
+//  default that is 15020 (as per Istio 1.1 doc, global.proxy.statusPort
+//  at https://istio.io/docs/reference/config/installation-options-changes/
+func StatusPort(container corev1.Container) uint32 {
+	var statusPort uint32 = 15020
+
+    for index, key := range container.Args {
+    	// Key we are looking for - hopefully followed by an argument specifying its value.
+    	if key == "--statusPort" && index < len(container.Args) - 1 {
+    		// Next entry should be the port...
+    		overridePort, err := strconv.ParseUint(container.Args[index+1], 10, 32)
+    		if err != nil {
+				return statusPort
+			} else {
+				return uint32(overridePort)
+			}
+		}
+	}
+	return statusPort
 }
