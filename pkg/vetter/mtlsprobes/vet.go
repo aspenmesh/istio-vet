@@ -94,7 +94,6 @@ func isNoteRequiredForMtlsProbe(authPolicies *mtlspolicyutil.AuthPolicies, endpo
 	if endpoint == nil {
 		return globalMtls
 	}
-	glog.Infof("Checking mtls probe for probe port %v, pod %v", probePort, endpoint.GetName())
 	// create service
 	var svc mtlspolicyutil.Service = mtlspolicyutil.Service{
 		Name:      endpoint.Name,
@@ -103,17 +102,14 @@ func isNoteRequiredForMtlsProbe(authPolicies *mtlspolicyutil.AuthPolicies, endpo
 	if err != nil {
 		// (m-eaton ?) no policies were found for port, name or namespace, return status of globalMtls
 		// (BLaurenB): err could actually mean conflicting policies, in which case it might need to be handled differently.
-		glog.Infof("TLSByPort error. No policies found for %v, pod %v. Returning globalMtls = %v", probePort, endpoint.GetName(), globalMtls)
 		return globalMtls
 	} else if ap == nil {
 		// (BLaurenB):We didn't find any auth policies that applied, so either
 		// a mesh policy made us choose mtls, or we didn't find anything.
 		// In both cases, globalMtls will be the right mtls state
-		glog.Infof("ap == nil. No policies found for %v, pod %v. Returning globalMtls = %v", probePort, endpoint.GetName(), globalMtls)
 		return globalMtls
 	} else {
 		// (BLaurenB): policy was found, return the mTLS status of the policy
-		glog.Infof("Policy found for %v, pod %v. Returning mtls = %v", probePort, endpoint.GetName(), mtls)
 		return mtls
 	}
 }
