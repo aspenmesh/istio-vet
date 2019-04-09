@@ -193,11 +193,14 @@ func (m *MtlsProbes) Vet() ([]*apiv1.Note, error) {
 							glog.Errorln("Error getting pod endpoint, skipping to next pod")
 							continue
 						}
-						// Extracts the statusPort from the config.
-						statusPort, errPort := util.ProxyStatusPort(c)
-						if errPort == nil && statusPort == probePortNum {
-							glog.V(4).Infof("Skipping mTLS check as the sidecar status port is used.")
-							continue
+						// Only special-case status port for sidecar
+						if c.Name == util.IstioProxyContainerName {
+							// Extracts the statusPort from the config.
+							statusPort, errPort := util.ProxyStatusPort(c)
+							if errPort == nil && statusPort == probePortNum {
+								glog.V(4).Infof("Skipping mTLS check as the sidecar status port is used.")
+								continue
+							}
 						}
 						// check to see if mTLS needs to be disabled for the probe
 						if generateNote := isNoteRequiredForMtlsProbe(authPolicies, podEndpoint, probePortNum, globalMtls); generateNote {

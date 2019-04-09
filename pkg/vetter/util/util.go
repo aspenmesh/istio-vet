@@ -485,10 +485,8 @@ func ConvertHostnameToFQDN(hostname string, namespace string) (string, error) {
 	return hostname + "." + namespace + KubernetesDomainSuffix, nil
 }
 
-// ProxyStatusPort
-// Extract status port from the cmd arguments for a given container, or
-//  default that is 15020 (as per Istio 1.1 doc, global.proxy.statusPort
-//  at https://istio.io/docs/reference/config/installation-options-changes/
+// ProxyStatusPort extracts status port from the cmd arguments for a given container,
+// as per Istio 1.1 doc, global.proxy.statusPort https://istio.io/docs/reference/config/installation-options-changes/
 func ProxyStatusPort(container corev1.Container) (uint32, error) {
 	var statusPort uint32 = kubernetesProxyStatusPortDefault
 	args := container.Args
