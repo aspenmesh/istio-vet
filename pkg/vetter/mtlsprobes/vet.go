@@ -194,7 +194,7 @@ func (m *MtlsProbes) Vet() ([]*apiv1.Note, error) {
 							continue
 						}
 						// Extracts the statusPort from the config.
-						statusPort, errPort := util.ProxyStatusPort(c.Args)
+						statusPort, errPort := util.ProxyStatusPort(c)
 						if errPort == nil && statusPort == probePortNum {
 							glog.Infof("Skipping mTLS check as the sidecar status port is used.")
 							continue

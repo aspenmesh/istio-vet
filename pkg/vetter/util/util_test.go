@@ -159,48 +159,49 @@ var _ = Describe("Test ProxyStatusPort", func() {
 			"--applicationPorts",
 			"9080",
 		}
-		port, err := ProxyStatusPort(testArgs)
+		container := corev1.Container{Args: testArgs}
+		port, err := ProxyStatusPort(container)
 		Expect(port == 15020)
 		Expect(err == nil)
 
 		// Fail to parse a number value for statusPort
-		testArgs1 := []string{"proxy",
+		container.Args = []string{"proxy",
 			"sidecar",
 			"--domain",
 			"--statusPort",
 			"junk",
 		}
-		port, err = ProxyStatusPort(testArgs1)
+		port, err = ProxyStatusPort(container)
 		Expect(port == kubernetesProxyStatusPortDefault)
 		Expect(err != nil)
 
 		// Status port is not the default
-		testArgs = []string{"proxy",
+		container.Args = []string{"proxy",
 			"sidecar",
 			"--domain",
 			"--statusPort",
 			"12345",
 		}
-		port, err = ProxyStatusPort(testArgs)
+		port, err = ProxyStatusPort(container)
 		Expect(port == 12345)
 		Expect(err == nil)
 
 		// No statusPort defined
-		testArgs = []string{"proxy",
+		container.Args = []string{"proxy",
 			"sidecar",
 			"--domain",
 		}
-		port, err = ProxyStatusPort(testArgs)
+		port, err = ProxyStatusPort(container)
 		Expect(port == kubernetesProxyStatusPortDefault)
 		Expect(err != nil)
 
 		// statusPort defined but not specified!
-		testArgs = []string{"proxy",
+		container.Args = []string{"proxy",
 			"sidecar",
 			"--domain",
 			"--statusPort",
 		}
-		port, err = ProxyStatusPort(testArgs)
+		port, err = ProxyStatusPort(container)
 		Expect(port == kubernetesProxyStatusPortDefault)
 		Expect(err != nil)
 	})
