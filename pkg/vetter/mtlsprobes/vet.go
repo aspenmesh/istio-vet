@@ -143,7 +143,7 @@ func (m *MtlsProbes) Vet() ([]*apiv1.Note, error) {
 		glog.Errorf("Failed to retrieve MeshPolicies: %s", err)
 		return nil, err
 	}
-	glog.Infof("Mesh policies: %v", meshPolicyList)
+
 	// (BLaurenB): to account for update to authPolicy.go, this function needs to take a list of mesh policies. Since the mesh policies are handled separately, we still need to determine globalMtls via IsGlobalMtlsEnabled()
 	authPolicies, err := mtlspolicyutil.LoadAuthPolicies(policyList, meshPolicyList)
 	if err != nil {

@@ -63,7 +63,8 @@ const (
 		IstioInitializerConfigMap + "\" not found"
 	initializerDisabledSummary = "Istio initializer is not configured." +
 		" Enable initializer and automatic sidecar injection to use "
-	kubernetesServiceName = "kubernetes"
+	kubernetesServiceName     = "kubernetes"
+	kubernetesProxyStatusPort = "--statusPort"
 )
 
 var istioInjectNamespaceLabel = map[string]string{
@@ -489,12 +490,12 @@ func ConvertHostnameToFQDN(hostname string, namespace string) (string, error) {
 func ProxyStatusPort(container corev1.Container) uint32 {
 	var statusPort uint32 = 15020
 
-    for index, key := range container.Args {
-    	// Key we are looking for - hopefully followed by an argument specifying its value. If not, return default
-    	if key == "--statusPort" && index < len(container.Args) - 1 {
-    		// Next entry should be the port...
-    		overridePort, err := strconv.ParseUint(container.Args[index+1], 10, 32)
-    		if err != nil {
+	for index, key := range container.Args {
+		// Key we are looking for - hopefully followed by an argument specifying its value. If not, return default
+		if key == kubernetesProxyStatusPort && index < len(container.Args)-1 {
+			// Next entry should be the port...
+			overridePort, err := strconv.ParseUint(container.Args[index+1], 10, 32)
+			if err != nil {
 				return statusPort
 			} else {
 				return uint32(overridePort)
