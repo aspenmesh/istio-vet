@@ -19,6 +19,8 @@ limitations under the License.
 package serviceportprefix
 
 import (
+	"strings"
+
 	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
 	"github.com/aspenmesh/istio-vet/pkg/vetter"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/util"
@@ -30,7 +32,8 @@ const (
 	servicePortPrefixNoteType = "missing-service-port-prefix"
 	servicePortPrefixSummary  = "Missing prefix in service - ${service_name}"
 	servicePortPrefixMsg      = "The service ${service_name} in namespace ${namespace}" +
-		" contains port names not prefixed with mesh supported protocols." +
+		" contains the following port name(s) not prefixed with mesh supported" +
+		" protocols: ${port_prefixes}." +
 		" Consider updating the service port name with one of the mesh recognized prefixes."
 )
 
@@ -54,18 +57,23 @@ func (m *SvcPortPrefix) Vet() ([]*apiv1.Note, error) {
 		return nil, err
 	}
 	for _, s := range services {
+		var unsupportedPortPrefixes []string
 		for _, p := range s.Spec.Ports {
 			if p.Protocol != util.ServiceProtocolUDP &&
 				util.ServicePortPrefixed(p.Name) == false {
-				notes = append(notes, &apiv1.Note{
-					Type:    servicePortPrefixNoteType,
-					Summary: servicePortPrefixSummary,
-					Msg:     servicePortPrefixMsg,
-					Level:   apiv1.NoteLevel_WARNING,
-					Attr: map[string]string{
-						"service_name": s.Name,
-						"namespace":    s.Namespace}})
+				unsupportedPortPrefixes = append(unsupportedPortPrefixes, p.Name)
 			}
+		}
+		if len(unsupportedPortPrefixes) > 0 {
+			notes = append(notes, &apiv1.Note{
+				Type:    servicePortPrefixNoteType,
+				Summary: servicePortPrefixSummary,
+				Msg:     servicePortPrefixMsg,
+				Level:   apiv1.NoteLevel_WARNING,
+				Attr: map[string]string{
+					"service_name":  s.Name,
+					"namespace":     s.Namespace,
+					"port_prefixes": strings.Join(unsupportedPortPrefixes, ", ")}})
 		}
 	}
 
