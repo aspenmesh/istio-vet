@@ -126,8 +126,7 @@ var _ = Describe("Converting configmap to SidecarInjectionSpec", func() {
 var _ = Describe("Test ProxyStatusPort", func() {
 	It("Finds an override that is not 15020", func() {
 
-		// Actual list from a kubectl get pods ratings-v1-76f4c9765f-n8w45 -o yaml call (so what we should have
-		//  at run time.
+		// Typical argument list from a kubectl get pods
 		testArgs := []string{"proxy",
 			"sidecar",
 			"--domain",
