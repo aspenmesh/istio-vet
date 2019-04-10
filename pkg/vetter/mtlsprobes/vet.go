@@ -139,6 +139,7 @@ func (m *MtlsProbes) Vet() ([]*apiv1.Note, error) {
 		glog.Errorf("Failed to retrieve MeshPolicies: %s", err)
 		return nil, err
 	}
+
 	// (BLaurenB): to account for update to authPolicy.go, this function needs to take a list of mesh policies. Since the mesh policies are handled separately, we still need to determine globalMtls via IsGlobalMtlsEnabled()
 	authPolicies, err := mtlspolicyutil.LoadAuthPolicies(policyList, meshPolicyList)
 	if err != nil {
@@ -185,11 +186,21 @@ func (m *MtlsProbes) Vet() ([]*apiv1.Note, error) {
 						glog.Errorln("Probe port number is out of range, skipping to next pod")
 						continue
 					} else {
+
 						// get endpoint for the pod
 						podEndpoint, err := getPodEndpoint(endpointsList, p)
 						if err != nil {
 							glog.Errorln("Error getting pod endpoint, skipping to next pod")
 							continue
+						}
+						// Only special-case status port for sidecar
+						if c.Name == util.IstioProxyContainerName {
+							// Extracts the statusPort from the config.
+							statusPort, errPort := util.ProxyStatusPort(c)
+							if errPort == nil && statusPort == probePortNum {
+								glog.V(4).Infof("Skipping mTLS check as the sidecar status port is used.")
+								continue
+							}
 						}
 						// check to see if mTLS needs to be disabled for the probe
 						if generateNote := isNoteRequiredForMtlsProbe(authPolicies, podEndpoint, probePortNum, globalMtls); generateNote {

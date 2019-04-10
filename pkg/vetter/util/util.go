@@ -22,10 +22,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"text/template"
 
-	v1alpha3 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
+	"github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	netv1alpha3 "github.com/aspenmesh/istio-client-go/pkg/client/listers/networking/v1alpha3"
 	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
 	"github.com/cnf/structhash"
@@ -62,7 +63,9 @@ const (
 		IstioInitializerConfigMap + "\" not found"
 	initializerDisabledSummary = "Istio initializer is not configured." +
 		" Enable initializer and automatic sidecar injection to use "
-	kubernetesServiceName = "kubernetes"
+	kubernetesServiceName     = "kubernetes"
+	kubernetesProxyStatusPort = "--statusPort"
+	kubernetesProxyStatusPortDefault = 15020
 )
 
 var istioInjectNamespaceLabel = map[string]string{
@@ -480,4 +483,23 @@ func ConvertHostnameToFQDN(hostname string, namespace string) (string, error) {
 	}
 	// need to return Fully Qualified Domain Name
 	return hostname + "." + namespace + KubernetesDomainSuffix, nil
+}
+
+// ProxyStatusPort extracts status port from the cmd arguments for a given container,
+// as per Istio 1.1 doc, global.proxy.statusPort https://istio.io/docs/reference/config/installation-options-changes/
+func ProxyStatusPort(container corev1.Container) (uint32, error) {
+	var statusPort uint32 = kubernetesProxyStatusPortDefault
+	args := container.Args
+	for index, key := range args {
+		// Key we are looking for - hopefully followed by an argument specifying its value. If not, return default
+		if key == kubernetesProxyStatusPort && index < len(args)-1 {
+			// Next entry should be the port...
+			overridePort, err := strconv.ParseUint(args[index+1], 10, 32)
+			if err != nil {
+				return statusPort, err
+			}
+			return uint32(overridePort), nil
+		}
+	}
+	return statusPort, errors.New("cannot find proxy status port.")
 }
