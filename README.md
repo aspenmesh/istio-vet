@@ -168,6 +168,13 @@ to [cla@aspenmesh.io](mailto:cla@aspenmesh.io) prior to their code submission
 being included in this project. Please include your github username in the CLA email.
 
 To build Istio-Vet locally, you will need the following:
+
+* A [Go environment](https://golang.org/doc/install).
+* `dep`. [Dep official site](https://golang.github.io/dep/docs/installation.html)
+* [Protobuf](https://github.com/golang/protobuf) and [Mercurial](https://www.mercurial-scm.org/).
+
+
+
 ```bash
 STUFF!
 ```
