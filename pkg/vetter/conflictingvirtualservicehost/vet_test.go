@@ -32,10 +32,8 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 	Context("With fake VirtualServices", func() {
 		namespace := "bar"
 		vsHostNoteType := "host-in-multiple-vs"
-		vsHostSummary := "Multiple VirtualServices define the same host - ${host}"
-		vsHostMsg := "The VirtualServices ${vs_names} in namespace(s) ${namespaces}" +
-			" define the same host, ${host}. A host name can be defined by only one VirtualService." +
-			" Consider updating the VirtualService(s) to have unique hostnames."
+		vsHostSummary := "Multiple VirtualServices define the same host (${host}) and gateway (${gateway})"
+		vsHostMsg := "The VirtualServices ${vs_names} define the same host (${host}) and gateway (${gateway}). A VirtualService must have a unique combination of host and gateway. Consider updating the VirtualServices to have unique hostname and gateway."
 
 		var Vs1 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
 			ObjectMeta: metav1.ObjectMeta{
@@ -45,6 +43,7 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 			Spec: v1alpha3.VirtualServiceSpec{
 				VirtualService: istiov1alpha3.VirtualService{
 					Hosts: []string{"host1", "host2"}}}}
+
 		var Vs2 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:         "Vs2",
@@ -107,6 +106,25 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 				VirtualService: istiov1alpha3.VirtualService{
 					Hosts: []string{"foo.com", "*.com"}}}}
 
+		var Vs9 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:         "Vs9",
+				Namespace:    namespace,
+				Initializers: &metav1.Initializers{}},
+			Spec: v1alpha3.VirtualServiceSpec{
+				VirtualService: istiov1alpha3.VirtualService{
+					Hosts:    []string{"host1"},
+					Gateways: []string{"gateway1"}}}}
+		var Vs10 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:         "Vs10",
+				Namespace:    namespace,
+				Initializers: &metav1.Initializers{}},
+			Spec: v1alpha3.VirtualServiceSpec{
+				VirtualService: istiov1alpha3.VirtualService{
+					Hosts:    []string{"host1", "host2"},
+					Gateways: []string{"gateway2"}}}}
+
 		It("Does not generate notes when passed an empty list of VirtualServices", func() {
 			vsList := []*v1alpha3.VirtualService{}
 			vsNotes, err := createVirtualServiceNotes(vsList)
@@ -123,6 +141,13 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 
 		It("Does not generate notes when short host names are the same, but are in different namespaces", func() {
 			vsList := []*v1alpha3.VirtualService{Vs1, Vs5}
+			vsNotes, err := createVirtualServiceNotes(vsList)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(vsNotes).To(HaveLen(0))
+		})
+
+		It("Does not generate notes when host names are the same, but have different gateways", func() {
+			vsList := []*v1alpha3.VirtualService{Vs9, Vs10}
 			vsNotes, err := createVirtualServiceNotes(vsList)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vsNotes).To(HaveLen(0))
@@ -146,9 +171,9 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 				Msg:     vsHostMsg,
 				Level:   apiv1.NoteLevel_ERROR,
 				Attr: map[string]string{
-					"host":       "host2.bar.svc.cluster.local",
-					"vs_names":   "Vs1, Vs2",
-					"namespaces": "bar, bar"}}
+					"host":     "host2.bar.svc.cluster.local",
+					"gateway":  "mesh",
+					"vs_names": "Vs1.bar, Vs2.bar"}}
 			expectedNote.Id = util.ComputeID(expectedNote)
 			Expect(vsNotes[0]).To(Equal(expectedNote))
 		})
@@ -164,9 +189,9 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 				Msg:     vsHostMsg,
 				Level:   apiv1.NoteLevel_ERROR,
 				Attr: map[string]string{
-					"host":       "foo.com",
-					"vs_names":   "Vs4, Vs6",
-					"namespaces": "bar, foo"}}
+					"host":     "foo.com",
+					"gateway":  "mesh",
+					"vs_names": "Vs4.bar, Vs6.foo"}}
 			expectedNote.Id = util.ComputeID(expectedNote)
 			Expect(vsNotes[0]).To(Equal(expectedNote))
 		})
@@ -182,18 +207,18 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 				Msg:     vsHostMsg,
 				Level:   apiv1.NoteLevel_ERROR,
 				Attr: map[string]string{
-					"host":       "foo.com",
-					"vs_names":   "Vs4, Vs6, Vs8",
-					"namespaces": "bar, foo, bar"}}
+					"host":     "foo.com",
+					"gateway":  "mesh",
+					"vs_names": "Vs4.bar, Vs6.foo, Vs8.bar"}}
 			expectedNote2 := &apiv1.Note{
 				Type:    vsHostNoteType,
 				Summary: vsHostSummary,
 				Msg:     vsHostMsg,
 				Level:   apiv1.NoteLevel_ERROR,
 				Attr: map[string]string{
-					"host":       "*.com",
-					"vs_names":   "Vs7, Vs8",
-					"namespaces": "bar, bar"}}
+					"host":     "*.com",
+					"gateway":  "mesh",
+					"vs_names": "Vs7.bar, Vs8.bar"}}
 			expectedNote1.Id = util.ComputeID(expectedNote1)
 			expectedNote2.Id = util.ComputeID(expectedNote2)
 			sort.Slice(vsNotes, func(i, j int) bool {

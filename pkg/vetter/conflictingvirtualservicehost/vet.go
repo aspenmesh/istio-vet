@@ -29,12 +29,13 @@ import (
 )
 
 const (
+	defaultGateway = "mesh"
 	vetterID       = "ConflictingVirtualServiceHost"
 	vsHostNoteType = "host-in-multiple-vs"
-	vsHostSummary  = "Multiple VirtualServices define the same host - ${host}"
-	vsHostMsg      = "The VirtualServices ${vs_names} in namespace(s) ${namespaces}" +
-		" define the same host, ${host}. A host name can be defined by only one VirtualService." +
-		" Consider updating the VirtualService(s) to have unique hostnames."
+	vsHostSummary  = "Multiple VirtualServices define the same host (${host}) and gateway (${gateway})"
+	vsHostMsg      = "The VirtualServices ${vs_names}" +
+		" define the same host (${host}) and gateway (${gateway}). A VirtualService must have a unique combination of host and gateway." +
+		" Consider updating the VirtualServices to have unique hostname and gateway."
 )
 
 // VsHost implements Vetter interface
@@ -43,36 +44,50 @@ type VsHost struct {
 	vsLister netv1alpha3.VirtualServiceLister
 	cmLister v1.ConfigMapLister
 }
+type hostAndGateway struct {
+	gateway  string
+	hostname string
+}
+
+type VirtualSvcByHostAndGateway map[hostAndGateway][]*v1alpha3.VirtualService
 
 // createVirtualServiceNotes checks for multiple vs defining the same host and
 // generates notes for these cases
 func createVirtualServiceNotes(virtualServices []*v1alpha3.VirtualService) ([]*apiv1.Note, error) {
-	vsMap := make(map[string][]*v1alpha3.VirtualService)
-	var hostname string
-	var err error
+	vsByHostAndGateway := VirtualSvcByHostAndGateway{}
 	for _, vs := range virtualServices {
 		for _, host := range vs.Spec.GetHosts() {
-			hostname, err = util.ConvertHostnameToFQDN(host, vs.Namespace)
+			h, err := util.ConvertHostnameToFQDN(host, vs.Namespace)
 			if err != nil {
 				fmt.Printf("Unable to convert hostname: %s\n", err.Error())
 				return nil, err
 			}
-			if _, ok := vsMap[hostname]; !ok {
-				vsMap[hostname] = []*v1alpha3.VirtualService{vs}
+
+			// One VS can have multiple hosts and gateways. Make 1 key per
+			// combination.
+			hg := hostAndGateway{hostname: h}
+			if len(vs.Spec.GetGateways()) > 0 {
+				for _, g := range vs.Spec.GetGateways() {
+					hg.gateway = g
+					populateVirtualServiceMap(hg, vs, vsByHostAndGateway)
+				}
 			} else {
-				vsMap[hostname] = append(vsMap[hostname], vs)
+				hg.gateway = defaultGateway
+				populateVirtualServiceMap(hg, vs, vsByHostAndGateway)
 			}
 		}
 	}
+
 	// create vet notes
 	notes := []*apiv1.Note{}
-	for host, vsList := range vsMap {
+	for key, vsList := range vsByHostAndGateway {
 		if len(vsList) > 1 {
 			// there are multiple vs defining a host
-			vsNames, vsNamespaces := []string{}, []string{}
+			vsNames := []string{}
 			for _, vs := range vsList {
-				vsNames = append(vsNames, vs.Name)
-				vsNamespaces = append(vsNamespaces, vs.Namespace)
+				vsName := vs.Name + "." + vs.Namespace
+				vsNames = append(vsNames, vsName)
+
 			}
 			notes = append(notes, &apiv1.Note{
 				Type:    vsHostNoteType,
@@ -80,15 +95,23 @@ func createVirtualServiceNotes(virtualServices []*v1alpha3.VirtualService) ([]*a
 				Msg:     vsHostMsg,
 				Level:   apiv1.NoteLevel_ERROR,
 				Attr: map[string]string{
-					"host":       host,
-					"vs_names":   strings.Join(vsNames, ", "),
-					"namespaces": strings.Join(vsNamespaces, ", ")}})
+					"host":     key.hostname,
+					"gateway":  key.gateway,
+					"vs_names": strings.Join(vsNames, ", ")}})
 		}
 	}
 	for i := range notes {
 		notes[i].Id = util.ComputeID(notes[i])
 	}
 	return notes, nil
+}
+
+func populateVirtualServiceMap(hg hostAndGateway, vs *v1alpha3.VirtualService, vsByHostAndGateway VirtualSvcByHostAndGateway) {
+	if _, ok := vsByHostAndGateway[hg]; !ok {
+		vsByHostAndGateway[hg] = []*v1alpha3.VirtualService{vs}
+	} else {
+		vsByHostAndGateway[hg] = append(vsByHostAndGateway[hg], vs)
+	}
 }
 
 // Vet returns the list of generated notes
