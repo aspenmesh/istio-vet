@@ -8,6 +8,8 @@ and user applications installed in a [Kubernetes](https://kubernetes.io/)
 cluster.
 
 **This tool works with Istio version 0.7.1 and above.**
+<br>
+<br>
 
 ## Introduction
 
@@ -23,7 +25,7 @@ on any misconfiguration.
 Note that istio-vet and vetters only **read** configuration objects from
 the kubernetes API server.
 
-### Example
+#### Example
 
 Vetter `meshversion` inspects the version of running Istio components and the
 sidecar version deployed in pods in the mesh. It generates the following
@@ -36,14 +38,44 @@ Message: "WARNING: The pod myapp-xyz-1234 in namespace default is running with
 sidecar proxy version 0.2.10 but your environment is running Istio
 version 0.2.12. Consider upgrading the sidecar proxy in the pod."
 ```
+<br>
+<br>
 
-## Running
+## Running Istio-Vet
 
-The official docker image is `quay.io/aspenmesh/istio-vet:master`
+You can build and run Istio-Vet from this repo, or use the docker image (locally or from within in a kubernetes cluster).
 
-Container image can be deployed in a kubernetes cluster or run locally.
 
-### Local
+### Building Istio-Vet
+
+If you want to build Istio-Vet in order to contribute, please see the instructions for [Contributors.](https://github.com/aspenmesh/istio-vet#contributing)
+
+#### Installation
+
+* From within your Go environment, navigate to the directory where you want Istio-Vet to be installed.
+* Make sure you have Go installed in your Path:
+    ```bash
+    export GOPATH=$HOME/gocode
+    export PATH=$PATH:$GOPATH/bin
+    ```
+* Run the go command to get Istio-Vet:
+    ```bash
+    go get github.com/aspenmesh/istio-vet/cmd/vet
+    ```
+
+#### Running Istio-Vet
+From anywhere in your Go environment, you should be able to run the following command. The `kube.config` file that you specify will be the cluster which Istio-Vet checks.
+
+  ```bash
+  KUBECONFIG=<full-path-to-kube.config> vet
+  ```
+<br>
+<br>
+
+### Using Istio-Vet via Docker
+
+Instructions to run Istio-Vet from our official Docker Image:  `quay.io/aspenmesh/istio-vet:master`
+#### Local
 
 When run locally, kube config for the kubernetes cluster needs to be mounted
 inside the container.
@@ -52,7 +84,7 @@ inside the container.
 docker run --rm -v $HOME/.kube/config:/root/.kube/config quay.io/aspenmesh/istio-vet:master
 ```
 
-### In-cluster
+#### In-Cluster
 
 The istio-vet container can be deployed as a Job in a kubernetes cluster using
 the manifest file in the install directory.
@@ -72,6 +104,9 @@ from the istio-vet utility.
 
 Please visit [aspenmesh.io](https://aspenmesh.io/) and sign-up to receive
 alerts, insights and analytics from your service mesh.
+
+<br>
+<br>
 
 ## Repository Layout
 
@@ -123,8 +158,16 @@ It includes:
 More details about vetters can be found in the individual vetters package
 documentation.
 
+<br>
+<br>
+
 ## Contributing
 Individuals or business entities who contribute to this project must have
 completed and submitted the [F5® Contributor License Agreement](https://github.com/aspenmesh/cla/raw/master/f5-cla.pdf)
 to [cla@aspenmesh.io](mailto:cla@aspenmesh.io) prior to their code submission
 being included in this project. Please include your github username in the CLA email.
+
+To build Istio-Vet locally, you will need the following:
+```bash
+STUFF!
+```
