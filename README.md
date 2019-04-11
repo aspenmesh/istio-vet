@@ -8,8 +8,6 @@ and user applications installed in a [Kubernetes](https://kubernetes.io/)
 cluster.
 
 **This tool works with Istio version 0.7.1 and above.**
-<br>
-<br>
 
 ## Introduction
 
@@ -38,39 +36,14 @@ Message: "WARNING: The pod myapp-xyz-1234 in namespace default is running with
 sidecar proxy version 0.2.10 but your environment is running Istio
 version 0.2.12. Consider upgrading the sidecar proxy in the pod."
 ```
-<br>
-<br>
+
+
 
 ## Running Istio-Vet
 
 You can build and run Istio-Vet from this repo, or use the docker image (locally or from within in a kubernetes cluster).
 
-
-### Building Istio-Vet
-
-If you want to build Istio-Vet in order to contribute, please see the instructions for [Contributors.](https://github.com/aspenmesh/istio-vet#contributing)
-
-#### Installation
-
-* From within your Go environment, navigate to the directory where you want Istio-Vet to be installed.
-* Make sure you have Go installed in your Path:
-    ```bash
-    export GOPATH=$HOME/gocode
-    export PATH=$PATH:$GOPATH/bin
-    ```
-* Run the go command to get Istio-Vet:
-    ```bash
-    go get github.com/aspenmesh/istio-vet/cmd/vet
-    ```
-
-#### Running Istio-Vet
-From anywhere in your Go environment, you should be able to run the following command. The `kube.config` file that you specify will be the cluster which Istio-Vet checks.
-
-  ```bash
-  KUBECONFIG=<full-path-to-kube.config> vet
-  ```
-<br>
-<br>
+If you want to build Istio-Vet from this repo, please see the instructions for [Contributors.](https://github.com/aspenmesh/istio-vet#contributing)
 
 ### Using Istio-Vet via Docker
 
@@ -104,9 +77,6 @@ from the istio-vet utility.
 
 Please visit [aspenmesh.io](https://aspenmesh.io/) and sign-up to receive
 alerts, insights and analytics from your service mesh.
-
-<br>
-<br>
 
 ## Repository Layout
 
@@ -158,9 +128,6 @@ It includes:
 More details about vetters can be found in the individual vetters package
 documentation.
 
-<br>
-<br>
-
 ## Contributing
 Individuals or business entities who contribute to this project must have
 completed and submitted the [F5® Contributor License Agreement](https://github.com/aspenmesh/cla/raw/master/f5-cla.pdf)
@@ -172,38 +139,44 @@ To build Istio-Vet locally, you will need to install the following:
 
 * A [Go environment](https://golang.org/doc/install).
 * Install [dep](https://golang.github.io/dep/docs/installation.html)
-* Install [Protobuf](https://github.com/golang/protobuf)
-  * Protobuf has a few installation steps. First, download the [protocol-buffers](https://developers.google.com/protocol-buffers/) and note:
-    ```For non-C++ users, the simplest way to install the protocol compiler is to download a pre-built binary from our release page:
-    https://github.com/protocolbuffers/protobuf/releases
-    ```
-    Mac users can use Brew.  Linux users can get the release with this command. Make sure to change the protoc version and filename:
-    ```bash
-    curl -L -O \
-    https://github.com/google/protobuf/releases/download/<desired-version>/protoc-<desired-version>-linux-x86_64.zip \
-    && mkdir -p /usr/local \
-    && unzip protoc-<desired-version>-linux-x86_64.zip -d /usr/local
-    ```
-    You should be able to type `protoc` at the command line now and see its options.
-    Next, get protobuf:
+* Install [Protobuf](https://github.com/golang/protobuf).
+  * The Google protobuf compiler (a standalone binary named protoc) needs to be installed first. You can get it by downloading the corresponding file for your system from https://github.com/google/protobuf/releases.
+
+    #### Mac users
+      ```bash
+      brew install protobuf
+      ```
+    #### Linux users
+      Linux users can get the release with this command. Make sure to change the protoc version and filename:
+      ```bash
+      curl -L -O \
+      https://github.com/google/protobuf/releases/download/<desired-version>/protoc-<desired-version>-linux-x86_64.zip \
+      && mkdir -p /usr/local \
+      && unzip protoc-<desired-version>-linux-x86_64.zip -d /usr/local
+      ```
+
+    You should now be able to type `protoc` at the command line and see its options.
+  * Next, get protoc-gen-go:
     ```bash
     go get -u github.com/golang/protobuf/protoc-gen-go
     ```
-* Install [Mercurial](https://www.mercurial-scm.org/) if not already installed. Mac users can use Brew. Linux users can run `apt-get install mercurial`
-* Make this directory. (Dependencies rely on this file structure)
-    ```bash
-    go/src/github.com/aspenmesh/
-    ```
 
-* Fork and clone this repo into your aspenmesh folder, then cd into istio-vet
-
-Now you can build!
+### Clone Istio-Vet
+Make this directory. (Dependencies rely on this file structure)
+  ```bash
+  mkdir -p $GOPATH/src/github.com/aspenmesh
+  cd $GOPATH/src/github.com/aspenmesh
+  ```
+Fork and clone this repo into your aspenmesh folder, then cd into istio-vet
+  ```bash
+  git clone git@github.com:<your-repo>/istio-vet.git
+  cd istio-vet
+  ```
 
 ### Build Istio-Vet
 
-* Navigate to the directory where you installed Istio-Vet and run
+* In the directory where you installed Istio-Vet, run
     ```bash
-    cd go/src/github.com/aspenmesh/istio-vet
     dep ensure -vendor-only
     ```
 * Install protobuf to the project's vendor directory
@@ -220,6 +193,3 @@ To use the vetters, point Istio-Vet to a kubeconfig file which is associated wit
   ```bash
   KUBECONFIG=<full-path-to-kubeconfig>kube.config vet
   ```
-### Contributing to Istio-Vet
-
-When committing code with
