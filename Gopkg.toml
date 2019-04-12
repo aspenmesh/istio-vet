@@ -56,7 +56,7 @@ required = [
 
 [[constraint]]
   name = "istio.io/api"
-  branch = "release-1.0"
+  branch = "release-1.1"
 
 [[constraint]]
   name = "k8s.io/api"
@@ -82,3 +82,4 @@ required = [
 [[override]]
   name = "gopkg.in/fsnotify.v1"
   source = "https://github.com/fsnotify/fsnotify.git"
+
