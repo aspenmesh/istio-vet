@@ -22,6 +22,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/gogo/protobuf/types"
+	"k8s.io/apimachinery/pkg/util/json"
+	"path"
 	"strconv"
 	"strings"
 	"text/template"
@@ -32,8 +35,6 @@ import (
 	"github.com/cnf/structhash"
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/duration"
 	meshv1alpha1 "istio.io/api/mesh/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -81,6 +82,7 @@ type InjectionPolicy string
 // SidecarTemplateData is the data object to which the templated
 // version of `SidecarInjectionSpec` is applied.
 type SidecarTemplateData struct {
+	DeploymentMeta  *metav1.ObjectMeta
 	ObjectMeta  *metav1.ObjectMeta
 	Spec        *corev1.PodSpec
 	ProxyConfig *meshv1alpha1.ProxyConfig
@@ -152,8 +154,8 @@ func ExemptedNamespace(ns string) bool {
 
 // Function formatDuration is taken from
 // https://github.com/istio/istio/blob/master/pilot/pkg/kube/inject/inject.go
-func formatDuration(in *duration.Duration) string {
-	dur, err := ptypes.Duration(in)
+func formatDuration(in *types.Duration) string {
+	dur, err := types.DurationFromProto(in)
 	if err != nil {
 		return "1s"
 	}
@@ -211,11 +213,141 @@ func GetMeshConfig(cm *corev1.ConfigMap) (*meshv1alpha1.MeshConfig, error) {
 		return nil, nil
 	}
 	var cfg meshv1alpha1.MeshConfig
-	if err := ApplyYAML(c, &cfg); err != nil {
+	if err := ApplyYAML(c, &cfg, false); err != nil {
 		glog.Errorf("Failed to parse yaml mesh config: %s", err)
 		return nil, err
 	}
 	return &cfg, nil
+}
+
+// Following is taken from injectionData function in
+// https://github.com/istio/istio/blob/master/pilot/pkg/kube/inject/inject.go
+func excludeInboundPort(port interface{}, excludedInboundPorts string) string {
+	portStr := strings.TrimSpace(fmt.Sprint(port))
+	if len(portStr) == 0 || portStr == "0" {
+		// Nothing to do.
+		return excludedInboundPorts
+	}
+
+	// Exclude the readiness port if not already excluded.
+	ports := splitPorts(excludedInboundPorts)
+	outPorts := make([]string, 0, len(ports))
+	for _, port := range ports {
+		if port == portStr {
+			// The port is already excluded.
+			return excludedInboundPorts
+		}
+		port = strings.TrimSpace(port)
+		if len(port) > 0 {
+			outPorts = append(outPorts, port)
+		}
+	}
+
+	// The port was not already excluded - exclude it now.
+	outPorts = append(outPorts, portStr)
+	return strings.Join(outPorts, ",")
+}
+
+// Following is taken from injectionData function in
+// https://github.com/istio/istio/blob/master/pilot/pkg/kube/inject/inject.go
+func splitPorts(portsString string) []string {
+	return strings.Split(portsString, ",")
+}
+
+func includeInboundPorts(containers []corev1.Container) string {
+	// Include the ports from all containers in the deployment.
+	return getContainerPorts(containers, func(corev1.Container) bool { return true })
+}
+
+func getContainerPorts(containers []corev1.Container, shouldIncludePorts func(corev1.Container) bool) string {
+	parts := make([]string, 0)
+	for _, c := range containers {
+		if shouldIncludePorts(c) {
+			parts = append(parts, getPortsForContainer(c)...)
+		}
+	}
+
+	return strings.Join(parts, ",")
+}
+
+func getPortsForContainer(container corev1.Container) []string {
+	parts := make([]string, 0)
+	for _, p := range container.Ports {
+		parts = append(parts, strconv.Itoa(int(p.ContainerPort)))
+	}
+	return parts
+}
+
+func annotation(meta metav1.ObjectMeta, name string, defaultValue interface{}) string {
+	value, ok := meta.Annotations[name]
+	if !ok {
+		value = fmt.Sprint(defaultValue)
+	}
+	return value
+}
+
+func valueOrDefault(value string, defaultValue string) string {
+	if value == "" {
+		return defaultValue
+	}
+	return value
+}
+
+func applicationPorts(containers []corev1.Container) string {
+	return getContainerPorts(containers, func(c corev1.Container) bool {
+		return c.Name != IstioProxyContainerName
+	})
+}
+
+func toJSON(m map[string]string) string {
+	if m == nil {
+		return "{}"
+	}
+
+	ba, err := json.Marshal(m)
+	if err != nil {
+		glog.Warningf("Unable to marshal %v", m)
+		return "{}"
+	}
+
+	return string(ba)
+}
+
+func fromJSON(j string) interface{} {
+	var m interface{}
+	err := json.Unmarshal([]byte(j), &m)
+	if err != nil {
+		glog.Warningf("Unable to unmarshal %s", j)
+		return "{}"
+	}
+
+	glog.Warningf("%v", m)
+	return m
+}
+
+func toYaml(value interface{}) string {
+	y, err := yaml.Marshal(value)
+	if err != nil {
+		glog.Warningf("Unable to marshal %v", value)
+		return ""
+	}
+
+	return string(y)
+}
+
+func indent(spaces int, source string) string {
+	res := strings.Split(source, "\n")
+	for i, line := range res {
+		if i > 0 {
+			res[i] = fmt.Sprintf(fmt.Sprintf("%% %ds%%s", spaces), "", line)
+		}
+	}
+	return strings.Join(res, "\n")
+}
+
+func directory(filepath string) string {
+	dir, _ := path.Split(filepath)
+	return dir
 }
 
 func makeSideCarSpec(icm, mcm *corev1.ConfigMap) (*SidecarInjectionSpec, error) {
@@ -231,6 +363,7 @@ func makeSideCarSpec(icm, mcm *corev1.ConfigMap) (*SidecarInjectionSpec, error) 
 	// Following is taken from injectionData function in
 	// https://github.com/istio/istio/blob/master/pilot/pkg/kube/inject/inject.go
 	data := SidecarTemplateData{
+		DeploymentMeta:  &metav1.ObjectMeta{},
 		ObjectMeta:  &metav1.ObjectMeta{},
 		Spec:        &corev1.PodSpec{},
 		ProxyConfig: mc.DefaultConfig,
@@ -238,13 +371,31 @@ func makeSideCarSpec(icm, mcm *corev1.ConfigMap) (*SidecarInjectionSpec, error) 
 	}
 
 	funcMap := template.FuncMap{
-		"formatDuration": formatDuration,
-		"isset":          isset,
+		"formatDuration":      formatDuration,
+		"isset":               isset,
+		"excludeInboundPort":  excludeInboundPort,
+		"includeInboundPorts": includeInboundPorts,
+		//"kubevirtInterfaces":  kubevirtInterfaces,
+		"applicationPorts":    applicationPorts,
+		"annotation":          annotation,
+		"valueOrDefault":      valueOrDefault,
+		"toJSON":              toJSON,
+		"toJson":              toJSON, // Used by, e.g. Istio 1.0.5 template sidecar-injector-configmap.yaml
+		"fromJSON":            fromJSON,
+		"toYaml":              toYaml,
+		"indent":              indent,
+		"directory":           directory,
 	}
 
 	var tmpl bytes.Buffer
 	temp := template.New("inject").Delims("[[", "]]")
-	t := template.Must(temp.Funcs(funcMap).Parse(ic.Template))
+	//t := template.Must(temp.Funcs(funcMap).Parse(ic.Template))
+	t, err := temp.Funcs(funcMap).Parse(ic.Template)
+	if err != nil {
+		glog.V(4).Infof("Failed to parse template: %v %v\n", err, data)
+		return nil,err
+	}
+
 	if err := t.Execute(&tmpl, &data); err != nil {
 		return nil, err
 	}

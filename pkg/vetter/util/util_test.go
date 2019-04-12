@@ -104,8 +104,8 @@ func configMapFromFile(file string) *corev1.ConfigMap {
 var _ = Describe("Converting configmap to SidecarInjectionSpec", func() {
 
 	It("Can create a SidecarInjectionSpec from ConfigMaps", func() {
-		file1 := "./testdata/0.8/0.8-istio-sidecar-injector.yaml"
-		file2 := "./testdata/0.8/0.8-mesh-config.yaml"
+		file1 := "./testdata/1.1/istio-sidecar-injector.yaml"
+		file2 := "./testdata/1.1/mesh-config.yaml"
 
 		mockICM := configMapFromFile(file1)
 		mockMCM := configMapFromFile(file2)
@@ -114,9 +114,9 @@ var _ = Describe("Converting configmap to SidecarInjectionSpec", func() {
 
 		Expect(err).To(BeNil())
 		Expect(sidecarInjSpec.InitContainers[0].Name).To(Equal("istio-init"))
-		Expect(sidecarInjSpec.InitContainers[0].Image).To(Equal("docker.io/istio/proxy_init:0.8.0"))
+		Expect(sidecarInjSpec.InitContainers[0].Image).To(Equal("docker.io/istio/proxy_init:1.1.2"))
 		Expect(sidecarInjSpec.Containers[0].Name).To(Equal("istio-proxy"))
-		Expect(sidecarInjSpec.Containers[0].Image).To(Equal("docker.io/istio/proxyv2:0.8.0"))
+		Expect(sidecarInjSpec.Containers[0].Image).To(Equal("docker.io/istio/proxyv2:1.1.2"))
 		Expect(sidecarInjSpec.Volumes[0].Name).To(Equal("istio-envoy"))
 
 	})
