@@ -23,7 +23,7 @@ on any misconfiguration.
 Note that istio-vet and vetters only **read** configuration objects from
 the kubernetes API server.
 
-### Example
+#### Example
 
 Vetter `meshversion` inspects the version of running Istio components and the
 sidecar version deployed in pods in the mesh. It generates the following
@@ -37,13 +37,18 @@ sidecar proxy version 0.2.10 but your environment is running Istio
 version 0.2.12. Consider upgrading the sidecar proxy in the pod."
 ```
 
-## Running
 
-The official docker image is `quay.io/aspenmesh/istio-vet:master`
 
-Container image can be deployed in a kubernetes cluster or run locally.
+## Running Istio-Vet
 
-### Local
+You can build and run Istio-Vet from this repo, or use the docker image (locally or from within in a kubernetes cluster).
+
+If you want to build Istio-Vet from this repo, please see the instructions for [Contributors.](https://github.com/aspenmesh/istio-vet#contributing)
+
+### Using Istio-Vet via Docker
+
+Instructions to run Istio-Vet from our official Docker Image:  `quay.io/aspenmesh/istio-vet:master`
+#### Local
 
 When run locally, kube config for the kubernetes cluster needs to be mounted
 inside the container.
@@ -52,7 +57,7 @@ inside the container.
 docker run --rm -v $HOME/.kube/config:/root/.kube/config quay.io/aspenmesh/istio-vet:master
 ```
 
-### In-cluster
+#### In-Cluster
 
 The istio-vet container can be deployed as a Job in a kubernetes cluster using
 the manifest file in the install directory.
@@ -128,3 +133,63 @@ Individuals or business entities who contribute to this project must have
 completed and submitted the [F5® Contributor License Agreement](https://github.com/aspenmesh/cla/raw/master/f5-cla.pdf)
 to [cla@aspenmesh.io](mailto:cla@aspenmesh.io) prior to their code submission
 being included in this project. Please include your github username in the CLA email.
+
+### Build Prerequisites
+To build Istio-Vet locally, you will need to install the following:
+
+* A [Go environment](https://golang.org/doc/install).
+* Install [dep](https://golang.github.io/dep/docs/installation.html)
+* Install [Protobuf](https://github.com/golang/protobuf).
+  * The Google protobuf compiler (a standalone binary named protoc) needs to be installed first. You can get it by downloading the corresponding file for your system from https://github.com/google/protobuf/releases.
+
+    #### Mac users
+      ```bash
+      brew install protobuf
+      ```
+    #### Linux users
+      Linux users can get the release with this command. Make sure to change the protoc version and filename:
+      ```bash
+      curl -L -O \
+      https://github.com/google/protobuf/releases/download/<desired-version>/protoc-<desired-version>-linux-x86_64.zip \
+      && mkdir -p /usr/local \
+      && unzip protoc-<desired-version>-linux-x86_64.zip -d /usr/local
+      ```
+
+    You should now be able to type `protoc` at the command line and see its options.
+  * Next, get protoc-gen-go:
+    ```bash
+    go get -u github.com/golang/protobuf/protoc-gen-go
+    ```
+
+### Clone Istio-Vet
+Make this directory. (Dependencies rely on this file structure)
+  ```bash
+  mkdir -p $GOPATH/src/github.com/aspenmesh
+  cd $GOPATH/src/github.com/aspenmesh
+  ```
+Fork and clone this repo into your aspenmesh folder, then cd into istio-vet
+  ```bash
+  git clone git@github.com:<your-repo>/istio-vet.git
+  cd istio-vet
+  ```
+
+### Build Istio-Vet
+
+* In the directory where you installed Istio-Vet, run
+    ```bash
+    dep ensure -vendor-only
+    ```
+* Install protobuf to the project's vendor directory
+    ```bash
+    go install ./vendor/github.com/golang/protobuf/protoc-gen-go
+    ```
+* Run `make clean` and then `make` to compile.
+
+### Run Istio-Vet
+
+You should now be able to run `vet` at the command line and see its options.
+
+To use the vetters, point Istio-Vet to a kubeconfig file which is associated with a running cluster:
+  ```bash
+  KUBECONFIG=<full-path-to-kubeconfig>kube.config vet
+  ```
