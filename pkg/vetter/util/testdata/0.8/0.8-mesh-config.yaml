@@ -87,7 +87,7 @@ metadata:
   creationTimestamp: null
   labels:
     app: istio
-    chart: istio-0.8.
+    chart: istio-0.8.0
     heritage: Tiller
     release: RELEASE-NAME
   name: istio

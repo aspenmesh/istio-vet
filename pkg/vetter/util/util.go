@@ -41,14 +41,9 @@ import (
 const (
 	IstioNamespace                = "istio-system"
 	IstioProxyContainerName       = "istio-proxy"
-	IstioMixerDeploymentName      = "istio-mixer"
-	IstioMixerContainerName       = "mixer"
-	IstioPilotDeploymentName      = "istio-pilot"
-	IstioPilotContainerName       = "discovery"
 	IstioInitContainerName        = "istio-init"
 	IstioConfigMap                = "istio"
 	IstioConfigMapKey             = "mesh"
-	IstioAuthPolicy               = "authPolicy: MUTUAL_TLS"
 	IstioInitializerPodAnnotation = "sidecar.istio.io/status"
 	IstioInitializerConfigMap     = "istio-sidecar-injector"
 	IstioInitializerConfigMapKey  = "config"
@@ -59,18 +54,13 @@ const (
 		IstioInitializerConfigMap + "\" not found"
 	initializerDisabledSummary = "Istio initializer is not configured." +
 		" Enable initializer and automatic sidecar injection to use "
-	kubernetesServiceName     = "kubernetes"
-	kubernetesProxyStatusPort = "--statusPort"
+	kubernetesServiceName            = "kubernetes"
+	kubernetesProxyStatusPort        = "--statusPort"
 	kubernetesProxyStatusPortDefault = 15020
 )
 
 var istioInjectNamespaceLabel = map[string]string{
 	"istio-injection": "enabled"}
-
-// Following types are taken from
-// https://github.com/istio/istio/blob/master/pilot/pkg/kube/inject/inject.go
-// The needed contents from that file are in istio-ingect.go
-
 
 // Config specifies the sidecar injection configuration This includes
 // the sidear template and cluster-side injection policy. It is used
@@ -82,9 +72,6 @@ type IstioInjectConfig struct {
 	// expansion over the `SidecarTemplateData`.
 	Template string `json:"template"`
 }
-
-// End types from
-// https://github.com/istio/istio/blob/master/pilot/pkg/kube/inject/inject.go
 
 var istioSupportedServicePrefix = []string{
 	"http", "http-",
@@ -160,6 +147,7 @@ func GetMeshConfigMap(cmLister v1.ConfigMapLister) (*corev1.ConfigMap, error) {
 	}
 	return cm, nil
 }
+
 func GetMeshConfig(cm *corev1.ConfigMap) (*meshv1alpha1.MeshConfig, error) {
 	c, e := cm.Data[IstioConfigMapKey]
 	if !e {
@@ -270,15 +258,6 @@ func Image(n string, s corev1.PodSpec) (string, error) {
 // in the pod spec, or an error otherwise.
 func InitImage(n string, s corev1.PodSpec) (string, error) {
 	return imageFromContainers(n, s.InitContainers)
-}
-
-func existsInStringSlice(e string, list []string) bool {
-	for i := range list {
-		if e == list[i] {
-			return true
-		}
-	}
-	return false
 }
 
 // ListNamespacesInMesh returns the list of Namespaces in the mesh.

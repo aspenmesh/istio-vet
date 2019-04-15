@@ -18,11 +18,12 @@ limitations under the License.
 package util
 
 import (
+	"strings"
+
 	"github.com/ghodss/yaml"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
 	"github.com/golang/glog"
-	"strings"
 )
 
 // Taken from
