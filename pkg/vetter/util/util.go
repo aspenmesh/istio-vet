@@ -19,15 +19,10 @@ limitations under the License.
 package util
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
-	"github.com/gogo/protobuf/types"
-	"k8s.io/apimachinery/pkg/util/json"
-	"path"
 	"strconv"
 	"strings"
-	"text/template"
 
 	"github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	netv1alpha3 "github.com/aspenmesh/istio-client-go/pkg/client/listers/networking/v1alpha3"
@@ -74,28 +69,8 @@ var istioInjectNamespaceLabel = map[string]string{
 
 // Following types are taken from
 // https://github.com/istio/istio/blob/master/pilot/pkg/kube/inject/inject.go
+// The needed contents from that file are in istio-ingect.go
 
-// InjectionPolicy determines the policy for injecting the
-// sidecar proxy into the watched namespace(s).
-type InjectionPolicy string
-
-// SidecarTemplateData is the data object to which the templated
-// version of `SidecarInjectionSpec` is applied.
-type SidecarTemplateData struct {
-	DeploymentMeta  *metav1.ObjectMeta
-	ObjectMeta  *metav1.ObjectMeta
-	Spec        *corev1.PodSpec
-	ProxyConfig *meshv1alpha1.ProxyConfig
-	MeshConfig  *meshv1alpha1.MeshConfig
-}
-
-// SidecarInjectionSpec collects all container types and volumes for
-// sidecar mesh injection
-type SidecarInjectionSpec struct {
-	InitContainers []corev1.Container `yaml:"initContainers"`
-	Containers     []corev1.Container `yaml:"containers"`
-	Volumes        []corev1.Volume    `yaml:"volumes"`
-}
 
 // Config specifies the sidecar injection configuration This includes
 // the sidear template and cluster-side injection policy. It is used
@@ -127,12 +102,6 @@ var defaultExemptedNamespaces = map[string]bool{
 	"kube-public":  true,
 	"istio-system": true}
 
-// from: https://github.com/istio/istio/blob/release-0.8/pilot/pkg/kube/inject/inject.go
-func isset(m map[string]string, key string) bool {
-	_, ok := m[key]
-	return ok
-}
-
 // DefaultExemptedNamespaces returns list of default Namsepaces which are
 // exempted from automatic sidecar injection.
 // List includes "kube-system", "kube-public" and "istio-system"
@@ -150,16 +119,6 @@ func DefaultExemptedNamespaces() []string {
 // sidecar injection.
 func ExemptedNamespace(ns string) bool {
 	return defaultExemptedNamespaces[ns]
-}
-
-// Function formatDuration is taken from
-// https://github.com/istio/istio/blob/master/pilot/pkg/kube/inject/inject.go
-func formatDuration(in *types.Duration) string {
-	dur, err := types.DurationFromProto(in)
-	if err != nil {
-		return "1s"
-	}
-	return dur.String()
 }
 
 // GetInitializerConfig retrieves the Istio Initializer config.
@@ -220,136 +179,6 @@ func GetMeshConfig(cm *corev1.ConfigMap) (*meshv1alpha1.MeshConfig, error) {
 	return &cfg, nil
 }
 
-// Following is taken from injectionData function in
-// https://github.com/istio/istio/blob/master/pilot/pkg/kube/inject/inject.go
-func excludeInboundPort(port interface{}, excludedInboundPorts string) string {
-	portStr := strings.TrimSpace(fmt.Sprint(port))
-	if len(portStr) == 0 || portStr == "0" {
-		// Nothing to do.
-		return excludedInboundPorts
-	}
-
-	// Exclude the readiness port if not already excluded.
-	ports := splitPorts(excludedInboundPorts)
-	outPorts := make([]string, 0, len(ports))
-	for _, port := range ports {
-		if port == portStr {
-			// The port is already excluded.
-			return excludedInboundPorts
-		}
-		port = strings.TrimSpace(port)
-		if len(port) > 0 {
-			outPorts = append(outPorts, port)
-		}
-	}
-
-	// The port was not already excluded - exclude it now.
-	outPorts = append(outPorts, portStr)
-	return strings.Join(outPorts, ",")
-}
-
-// Following is taken from injectionData function in
-// https://github.com/istio/istio/blob/master/pilot/pkg/kube/inject/inject.go
-func splitPorts(portsString string) []string {
-	return strings.Split(portsString, ",")
-}
-
-func includeInboundPorts(containers []corev1.Container) string {
-	// Include the ports from all containers in the deployment.
-	return getContainerPorts(containers, func(corev1.Container) bool { return true })
-}
-
-func getContainerPorts(containers []corev1.Container, shouldIncludePorts func(corev1.Container) bool) string {
-	parts := make([]string, 0)
-	for _, c := range containers {
-		if shouldIncludePorts(c) {
-			parts = append(parts, getPortsForContainer(c)...)
-		}
-	}
-
-	return strings.Join(parts, ",")
-}
-
-func getPortsForContainer(container corev1.Container) []string {
-	parts := make([]string, 0)
-	for _, p := range container.Ports {
-		parts = append(parts, strconv.Itoa(int(p.ContainerPort)))
-	}
-	return parts
-}
-
-func annotation(meta metav1.ObjectMeta, name string, defaultValue interface{}) string {
-	value, ok := meta.Annotations[name]
-	if !ok {
-		value = fmt.Sprint(defaultValue)
-	}
-	return value
-}
-
-func valueOrDefault(value string, defaultValue string) string {
-	if value == "" {
-		return defaultValue
-	}
-	return value
-}
-
-func applicationPorts(containers []corev1.Container) string {
-	return getContainerPorts(containers, func(c corev1.Container) bool {
-		return c.Name != IstioProxyContainerName
-	})
-}
-
-func toJSON(m map[string]string) string {
-	if m == nil {
-		return "{}"
-	}
-
-	ba, err := json.Marshal(m)
-	if err != nil {
-		glog.Warningf("Unable to marshal %v", m)
-		return "{}"
-	}
-
-	return string(ba)
-}
-
-func fromJSON(j string) interface{} {
-	var m interface{}
-	err := json.Unmarshal([]byte(j), &m)
-	if err != nil {
-		glog.Warningf("Unable to unmarshal %s", j)
-		return "{}"
-	}
-
-	glog.Warningf("%v", m)
-	return m
-}
-
-func toYaml(value interface{}) string {
-	y, err := yaml.Marshal(value)
-	if err != nil {
-		glog.Warningf("Unable to marshal %v", value)
-		return ""
-	}
-
-	return string(y)
-}
-
-func indent(spaces int, source string) string {
-	res := strings.Split(source, "\n")
-	for i, line := range res {
-		if i > 0 {
-			res[i] = fmt.Sprintf(fmt.Sprintf("%% %ds%%s", spaces), "", line)
-		}
-	}
-	return strings.Join(res, "\n")
-}
-
-func directory(filepath string) string {
-	dir, _ := path.Split(filepath)
-	return dir
-}
-
 func makeSideCarSpec(icm, mcm *corev1.ConfigMap) (*SidecarInjectionSpec, error) {
 	ic, err := GetIstioInjectConfig(icm)
 	if err != nil {
@@ -359,55 +188,9 @@ func makeSideCarSpec(icm, mcm *corev1.ConfigMap) (*SidecarInjectionSpec, error) 
 	if err != nil {
 		return nil, err
 	}
-
-	// Following is taken from injectionData function in
-	// https://github.com/istio/istio/blob/master/pilot/pkg/kube/inject/inject.go
-	data := SidecarTemplateData{
-		DeploymentMeta:  &metav1.ObjectMeta{},
-		ObjectMeta:  &metav1.ObjectMeta{},
-		Spec:        &corev1.PodSpec{},
-		ProxyConfig: mc.DefaultConfig,
-		MeshConfig:  mc,
-	}
-
-	funcMap := template.FuncMap{
-		"formatDuration":      formatDuration,
-		"isset":               isset,
-		"excludeInboundPort":  excludeInboundPort,
-		"includeInboundPorts": includeInboundPorts,
-		//"kubevirtInterfaces":  kubevirtInterfaces,
-		"applicationPorts":    applicationPorts,
-		"annotation":          annotation,
-		"valueOrDefault":      valueOrDefault,
-		"toJSON":              toJSON,
-		"toJson":              toJSON, // Used by, e.g. Istio 1.0.5 template sidecar-injector-configmap.yaml
-		"fromJSON":            fromJSON,
-		"toYaml":              toYaml,
-		"indent":              indent,
-		"directory":           directory,
-	}
-
-	var tmpl bytes.Buffer
-	temp := template.New("inject").Delims("[[", "]]")
-	//t := template.Must(temp.Funcs(funcMap).Parse(ic.Template))
-	t, err := temp.Funcs(funcMap).Parse(ic.Template)
-	if err != nil {
-		glog.V(4).Infof("Failed to parse template: %v %v\n", err, data)
-		return nil,err
-	}
-
-	if err := t.Execute(&tmpl, &data); err != nil {
-		return nil, err
-	}
-
-	var sic SidecarInjectionSpec
-	if err := yaml.Unmarshal(tmpl.Bytes(), &sic); err != nil {
-		return nil, err
-	}
-	// End snippet from injectionData function in
-	// https://github.com/istio/istio/blob/master/pilot/pkg/kube/inject/inject.go
-
-	return &sic, nil
+	version := "latest"
+	spec, _, err := injectionData(ic.Template, version, &metav1.ObjectMeta{}, &corev1.PodSpec{}, &metav1.ObjectMeta{}, mc.DefaultConfig, mc)
+	return spec, err
 }
 
 // GetInitializerSidecarSpec retrieves the sidecar spec which will be inserted
