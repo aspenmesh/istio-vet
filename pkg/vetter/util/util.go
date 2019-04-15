@@ -19,12 +19,10 @@ limitations under the License.
 package util
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"strconv"
 	"strings"
-	"text/template"
 
 	"github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	netv1alpha3 "github.com/aspenmesh/istio-client-go/pkg/client/listers/networking/v1alpha3"
@@ -32,8 +30,6 @@ import (
 	"github.com/cnf/structhash"
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/duration"
 	meshv1alpha1 "istio.io/api/mesh/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,14 +41,9 @@ import (
 const (
 	IstioNamespace                = "istio-system"
 	IstioProxyContainerName       = "istio-proxy"
-	IstioMixerDeploymentName      = "istio-mixer"
-	IstioMixerContainerName       = "mixer"
-	IstioPilotDeploymentName      = "istio-pilot"
-	IstioPilotContainerName       = "discovery"
 	IstioInitContainerName        = "istio-init"
 	IstioConfigMap                = "istio"
 	IstioConfigMapKey             = "mesh"
-	IstioAuthPolicy               = "authPolicy: MUTUAL_TLS"
 	IstioInitializerPodAnnotation = "sidecar.istio.io/status"
 	IstioInitializerConfigMap     = "istio-sidecar-injector"
 	IstioInitializerConfigMapKey  = "config"
@@ -63,37 +54,13 @@ const (
 		IstioInitializerConfigMap + "\" not found"
 	initializerDisabledSummary = "Istio initializer is not configured." +
 		" Enable initializer and automatic sidecar injection to use "
-	kubernetesServiceName     = "kubernetes"
-	kubernetesProxyStatusPort = "--statusPort"
+	kubernetesServiceName            = "kubernetes"
+	kubernetesProxyStatusPort        = "--statusPort"
 	kubernetesProxyStatusPortDefault = 15020
 )
 
 var istioInjectNamespaceLabel = map[string]string{
 	"istio-injection": "enabled"}
-
-// Following types are taken from
-// https://github.com/istio/istio/blob/master/pilot/pkg/kube/inject/inject.go
-
-// InjectionPolicy determines the policy for injecting the
-// sidecar proxy into the watched namespace(s).
-type InjectionPolicy string
-
-// SidecarTemplateData is the data object to which the templated
-// version of `SidecarInjectionSpec` is applied.
-type SidecarTemplateData struct {
-	ObjectMeta  *metav1.ObjectMeta
-	Spec        *corev1.PodSpec
-	ProxyConfig *meshv1alpha1.ProxyConfig
-	MeshConfig  *meshv1alpha1.MeshConfig
-}
-
-// SidecarInjectionSpec collects all container types and volumes for
-// sidecar mesh injection
-type SidecarInjectionSpec struct {
-	InitContainers []corev1.Container `yaml:"initContainers"`
-	Containers     []corev1.Container `yaml:"containers"`
-	Volumes        []corev1.Volume    `yaml:"volumes"`
-}
 
 // Config specifies the sidecar injection configuration This includes
 // the sidear template and cluster-side injection policy. It is used
@@ -105,9 +72,6 @@ type IstioInjectConfig struct {
 	// expansion over the `SidecarTemplateData`.
 	Template string `json:"template"`
 }
-
-// End types from
-// https://github.com/istio/istio/blob/master/pilot/pkg/kube/inject/inject.go
 
 var istioSupportedServicePrefix = []string{
 	"http", "http-",
@@ -124,12 +88,6 @@ var defaultExemptedNamespaces = map[string]bool{
 	"kube-system":  true,
 	"kube-public":  true,
 	"istio-system": true}
-
-// from: https://github.com/istio/istio/blob/release-0.8/pilot/pkg/kube/inject/inject.go
-func isset(m map[string]string, key string) bool {
-	_, ok := m[key]
-	return ok
-}
 
 // DefaultExemptedNamespaces returns list of default Namsepaces which are
 // exempted from automatic sidecar injection.
@@ -148,16 +106,6 @@ func DefaultExemptedNamespaces() []string {
 // sidecar injection.
 func ExemptedNamespace(ns string) bool {
 	return defaultExemptedNamespaces[ns]
-}
-
-// Function formatDuration is taken from
-// https://github.com/istio/istio/blob/master/pilot/pkg/kube/inject/inject.go
-func formatDuration(in *duration.Duration) string {
-	dur, err := ptypes.Duration(in)
-	if err != nil {
-		return "1s"
-	}
-	return dur.String()
 }
 
 // GetInitializerConfig retrieves the Istio Initializer config.
@@ -199,6 +147,7 @@ func GetMeshConfigMap(cmLister v1.ConfigMapLister) (*corev1.ConfigMap, error) {
 	}
 	return cm, nil
 }
+
 func GetMeshConfig(cm *corev1.ConfigMap) (*meshv1alpha1.MeshConfig, error) {
 	c, e := cm.Data[IstioConfigMapKey]
 	if !e {
@@ -211,7 +160,7 @@ func GetMeshConfig(cm *corev1.ConfigMap) (*meshv1alpha1.MeshConfig, error) {
 		return nil, nil
 	}
 	var cfg meshv1alpha1.MeshConfig
-	if err := ApplyYAML(c, &cfg); err != nil {
+	if err := ApplyYAML(c, &cfg, false); err != nil {
 		glog.Errorf("Failed to parse yaml mesh config: %s", err)
 		return nil, err
 	}
@@ -227,36 +176,9 @@ func makeSideCarSpec(icm, mcm *corev1.ConfigMap) (*SidecarInjectionSpec, error) 
 	if err != nil {
 		return nil, err
 	}
-
-	// Following is taken from injectionData function in
-	// https://github.com/istio/istio/blob/master/pilot/pkg/kube/inject/inject.go
-	data := SidecarTemplateData{
-		ObjectMeta:  &metav1.ObjectMeta{},
-		Spec:        &corev1.PodSpec{},
-		ProxyConfig: mc.DefaultConfig,
-		MeshConfig:  mc,
-	}
-
-	funcMap := template.FuncMap{
-		"formatDuration": formatDuration,
-		"isset":          isset,
-	}
-
-	var tmpl bytes.Buffer
-	temp := template.New("inject").Delims("[[", "]]")
-	t := template.Must(temp.Funcs(funcMap).Parse(ic.Template))
-	if err := t.Execute(&tmpl, &data); err != nil {
-		return nil, err
-	}
-
-	var sic SidecarInjectionSpec
-	if err := yaml.Unmarshal(tmpl.Bytes(), &sic); err != nil {
-		return nil, err
-	}
-	// End snippet from injectionData function in
-	// https://github.com/istio/istio/blob/master/pilot/pkg/kube/inject/inject.go
-
-	return &sic, nil
+	version := "latest"
+	spec, _, err := injectionData(ic.Template, version, &metav1.ObjectMeta{}, &corev1.PodSpec{}, &metav1.ObjectMeta{}, mc.DefaultConfig, mc)
+	return spec, err
 }
 
 // GetInitializerSidecarSpec retrieves the sidecar spec which will be inserted
@@ -336,15 +258,6 @@ func Image(n string, s corev1.PodSpec) (string, error) {
 // in the pod spec, or an error otherwise.
 func InitImage(n string, s corev1.PodSpec) (string, error) {
 	return imageFromContainers(n, s.InitContainers)
-}
-
-func existsInStringSlice(e string, list []string) bool {
-	for i := range list {
-		if e == list[i] {
-			return true
-		}
-	}
-	return false
 }
 
 // ListNamespacesInMesh returns the list of Namespaces in the mesh.

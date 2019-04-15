@@ -18,27 +18,42 @@ limitations under the License.
 package util
 
 import (
+	"strings"
+
 	"github.com/ghodss/yaml"
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/proto"
+	"github.com/gogo/protobuf/jsonpb"
+	"github.com/gogo/protobuf/proto"
+	"github.com/golang/glog"
 )
 
 // Taken from
 // https://github.com/istio/istio/blob/master/pilot/model/conversion.go
 
 // ApplyJSON unmarshals a JSON string into a proto message
-func ApplyJSON(js string, pb proto.Message) error {
-	return jsonpb.UnmarshalString(js, pb)
+func ApplyJSON(js string, pb proto.Message, strict bool) error {
+	reader := strings.NewReader(js)
+	m := jsonpb.Unmarshaler{}
+	if err := m.Unmarshal(reader, pb); err != nil {
+		if strict {
+			return err
+		}
+
+		glog.Warningf("Failed to decode proto: %q. Trying decode with AllowUnknownFields=true", err)
+		m.AllowUnknownFields = true
+		reader.Reset(js)
+		return m.Unmarshal(reader, pb)
+	}
+	return nil
 }
 
 // Taken from
 // https://github.com/istio/istio/blob/master/pilot/model/conversion.go
 
 // ApplyYAML unmarshals a YAML string into a proto message
-func ApplyYAML(yml string, pb proto.Message) error {
+func ApplyYAML(yml string, pb proto.Message, strict bool) error {
 	js, err := yaml.YAMLToJSON([]byte(yml))
 	if err != nil {
 		return err
 	}
-	return ApplyJSON(string(js), pb)
+	return ApplyJSON(string(js), pb, strict)
 }

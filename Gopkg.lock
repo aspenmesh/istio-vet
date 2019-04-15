@@ -3,7 +3,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:8dfbd4ce92094768dba94a295ac050fbeda65a00f2b1985e78a4c9b7d14c2ec4"
+  digest = "1:8d982146a7dae428e5ee4bba1ea9a620218ffe5139fcb85de32c6fd6746494b2"
   name = "github.com/aspenmesh/istio-client-go"
   packages = [
     "pkg/apis/authentication",
@@ -24,7 +24,7 @@
     "pkg/client/listers/networking/v1alpha3",
   ]
   pruneopts = ""
-  revision = "c2ad69c03a021878ea49d4c611311a7fd592522b"
+  revision = "89b37cbb85d4775cb0a4538084f8e72475a49755"
 
 [[projects]]
   branch = "master"
@@ -59,18 +59,19 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:70a80170917a15e1ff02faab5f9e716e945e0676e86599ba144d38f96e30c3bf"
+  digest = "1:fd53b471edb4c28c7d297f617f4da0d33402755f58d6301e7ca1197ef0a90937"
   name = "github.com/gogo/protobuf"
   packages = [
     "gogoproto",
+    "jsonpb",
     "proto",
     "protoc-gen-gogo/descriptor",
     "sortkeys",
     "types",
   ]
   pruneopts = ""
-  revision = "342cbe0a04158f6dcb03ca0079991a51a4248c02"
-  version = "v0.5"
+  revision = "ba06b47c162d49f2af050fb4c75bcbc86a159d5c"
+  version = "v1.2.1"
 
 [[projects]]
   branch = "master"
@@ -84,7 +85,6 @@
   digest = "1:f958a1c137db276e52f0b50efee41a1a389dcdded59a69711f3e872757dab34b"
   name = "github.com/golang/protobuf"
   packages = [
-    "jsonpb",
     "proto",
     "protoc-gen-go",
     "protoc-gen-go/descriptor",
@@ -95,7 +95,6 @@
     "ptypes",
     "ptypes/any",
     "ptypes/duration",
-    "ptypes/struct",
     "ptypes/timestamp",
   ]
   pruneopts = ""
@@ -512,8 +511,8 @@
   revision = "d670f9405373e636a5a2765eea47fac0c9bc91a4"
 
 [[projects]]
-  branch = "release-1.0"
-  digest = "1:bc43af6616d8ca12a7b8e806874387f0f1e181c08f547e9cd77f6cbac8cefd86"
+  branch = "release-1.1"
+  digest = "1:858b83b14cdd24c345c62186ee0c1a51a4683985e2e6dc4f76159ac24665779d"
   name = "istio.io/api"
   packages = [
     "authentication/v1alpha1",
@@ -521,7 +520,7 @@
     "networking/v1alpha3",
   ]
   pruneopts = ""
-  revision = "76349c53b87f03f1e610b3aa3843dba3c38138d7"
+  revision = "2252ef027c45d03b82558a34b968d3fbbdfc083b"
 
 [[projects]]
   digest = "1:5beb32094452970c0d73a2bdacd79aa9cfaa4947a774d521c1bed4b4c2705f15"
@@ -742,12 +741,12 @@
     "github.com/aspenmesh/istio-client-go/pkg/client/listers/networking/v1alpha3",
     "github.com/cnf/structhash",
     "github.com/ghodss/yaml",
+    "github.com/gogo/protobuf/jsonpb",
+    "github.com/gogo/protobuf/proto",
+    "github.com/gogo/protobuf/types",
     "github.com/golang/glog",
-    "github.com/golang/protobuf/jsonpb",
     "github.com/golang/protobuf/proto",
     "github.com/golang/protobuf/protoc-gen-go",
-    "github.com/golang/protobuf/ptypes",
-    "github.com/golang/protobuf/ptypes/duration",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
     "github.com/spf13/cobra",

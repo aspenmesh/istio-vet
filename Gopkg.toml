@@ -20,6 +20,9 @@
 #  name = "github.com/x/y"
 #  version = "2.4.0"
 
+# For local debugging, just ignore istio-client-go from dep perspective and
+#   put whatever local copy needed in vendor/
+#ignored = ["github.com/aspenmesh/istio-client-go*"]
 
 required = [
   "github.com/wadey/gocovmerge",
@@ -39,6 +42,10 @@ required = [
   name = "github.com/golang/glog"
 
 [[constraint]]
+  name = "github.com/gogo/protobuf"
+  version = "^1.1.1"
+
+[[constraint]]
   name = "github.com/golang/protobuf"
   version = "1.1.0"
 
@@ -56,7 +63,7 @@ required = [
 
 [[constraint]]
   name = "istio.io/api"
-  branch = "release-1.0"
+  branch = "release-1.1"
 
 [[constraint]]
   name = "k8s.io/api"
@@ -82,3 +89,4 @@ required = [
 [[override]]
   name = "gopkg.in/fsnotify.v1"
   source = "https://github.com/fsnotify/fsnotify.git"
+

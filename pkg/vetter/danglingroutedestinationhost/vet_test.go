@@ -64,8 +64,8 @@ var _ = Describe("Vet", func() {
 					VirtualService: istiov1alpha3.VirtualService{
 						Http: []*istiov1alpha3.HTTPRoute{
 							&istiov1alpha3.HTTPRoute{
-								Route: []*istiov1alpha3.DestinationWeight{
-									&istiov1alpha3.DestinationWeight{
+								Route: []*istiov1alpha3.HTTPRouteDestination{
+									&istiov1alpha3.HTTPRouteDestination{
 										Destination: &istiov1alpha3.Destination{
 											Host: "foo.team-foo.svc.cluster.local",
 										},
@@ -73,8 +73,8 @@ var _ = Describe("Vet", func() {
 								},
 							},
 							&istiov1alpha3.HTTPRoute{
-								Route: []*istiov1alpha3.DestinationWeight{
-									&istiov1alpha3.DestinationWeight{
+								Route: []*istiov1alpha3.HTTPRouteDestination{
+									&istiov1alpha3.HTTPRouteDestination{
 										Destination: &istiov1alpha3.Destination{
 											Host: "foo.com",
 										},
@@ -94,8 +94,8 @@ var _ = Describe("Vet", func() {
 					VirtualService: istiov1alpha3.VirtualService{
 						Http: []*istiov1alpha3.HTTPRoute{
 							&istiov1alpha3.HTTPRoute{
-								Route: []*istiov1alpha3.DestinationWeight{
-									&istiov1alpha3.DestinationWeight{
+								Route: []*istiov1alpha3.HTTPRouteDestination{
+									&istiov1alpha3.HTTPRouteDestination{
 										Destination: &istiov1alpha3.Destination{
 											Host: "bar",
 										},
@@ -103,8 +103,8 @@ var _ = Describe("Vet", func() {
 								},
 							},
 							&istiov1alpha3.HTTPRoute{
-								Route: []*istiov1alpha3.DestinationWeight{
-									&istiov1alpha3.DestinationWeight{
+								Route: []*istiov1alpha3.HTTPRouteDestination{
+									&istiov1alpha3.HTTPRouteDestination{
 										Destination: &istiov1alpha3.Destination{
 											Host: "baz.team-baz.svc.cluster.local",
 										},
@@ -152,8 +152,8 @@ var _ = Describe("Vet", func() {
 					VirtualService: istiov1alpha3.VirtualService{
 						Http: []*istiov1alpha3.HTTPRoute{
 							&istiov1alpha3.HTTPRoute{
-								Route: []*istiov1alpha3.DestinationWeight{
-									&istiov1alpha3.DestinationWeight{
+								Route: []*istiov1alpha3.HTTPRouteDestination{
+									&istiov1alpha3.HTTPRouteDestination{
 										Destination: &istiov1alpha3.Destination{
 											Host: "foo.team-foo",
 										},
@@ -161,8 +161,8 @@ var _ = Describe("Vet", func() {
 								},
 							},
 							&istiov1alpha3.HTTPRoute{
-								Route: []*istiov1alpha3.DestinationWeight{
-									&istiov1alpha3.DestinationWeight{
+								Route: []*istiov1alpha3.HTTPRouteDestination{
+									&istiov1alpha3.HTTPRouteDestination{
 										Destination: &istiov1alpha3.Destination{
 											Host: "foo.com",
 										},
@@ -184,8 +184,8 @@ var _ = Describe("Vet", func() {
 					VirtualService: istiov1alpha3.VirtualService{
 						Http: []*istiov1alpha3.HTTPRoute{
 							&istiov1alpha3.HTTPRoute{
-								Route: []*istiov1alpha3.DestinationWeight{
-									&istiov1alpha3.DestinationWeight{
+								Route: []*istiov1alpha3.HTTPRouteDestination{
+									&istiov1alpha3.HTTPRouteDestination{
 										Destination: &istiov1alpha3.Destination{
 											Host: "bar.team-baz.svc.cluster.local",
 										},
@@ -193,8 +193,8 @@ var _ = Describe("Vet", func() {
 								},
 							},
 							&istiov1alpha3.HTTPRoute{
-								Route: []*istiov1alpha3.DestinationWeight{
-									&istiov1alpha3.DestinationWeight{
+								Route: []*istiov1alpha3.HTTPRouteDestination{
+									&istiov1alpha3.HTTPRouteDestination{
 										Destination: &istiov1alpha3.Destination{
 											Host: "baz",
 										},
@@ -217,8 +217,8 @@ var _ = Describe("Vet", func() {
 					VirtualService: istiov1alpha3.VirtualService{
 						Http: []*istiov1alpha3.HTTPRoute{
 							&istiov1alpha3.HTTPRoute{
-								Route: []*istiov1alpha3.DestinationWeight{
-									&istiov1alpha3.DestinationWeight{
+								Route: []*istiov1alpha3.HTTPRouteDestination{
+									&istiov1alpha3.HTTPRouteDestination{
 										Destination: &istiov1alpha3.Destination{
 											Host: "bah.team-bah.svc.cluster.local",
 										},
