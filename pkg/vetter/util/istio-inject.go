@@ -16,8 +16,6 @@ package util
 
 import (
 	"bytes"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/golang/glog"
@@ -593,21 +591,4 @@ type SidecarInjectionStatus struct {
 	Containers       []string `json:"containers"`
 	Volumes          []string `json:"volumes"`
 	ImagePullSecrets []string `json:"imagePullSecrets"`
-}
-
-// helper function to generate a template version identifier from a
-// hash of the un-executed template contents.
-func sidecarTemplateVersionHash(in string) string {
-	hash := sha256.Sum256([]byte(in))
-	return hex.EncodeToString(hash[:])
-}
-
-func potentialPodName(metadata *metav1.ObjectMeta) string {
-	if metadata.Name != "" {
-		return metadata.Name
-	}
-	if metadata.GenerateName != "" {
-		return metadata.GenerateName + "***** (actual name not yet known)"
-	}
-	return ""
 }
