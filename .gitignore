@@ -1,3 +1,4 @@
 /vendor
 /pkg/generated
 /_build
+*.coverprofile
