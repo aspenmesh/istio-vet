@@ -22,7 +22,8 @@
 
 # For local debugging, just ignore istio-client-go from dep perspective and
 #   put whatever local copy needed in vendor/
-ignored = ["github.com/aspenmesh/istio-client-go*"]
+
+#ignored = ["github.com/aspenmesh/istio-client-go*"]
 
 required = [
   "github.com/wadey/gocovmerge",
