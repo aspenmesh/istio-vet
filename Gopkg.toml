@@ -22,7 +22,7 @@
 
 # For local debugging, just ignore istio-client-go from dep perspective and
 #   put whatever local copy needed in vendor/
-#ignored = ["github.com/aspenmesh/istio-client-go*"]
+ignored = ["github.com/aspenmesh/istio-client-go*"]
 
 required = [
   "github.com/wadey/gocovmerge",
@@ -67,15 +67,19 @@ required = [
 
 [[constraint]]
   name = "k8s.io/api"
-  version = "kubernetes-1.10.4"
+  branch = "release-1.11"
+
+[[override]]
+  name = "github.com/json-iterator/go"
+  revision = "f2b4162afba35581b6d4a50d3b8f34e33c144682"
 
 [[constraint]]
   name = "k8s.io/apimachinery"
-  version = "kubernetes-1.10.4"
+  branch = "release-1.11"
 
 [[constraint]]
   name = "k8s.io/client-go"
-  branch = "release-6.0"
+  branch = "release-8.0"
 
 [[constraint]]
   name = "github.com/onsi/ginkgo"
