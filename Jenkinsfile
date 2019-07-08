@@ -16,6 +16,8 @@ node('docker') {
         img.push()
         /* Tag image as latest for the branch */
         img.push("${env.BRANCH_NAME}")
+        sha = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+        img.push("${env.BRANCH_NAME}-${sha}")
       }
     }
   }
