@@ -50,7 +50,6 @@ const (
 type MtlsProbes struct {
 	podLister v1.PodLister
 	nsLister  v1.NamespaceLister
-	cmLister  v1.ConfigMapLister
 	epLister  v1.EndpointsLister
 	apLister  authv1alpha1.PolicyLister
 	mpLister  authv1alpha1.MeshPolicyLister
@@ -117,7 +116,7 @@ func isNoteRequiredForMtlsProbe(authPolicies *mtlspolicyutil.AuthPolicies, endpo
 // Vet returns the list of generated notes
 func (m *MtlsProbes) Vet() ([]*apiv1.Note, error) {
 	var notes []*apiv1.Note
-	pods, err := util.ListPodsInMesh(m.nsLister, m.cmLister, m.podLister)
+	pods, err := util.ListPodsInMesh(m.nsLister, m.podLister)
 	if err != nil {
 		if n := util.IstioInitializerDisabledNote(err.Error(), vetterID,
 			mtlsProbesNoteType); n != nil {
@@ -152,7 +151,7 @@ func (m *MtlsProbes) Vet() ([]*apiv1.Note, error) {
 		return nil, err
 	}
 	// get list of endpoints
-	endpointsList, err := util.ListEndpointsInMesh(m.nsLister, m.cmLister, m.epLister)
+	endpointsList, err := util.ListEndpointsInMesh(m.nsLister, m.epLister)
 	if err != nil {
 		glog.Errorln("unable to retrieve list of endpoints in the mesh")
 		return nil, err
@@ -244,7 +243,6 @@ func (m *MtlsProbes) Info() *apiv1.Info {
 func NewVetter(factory vetter.ResourceListGetter) *MtlsProbes {
 	return &MtlsProbes{
 		podLister: factory.K8s().Core().V1().Pods().Lister(),
-		cmLister:  factory.K8s().Core().V1().ConfigMaps().Lister(),
 		nsLister:  factory.K8s().Core().V1().Namespaces().Lister(),
 		epLister:  factory.K8s().Core().V1().Endpoints().Lister(),
 		apLister:  factory.Istio().Authentication().V1alpha1().Policies().Lister(),

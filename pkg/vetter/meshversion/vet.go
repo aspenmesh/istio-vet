@@ -129,7 +129,7 @@ func (m *MeshVersion) vetInjectedImages() ([]*apiv1.Note, error) {
 		return notes, nil
 	}
 
-	pods, err := util.ListPodsInMesh(m.nsLister, m.cmLister, m.podLister)
+	pods, err := util.ListPodsInMesh(m.nsLister, m.podLister)
 	if err != nil {
 		// If err != nil when getting pod data, the lower-level error has already
 		// been logged and handled.

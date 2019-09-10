@@ -37,7 +37,6 @@ const (
 type AppLabel struct {
 	info      apiv1.Info
 	nsLister  v1.NamespaceLister
-	cmLister  v1.ConfigMapLister
 	podLister v1.PodLister
 }
 
@@ -45,7 +44,7 @@ type AppLabel struct {
 func (m *AppLabel) Vet() ([]*apiv1.Note, error) {
 	notes := []*apiv1.Note{}
 
-	pods, err := util.ListPodsInMesh(m.nsLister, m.cmLister, m.podLister)
+	pods, err := util.ListPodsInMesh(m.nsLister, m.podLister)
 	if err != nil {
 		if n := util.IstioInitializerDisabledNote(err.Error(), vetterID,
 			missingAppLabelNoteType); n != nil {
@@ -82,7 +81,6 @@ func (m *AppLabel) Info() *apiv1.Info {
 func NewVetter(factory vetter.ResourceListGetter) *AppLabel {
 	return &AppLabel{
 		nsLister:  factory.K8s().Core().V1().Namespaces().Lister(),
-		cmLister:  factory.K8s().Core().V1().ConfigMaps().Lister(),
 		podLister: factory.K8s().Core().V1().Pods().Lister(),
 	}
 }
