@@ -40,14 +40,13 @@ const (
 // SvcPortPrefix implements Vetter interface
 type SvcPortPrefix struct {
 	nsLister  v1.NamespaceLister
-	cmLister  v1.ConfigMapLister
 	svcLister v1.ServiceLister
 }
 
 // Vet returns the list of generated notes
 func (m *SvcPortPrefix) Vet() ([]*apiv1.Note, error) {
 	notes := []*apiv1.Note{}
-	services, err := util.ListServicesInMesh(m.nsLister, m.cmLister, m.svcLister)
+	services, err := util.ListServicesInMesh(m.nsLister, m.svcLister)
 	if err != nil {
 		if n := util.IstioInitializerDisabledNote(err.Error(), vetterID,
 			servicePortPrefixNoteType); n != nil {
@@ -93,7 +92,6 @@ func (m *SvcPortPrefix) Info() *apiv1.Info {
 func NewVetter(factory vetter.ResourceListGetter) *SvcPortPrefix {
 	return &SvcPortPrefix{
 		nsLister:  factory.K8s().Core().V1().Namespaces().Lister(),
-		cmLister:  factory.K8s().Core().V1().ConfigMaps().Lister(),
 		svcLister: factory.K8s().Core().V1().Services().Lister(),
 	}
 }

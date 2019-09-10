@@ -263,7 +263,7 @@ func InitImage(n string, s corev1.PodSpec) (string, error) {
 // ListNamespacesInMesh returns the list of Namespaces in the mesh.
 // Namespaces with label "istio-inject=enabled" are considered in
 // the mesh.
-func ListNamespacesInMesh(nsLister v1.NamespaceLister, cmLister v1.ConfigMapLister) ([]*corev1.Namespace, error) {
+func ListNamespacesInMesh(nsLister v1.NamespaceLister) ([]*corev1.Namespace, error) {
 	ns, err := nsLister.List(labels.Set(istioInjectNamespaceLabel).AsSelector())
 	if err != nil {
 		glog.Error("Failed to retrieve namespaces: ", err)
@@ -275,9 +275,9 @@ func ListNamespacesInMesh(nsLister v1.NamespaceLister, cmLister v1.ConfigMapList
 // ListPodsInMesh returns the list of Pods in the mesh.
 // Pods in Namespaces returned by ListNamespacesInMesh with sidecar
 // injected as determined by SidecarInjected are considered in the mesh.
-func ListPodsInMesh(nsLister v1.NamespaceLister, cmLister v1.ConfigMapLister, podLister v1.PodLister) ([]*corev1.Pod, error) {
+func ListPodsInMesh(nsLister v1.NamespaceLister, podLister v1.PodLister) ([]*corev1.Pod, error) {
 	pods := []*corev1.Pod{}
-	ns, err := ListNamespacesInMesh(nsLister, cmLister)
+	ns, err := ListNamespacesInMesh(nsLister)
 	if err != nil {
 		return nil, err
 	}
@@ -298,9 +298,9 @@ func ListPodsInMesh(nsLister v1.NamespaceLister, cmLister v1.ConfigMapLister, po
 
 // ListServicesInMesh returns the list of Services in the mesh.
 // Services in Namespaces returned by ListNamespacesInMesh are considered in the mesh.
-func ListServicesInMesh(nsLister v1.NamespaceLister, cmLister v1.ConfigMapLister, svcLister v1.ServiceLister) ([]*corev1.Service, error) {
+func ListServicesInMesh(nsLister v1.NamespaceLister, svcLister v1.ServiceLister) ([]*corev1.Service, error) {
 	services := []*corev1.Service{}
-	ns, err := ListNamespacesInMesh(nsLister, cmLister)
+	ns, err := ListNamespacesInMesh(nsLister)
 	if err != nil {
 		return nil, err
 	}
@@ -339,9 +339,9 @@ func IsEndpointInMesh(ea *corev1.EndpointAddress, podLister v1.PodLister) bool {
 
 // ListEndpointsInMesh returns the list of Endpoints in the mesh.
 // Endpoints in Namespaces returned by ListNamespacesInMesh are considered in the mesh.
-func ListEndpointsInMesh(nsLister v1.NamespaceLister, cmLister v1.ConfigMapLister, epLister v1.EndpointsLister) ([]*corev1.Endpoints, error) {
+func ListEndpointsInMesh(nsLister v1.NamespaceLister, epLister v1.EndpointsLister) ([]*corev1.Endpoints, error) {
 	endpoints := []*corev1.Endpoints{}
-	ns, err := ListNamespacesInMesh(nsLister, cmLister)
+	ns, err := ListNamespacesInMesh(nsLister)
 	if err != nil {
 		return nil, err
 	}
@@ -367,10 +367,10 @@ func ComputeID(n *apiv1.Note) string {
 }
 
 // ListVirtualServices returns a list of VirtualService resources in the mesh.
-func ListVirtualServicesInMesh(nsLister v1.NamespaceLister, cmLister v1.ConfigMapLister,
+func ListVirtualServicesInMesh(nsLister v1.NamespaceLister,
 	vsLister netv1alpha3.VirtualServiceLister) ([]*v1alpha3.VirtualService, error) {
 	virtualServices := []*v1alpha3.VirtualService{}
-	ns, err := ListNamespacesInMesh(nsLister, cmLister)
+	ns, err := ListNamespacesInMesh(nsLister)
 	if err != nil {
 		return nil, err
 	}

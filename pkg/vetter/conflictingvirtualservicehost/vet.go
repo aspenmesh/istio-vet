@@ -42,7 +42,6 @@ const (
 type VsHost struct {
 	nsLister v1.NamespaceLister
 	vsLister netv1alpha3.VirtualServiceLister
-	cmLister v1.ConfigMapLister
 }
 type hostAndGateway struct {
 	gateway  string
@@ -116,7 +115,7 @@ func populateVirtualServiceMap(hg hostAndGateway, vs *v1alpha3.VirtualService, v
 
 // Vet returns the list of generated notes
 func (v *VsHost) Vet() ([]*apiv1.Note, error) {
-	virtualServices, err := util.ListVirtualServicesInMesh(v.nsLister, v.cmLister, v.vsLister)
+	virtualServices, err := util.ListVirtualServicesInMesh(v.nsLister, v.vsLister)
 	if err != nil {
 		fmt.Printf("Error occurred retrieving VirtualServices: %s\n", err.Error())
 		return nil, err
@@ -138,7 +137,6 @@ func (v *VsHost) Info() *apiv1.Info {
 func NewVetter(factory vetter.ResourceListGetter) *VsHost {
 	return &VsHost{
 		nsLister: factory.K8s().Core().V1().Namespaces().Lister(),
-		cmLister: factory.K8s().Core().V1().ConfigMaps().Lister(),
 		vsLister: factory.Istio().Networking().V1alpha3().VirtualServices().Lister(),
 	}
 }

@@ -41,7 +41,6 @@ const (
 // SvcAssociation implements Vetter interface
 type SvcAssociation struct {
 	nsLister  v1.NamespaceLister
-	cmLister  v1.ConfigMapLister
 	epLister  v1.EndpointsLister
 	podLister v1.PodLister
 }
@@ -81,7 +80,7 @@ func createEndpointMap(e []*corev1.Endpoints, podLister v1.PodLister) map[string
 // Vet returns the list of generated notes
 func (m *SvcAssociation) Vet() ([]*apiv1.Note, error) {
 	notes := []*apiv1.Note{}
-	endpoints, err := util.ListEndpointsInMesh(m.nsLister, m.cmLister, m.epLister)
+	endpoints, err := util.ListEndpointsInMesh(m.nsLister, m.epLister)
 	if err != nil {
 		if n := util.IstioInitializerDisabledNote(err.Error(), vetterID,
 			multipleServiceAssociationNoteType); n != nil {
@@ -122,7 +121,6 @@ func (m *SvcAssociation) Info() *apiv1.Info {
 func NewVetter(factory vetter.ResourceListGetter) *SvcAssociation {
 	return &SvcAssociation{
 		nsLister:  factory.K8s().Core().V1().Namespaces().Lister(),
-		cmLister:  factory.K8s().Core().V1().ConfigMaps().Lister(),
 		epLister:  factory.K8s().Core().V1().Endpoints().Lister(),
 		podLister: factory.K8s().Core().V1().Pods().Lister(),
 	}

@@ -44,7 +44,6 @@ const (
 // DanglingRouteDestinationHost implements Vetter interface
 type DanglingRouteDestinationHost struct {
 	nsLister  v1.NamespaceLister
-	cmLister  v1.ConfigMapLister
 	svcLister v1.ServiceLister
 	vsLister  netv1alpha3.VirtualServiceLister
 }
@@ -108,12 +107,12 @@ func createDanglingRouteHostNotes(svcs []*corev1.Service,
 
 // Vet returns the list of generated notes
 func (r *DanglingRouteDestinationHost) Vet() ([]*apiv1.Note, error) {
-	svcs, err := util.ListServicesInMesh(r.nsLister, r.cmLister, r.svcLister)
+	svcs, err := util.ListServicesInMesh(r.nsLister, r.svcLister)
 	if err != nil {
 		return nil, err
 	}
 
-	vsList, err := util.ListVirtualServicesInMesh(r.nsLister, r.cmLister, r.vsLister)
+	vsList, err := util.ListVirtualServicesInMesh(r.nsLister, r.vsLister)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +130,6 @@ func (r *DanglingRouteDestinationHost) Info() *apiv1.Info {
 func NewVetter(factory vetter.ResourceListGetter) *DanglingRouteDestinationHost {
 	return &DanglingRouteDestinationHost{
 		nsLister:  factory.K8s().Core().V1().Namespaces().Lister(),
-		cmLister:  factory.K8s().Core().V1().ConfigMaps().Lister(),
 		svcLister: factory.K8s().Core().V1().Services().Lister(),
 		vsLister:  factory.Istio().Networking().V1alpha3().VirtualServices().Lister(),
 	}
