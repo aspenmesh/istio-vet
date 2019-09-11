@@ -110,7 +110,7 @@ func createAuthPolicyNotes(policy *v1alpha1.Policy, nsServiceLookup map[string]*
 					continue
 				}
 
-				targetSvcIsValid := servicePortNamesContainAValidName(targetSvc)
+				targetSvcIsValid := servicePortsContainAValidName(targetSvc)
 				if !targetSvcIsValid {
 					n := apiv1.Note{
 						Type:    invalidServiceNoteType,
@@ -131,7 +131,7 @@ func createAuthPolicyNotes(policy *v1alpha1.Policy, nsServiceLookup map[string]*
 	return notes
 }
 
-func servicePortNamesContainAValidName(targetSvc *corev1.Service) bool {
+func servicePortsContainAValidName(targetSvc *corev1.Service) bool {
 	for _, p := range targetSvc.Spec.Ports {
 		portName := strings.ToLower(p.Name)
 		if strings.HasPrefix(portName, "http-") ||
