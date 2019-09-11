@@ -17,16 +17,17 @@ limitations under the License.
 package invalidserviceforjwtpolicy
 
 import (
-	"github.com/aspenmesh/istio-client-go/pkg/apis/authentication/v1alpha1"
+	"strings"
 
+	"github.com/aspenmesh/istio-client-go/pkg/apis/authentication/v1alpha1"
 	authv1alpha1 "github.com/aspenmesh/istio-client-go/pkg/client/listers/authentication/v1alpha1"
-	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
-	"github.com/aspenmesh/istio-vet/pkg/vetter"
 	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	v1 "k8s.io/client-go/listers/core/v1"
-	"strings"
+	listersvV1 "k8s.io/client-go/listers/core/v1"
+
+	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
+	"github.com/aspenmesh/istio-vet/pkg/vetter"
 )
 
 const (
@@ -44,12 +45,12 @@ const (
 
 // Vetter implements Vetter interface
 type Vetter struct {
-	nsLister  v1.NamespaceLister
-	svcLister v1.ServiceLister
-	authPolicyListener authv1alpha1.PolicyLister
+	nsLister         listersvV1.NamespaceLister
+	svcLister        listersvV1.ServiceLister
+	authPolicyLister authv1alpha1.PolicyLister
 }
 
-func (v *Vetter) Vet()([]*apiv1.Note, error) {
+func (v *Vetter) Vet() ([]*apiv1.Note, error) {
 	ns, err := v.nsLister.List(labels.Everything())
 	if err != nil {
 		glog.Error("Failed to retrieve namespaces: ", err)
@@ -58,7 +59,7 @@ func (v *Vetter) Vet()([]*apiv1.Note, error) {
 
 	var notes []*apiv1.Note
 	for _, namespace := range ns {
-		nsAuthPolicies, err := v.authPolicyListener.Policies(namespace.Name).List(labels.Everything())
+		nsAuthPolicies, err := v.authPolicyLister.Policies(namespace.Name).List(labels.Everything())
 		if err != nil {
 			glog.Errorf("Failed to retrieve Authentication Policies for namespace: %s : %s", namespace.Name, err)
 			return nil, err
@@ -69,10 +70,10 @@ func (v *Vetter) Vet()([]*apiv1.Note, error) {
 			glog.Errorf("Failed to retrieve Services for namespace: %s : %s", namespace.Name, err)
 			return nil, err
 		}
-		nsServiceLookup := createServiceLookup(nsServices)
+		nsServicesByName := createServiceLookup(nsServices)
 
 		for _, policy := range nsAuthPolicies {
-			policyNotes := createAuthPolicyNotes(policy, nsServiceLookup)
+			policyNotes := createAuthPolicyNotes(policy, nsServicesByName)
 			notes = append(notes, policyNotes...)
 		}
 	}
@@ -100,9 +101,9 @@ func createAuthPolicyNotes(policy *v1alpha1.Policy, nsServiceLookup map[string]*
 						Summary: noServiceNoteSummary,
 						Msg:     noServiceNoteMsg,
 						Level:   apiv1.NoteLevel_ERROR,
-						Attr:    map[string]string{
-							"policy": policy.Name,
-							"namespace": policy.Namespace,
+						Attr: map[string]string{
+							"policy":         policy.Name,
+							"namespace":      policy.Namespace,
 							"service_target": t.Name,
 						},
 					}
@@ -117,9 +118,9 @@ func createAuthPolicyNotes(policy *v1alpha1.Policy, nsServiceLookup map[string]*
 						Summary: invalidServiceNoteSummary,
 						Msg:     invalidServiceNoteMsg,
 						Level:   apiv1.NoteLevel_ERROR,
-						Attr:    map[string]string{
-							"policy": policy.Name,
-							"namespace": policy.Namespace,
+						Attr: map[string]string{
+							"policy":         policy.Name,
+							"namespace":      policy.Namespace,
 							"service_target": targetSvc.Name,
 						},
 					}
@@ -137,7 +138,7 @@ func servicePortsContainAValidName(targetSvc *corev1.Service) bool {
 		if strings.HasPrefix(portName, "http-") ||
 			strings.HasPrefix(portName, "http2-") ||
 			strings.HasPrefix(portName, "https-") ||
-			portName == "http" || portName == "http2" ||portName == "https" {
+			portName == "http" || portName == "http2" || portName == "https" {
 			return true
 		}
 	}
@@ -152,8 +153,8 @@ func (v *Vetter) Info() *apiv1.Info {
 // NewVetter returns "svcPortPrefix" which implements Vetter Interface
 func NewVetter(factory vetter.ResourceListGetter) *Vetter {
 	return &Vetter{
-		nsLister:  factory.K8s().Core().V1().Namespaces().Lister(),
-		svcLister: factory.K8s().Core().V1().Services().Lister(),
-		authPolicyListener: factory.Istio().Authentication().V1alpha1().Policies().Lister(),
+		nsLister:         factory.K8s().Core().V1().Namespaces().Lister(),
+		svcLister:        factory.K8s().Core().V1().Services().Lister(),
+		authPolicyLister: factory.Istio().Authentication().V1alpha1().Policies().Lister(),
 	}
 }
