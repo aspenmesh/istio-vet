@@ -51,23 +51,23 @@ type Vetter struct {
 }
 
 func (v *Vetter) Vet() ([]*apiv1.Note, error) {
-	ns, err := v.nsLister.List(labels.Everything())
+	namespaces, err := v.nsLister.List(labels.Everything())
 	if err != nil {
 		glog.Error("Failed to retrieve namespaces: ", err)
 		return nil, err
 	}
 
 	var notes []*apiv1.Note
-	for _, namespace := range ns {
-		nsAuthPolicies, err := v.authPolicyLister.Policies(namespace.Name).List(labels.Everything())
+	for _, ns := range namespaces {
+		nsAuthPolicies, err := v.authPolicyLister.Policies(ns.Name).List(labels.Everything())
 		if err != nil {
-			glog.Errorf("Failed to retrieve Authentication Policies for namespace: %s : %s", namespace.Name, err)
+			glog.Errorf("Failed to retrieve Authentication Policies for namespace: %s : %s", ns.Name, err)
 			return nil, err
 		}
 
-		nsServices, err := v.svcLister.Services(namespace.Name).List(labels.Everything())
+		nsServices, err := v.svcLister.Services(ns.Name).List(labels.Everything())
 		if err != nil {
-			glog.Errorf("Failed to retrieve Services for namespace: %s : %s", namespace.Name, err)
+			glog.Errorf("Failed to retrieve Services for namespace: %s : %s", ns.Name, err)
 			return nil, err
 		}
 		nsServicesByName := createServiceLookup(nsServices)
