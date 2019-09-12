@@ -19,6 +19,7 @@ package invalidserviceforjwtpolicy
 import (
 	authv1alpha1api "github.com/aspenmesh/istio-client-go/pkg/apis/authentication/v1alpha1"
 	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
+	"github.com/aspenmesh/istio-vet/pkg/vetter/util"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	istiov1alpha1 "istio.io/api/authentication/v1alpha1"
@@ -30,14 +31,15 @@ import (
 var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 	const (
 		namespace = "default"
-		invalidServiceNoteType    = "invalid-service-for-jwt-authentication-policy"
-		invalidServiceNoteSummary = "Target services must have valid service port names"
-		invalidServiceNoteMsg     = "The authentication policy '${policy}' in namespace '${namespace}' has a target of" +
+		vetterID                                = "InvalidServiceForJWTPolicy"
+		invalidTargetServicePortNameNoteType    = "invalid-target-service-port-name"
+		invalidTargetServicePortNameNoteSummary = "Target services must have valid service port names"
+		invalidTargetServicePortNameNoteMsg     = "The authentication policy '${policy}' in namespace '${namespace}' has a target of" +
 			" service '${service_target}', which does not contain a valid port name. Port names must be 'http', 'http2', 'https'," +
 			" or must be prefixed with 'http-', 'http2-', or 'https-'."
-		noServiceNoteType    = "target-service-not-found-for-jwt-authentication-policy"
-		noServiceNoteSummary = "The authentication policy target service was not found in namespace '${namespace}'"
-		noServiceNoteMsg     = "The authentication policy '${policy}' in namespace '${namespace}' references the service" +
+		missingTargetServiceNoteType = "missing-target-service"
+		missingTargetServiceSummary  = "The authentication policy target service was not found in namespace '${namespace}'"
+		missingTargetServiceNoteMsg  = "The authentication policy '${policy}' in namespace '${namespace}' references the service" +
 			" '${service_target}', which does not exist in namespace '${namespace}'."
 	)
 
@@ -286,11 +288,11 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 			Expect(len(actualNotes)).To(Equal(0))
 		})
 
-		It("generates an 'invalid-service-for-jwt-authentication-policy' note when none of the port names are valid", func() {
+		It("generates an 'invalid-target-service-port-name' note when none of the port names are valid", func() {
 			expectedNote := &apiv1.Note{
-				Type:    invalidServiceNoteType,
-				Summary: invalidServiceNoteSummary,
-				Msg:     invalidServiceNoteMsg,
+				Type:    invalidTargetServicePortNameNoteType,
+				Summary: invalidTargetServicePortNameNoteSummary,
+				Msg:     invalidTargetServicePortNameNoteMsg,
 				Level:   apiv1.NoteLevel_ERROR,
 				Attr: map[string]string{
 					"policy": "jwt-example",
@@ -298,6 +300,7 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 					"service_target": "httpbin",
 				},
 			}
+			expectedNote.Id = util.ComputeID(expectedNote)
 			nsServices := []*corev1.Service{
 				{
 					TypeMeta: metav1.TypeMeta{
@@ -346,11 +349,11 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 	})
 
 	Context("when target services ports are not named", func() {
-		It("generates an 'invalid-service-for-jwt-authentication-policy' note", func() {
+		It("generates an 'invalid-target-service-port-name' note", func() {
 			expectedNote := &apiv1.Note{
-				Type:    invalidServiceNoteType,
-				Summary: invalidServiceNoteSummary,
-				Msg:     invalidServiceNoteMsg,
+				Type:    invalidTargetServicePortNameNoteType,
+				Summary: invalidTargetServicePortNameNoteSummary,
+				Msg:     invalidTargetServicePortNameNoteMsg,
 				Level:   apiv1.NoteLevel_ERROR,
 				Attr: map[string]string{
 					"policy": "jwt-example",
@@ -358,6 +361,7 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 					"service_target": "httpbin",
 				},
 			}
+			expectedNote.Id = util.ComputeID(expectedNote)
 			nsServices := []*corev1.Service{
 				{
 					TypeMeta: metav1.TypeMeta{
@@ -404,11 +408,11 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 	})
 
 	Context("when target service is not found in the current policy namespace", func() {
-		It("generates an 'target-service-not-found-for-jwt-authentication-policy' note", func() {
+		It("generates an 'missing-target-service' note", func() {
 			expectedNote := &apiv1.Note{
-				Type:    noServiceNoteType,
-				Summary: noServiceNoteSummary,
-				Msg:     noServiceNoteMsg,
+				Type:    missingTargetServiceNoteType,
+				Summary: missingTargetServiceSummary,
+				Msg:     missingTargetServiceNoteMsg,
 				Level:   apiv1.NoteLevel_ERROR,
 				Attr: map[string]string{
 					"policy": "jwt-example",
@@ -416,6 +420,7 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 					"service_target": "httpbin",
 				},
 			}
+			expectedNote.Id = util.ComputeID(expectedNote)
 			var nsServices []*corev1.Service
 			nsServiceLookup := createServiceLookup(nsServices)
 			actualNotes := createAuthPolicyNotes(httpbinJWTAuthPolicy, nsServiceLookup)

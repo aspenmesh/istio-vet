@@ -17,6 +17,7 @@ limitations under the License.
 package invalidserviceforjwtpolicy
 
 import (
+	"github.com/aspenmesh/istio-vet/pkg/vetter/util"
 	"strings"
 
 	"github.com/aspenmesh/istio-client-go/pkg/apis/authentication/v1alpha1"
@@ -31,15 +32,23 @@ import (
 )
 
 const (
-	vetterID                  = "InvalidServiceForJWTPolicy"
-	invalidServiceNoteType    = "invalid-service-for-jwt-authentication-policy"
-	invalidServiceNoteSummary = "Target services must have valid service port names"
-	invalidServiceNoteMsg     = "The authentication policy '${policy}' in namespace '${namespace}' has a target of" +
-		" service '${service_target}', which does not contain a valid port name. Port names must be 'http', 'http2', 'https'," +
-		" or must be prefixed with 'http-', 'http2-', or 'https-'."
-	noServiceNoteType    = "target-service-not-found-for-jwt-authentication-policy"
-	noServiceNoteSummary = "The authentication policy target service was not found in namespace '${namespace}'"
-	noServiceNoteMsg     = "The authentication policy '${policy}' in namespace '${namespace}' references the service" +
+	vetterID        = "InvalidServiceForJWTPolicy"
+	portNameHttp    = "http"
+	portNameHttp2   = "http2"
+	portNameHttps   = "https"
+	portPrefixHttp  = portNameHttp + "-"
+	portPrefixHttp2 = portNameHttp2 + "-"
+	portPrefixHttps = portNameHttps + "-"
+
+	invalidTargetServicePortNameNoteType    = "invalid-target-service-port-name"
+	invalidTargetServicePortNameNoteSummary = "Target services must have valid service port names"
+	invalidTargetServicePortNameNoteMsg     = "The authentication policy '${policy}' in namespace '${namespace}' has a target of" +
+		" service '${service_target}', which does not contain a valid port name. Port names must be '" + portNameHttp + "'," +
+		" '" + portNameHttp2 + "', '" + portNameHttps + "', or must be prefixed with '" + portPrefixHttp + "'," +
+		" '" + portPrefixHttp2 + "', or '" + portPrefixHttps + "'."
+	missingTargetServiceNoteType = "missing-target-service"
+	missingTargetServiceSummary  = "The authentication policy target service was not found in namespace '${namespace}'"
+	missingTargetServiceNoteMsg  = "The authentication policy '${policy}' in namespace '${namespace}' references the service" +
 		" '${service_target}', which does not exist in namespace '${namespace}'."
 )
 
@@ -97,9 +106,9 @@ func createAuthPolicyNotes(policy *v1alpha1.Policy, nsServiceLookup map[string]*
 				targetSvc := nsServiceLookup[strings.ToLower(t.Name)]
 				if targetSvc == nil {
 					n := apiv1.Note{
-						Type:    noServiceNoteType,
-						Summary: noServiceNoteSummary,
-						Msg:     noServiceNoteMsg,
+						Type:    missingTargetServiceNoteType,
+						Summary: missingTargetServiceSummary,
+						Msg:     missingTargetServiceNoteMsg,
 						Level:   apiv1.NoteLevel_ERROR,
 						Attr: map[string]string{
 							"policy":         policy.Name,
@@ -107,6 +116,7 @@ func createAuthPolicyNotes(policy *v1alpha1.Policy, nsServiceLookup map[string]*
 							"service_target": t.Name,
 						},
 					}
+					n.Id = util.ComputeID(&n)
 					notes = append(notes, &n)
 					continue
 				}
@@ -114,9 +124,9 @@ func createAuthPolicyNotes(policy *v1alpha1.Policy, nsServiceLookup map[string]*
 				targetSvcIsValid := servicePortsContainAValidName(targetSvc)
 				if !targetSvcIsValid {
 					n := apiv1.Note{
-						Type:    invalidServiceNoteType,
-						Summary: invalidServiceNoteSummary,
-						Msg:     invalidServiceNoteMsg,
+						Type:    invalidTargetServicePortNameNoteType,
+						Summary: invalidTargetServicePortNameNoteSummary,
+						Msg:     invalidTargetServicePortNameNoteMsg,
 						Level:   apiv1.NoteLevel_ERROR,
 						Attr: map[string]string{
 							"policy":         policy.Name,
@@ -124,6 +134,7 @@ func createAuthPolicyNotes(policy *v1alpha1.Policy, nsServiceLookup map[string]*
 							"service_target": targetSvc.Name,
 						},
 					}
+					n.Id = util.ComputeID(&n)
 					notes = append(notes, &n)
 				}
 			}
@@ -135,10 +146,10 @@ func createAuthPolicyNotes(policy *v1alpha1.Policy, nsServiceLookup map[string]*
 func servicePortsContainAValidName(targetSvc *corev1.Service) bool {
 	for _, p := range targetSvc.Spec.Ports {
 		portName := strings.ToLower(p.Name)
-		if strings.HasPrefix(portName, "http-") ||
-			strings.HasPrefix(portName, "http2-") ||
-			strings.HasPrefix(portName, "https-") ||
-			portName == "http" || portName == "http2" || portName == "https" {
+		if strings.HasPrefix(portName, portPrefixHttp) ||
+			strings.HasPrefix(portName, portPrefixHttp2) ||
+			strings.HasPrefix(portName, portPrefixHttps) ||
+			portName == portNameHttp || portName == portNameHttp2 || portName == portNameHttps {
 			return true
 		}
 	}
