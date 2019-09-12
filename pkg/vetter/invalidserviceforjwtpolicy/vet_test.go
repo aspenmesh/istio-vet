@@ -413,7 +413,7 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 				Type:    missingTargetServiceNoteType,
 				Summary: missingTargetServiceSummary,
 				Msg:     missingTargetServiceNoteMsg,
-				Level:   apiv1.NoteLevel_ERROR,
+				Level:   apiv1.NoteLevel_WARNING,
 				Attr: map[string]string{
 					"policy": "jwt-example",
 					"namespace": "default",

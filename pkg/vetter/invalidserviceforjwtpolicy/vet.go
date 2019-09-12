@@ -109,7 +109,7 @@ func createAuthPolicyNotes(policy *v1alpha1.Policy, nsServiceLookup map[string]*
 						Type:    missingTargetServiceNoteType,
 						Summary: missingTargetServiceSummary,
 						Msg:     missingTargetServiceNoteMsg,
-						Level:   apiv1.NoteLevel_ERROR,
+						Level:   apiv1.NoteLevel_WARNING,
 						Attr: map[string]string{
 							"policy":         policy.Name,
 							"namespace":      policy.Namespace,

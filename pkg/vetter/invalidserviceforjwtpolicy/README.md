@@ -1,11 +1,11 @@
 # Invalid Service For JWT Authentication Policy
+The `InvalidServiceForJWTPolicy` vetter inspects the Authentication Policies and looks for the following misconfigurations:
 
-The `InvalidServiceForJWTPolicy` vetter inspects the port names defined in the Authentication Policies target Service and 
-generates notes if they are missing the following Istio recognized port protocol prefixes:
-
-* http
-* http2
-* https
+- Invalid target service port names - Generates notes if the target service is missing the following Istio recognized port protocol prefixes:
+    - http
+    - http2
+    - https
+- Missing target service - Generates a note if the target service can not be found in the same namespace as the Authentication Policy.
 
 ## Notes Generated
 
