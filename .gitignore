@@ -2,3 +2,4 @@
 /pkg/generated
 /_build
 *.coverprofile
+.idea/
