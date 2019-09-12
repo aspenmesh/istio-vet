@@ -9,5 +9,5 @@ generates notes if they are missing the following Istio recognized port protocol
 
 ## Notes Generated
 
-- [Invalid Service For JWT Authentication Policy](README-invalid-service-for-jwt-authentication-policy.md)
-- [Target Service Not Found For JWT Authentication Policy](README-target-service-not-found-for-jwt-authentication-policy.md)
+- [Invalid Service For JWT Authentication Policy](README-invalid-target-service-port-name.md)
+- [Target Service Not Found For JWT Authentication Policy](README-missing-target-service.md)
