@@ -125,6 +125,10 @@ It includes:
     This vetter generates warnings if the same host is defined in multiple
     virtual service resources.
 
+  * [invalidserviceforjwtpolicy](https://github.com/aspenmesh/istio-vet/blob/master/pkg/vetter/invalidserviceforjwtpolicy/README.md) -
+    This vetter generates notes if the target service in the JWT enabled
+    Authentication  Policy is invalid.
+
 More details about vetters can be found in the individual vetters package
 documentation.
 
