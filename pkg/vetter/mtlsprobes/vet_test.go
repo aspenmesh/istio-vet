@@ -36,7 +36,7 @@ var _ = Describe("Get an Endpoint Address that refers to a pod", func() {
 			metav1.ObjectMeta{
 				Name:         "Pod1",
 				Namespace:    namespace,
-				Initializers: &metav1.Initializers{}},
+			},
 			corev1.PodSpec{},
 			corev1.PodStatus{}}
 
@@ -61,7 +61,7 @@ var _ = Describe("Get an Endpoint Address that refers to a pod", func() {
 			metav1.TypeMeta{},
 			metav1.ObjectMeta{
 				Namespace:    namespace,
-				Initializers: &metav1.Initializers{}},
+			},
 			[]corev1.EndpointSubset{
 				{
 					Addresses: []corev1.EndpointAddress{Pod1EpAddress}}}}
@@ -71,7 +71,7 @@ var _ = Describe("Get an Endpoint Address that refers to a pod", func() {
 			metav1.TypeMeta{},
 			metav1.ObjectMeta{
 				Namespace:    namespace,
-				Initializers: &metav1.Initializers{}},
+			},
 			[]corev1.EndpointSubset{
 				{
 					Addresses: []corev1.EndpointAddress{RandomPodEpAddress}}}}
@@ -81,7 +81,7 @@ var _ = Describe("Get an Endpoint Address that refers to a pod", func() {
 			metav1.TypeMeta{},
 			metav1.ObjectMeta{
 				Namespace:    namespace,
-				Initializers: &metav1.Initializers{}},
+			},
 			[]corev1.EndpointSubset{
 				{
 					Addresses: []corev1.EndpointAddress{RandomPodEpAddress, Pod1EpAddress}}}}
@@ -91,7 +91,7 @@ var _ = Describe("Get an Endpoint Address that refers to a pod", func() {
 			metav1.TypeMeta{},
 			metav1.ObjectMeta{
 				Namespace:    namespace,
-				Initializers: &metav1.Initializers{}},
+			},
 			[]corev1.EndpointSubset{
 				{
 					Addresses: []corev1.EndpointAddress{RandomPodEpAddress}},
@@ -185,7 +185,7 @@ var _ = Describe("Know when mTLS is correctly configured for a liveness/readines
 				ObjectMeta: metav1.ObjectMeta{
 					Name:         "Policy1",
 					Namespace:    namespace,
-					Initializers: &metav1.Initializers{}},
+				},
 				Spec: authv1alpha1api.PolicySpec{
 					Policy: istiov1alpha1.Policy{
 						Targets: []*istiov1alpha1.TargetSelector{
@@ -204,7 +204,7 @@ var _ = Describe("Know when mTLS is correctly configured for a liveness/readines
 				ObjectMeta: metav1.ObjectMeta{
 					Name:         "Policy2",
 					Namespace:    namespace,
-					Initializers: &metav1.Initializers{}},
+				},
 				Spec: authv1alpha1api.PolicySpec{
 					Policy: istiov1alpha1.Policy{
 						Targets: []*istiov1alpha1.TargetSelector{
@@ -223,7 +223,7 @@ var _ = Describe("Know when mTLS is correctly configured for a liveness/readines
 				ObjectMeta: metav1.ObjectMeta{
 					Name:         "Policy3",
 					Namespace:    namespace,
-					Initializers: &metav1.Initializers{}},
+				},
 				Spec: authv1alpha1api.PolicySpec{
 					Policy: istiov1alpha1.Policy{
 						Targets: []*istiov1alpha1.TargetSelector{
@@ -240,7 +240,7 @@ var _ = Describe("Know when mTLS is correctly configured for a liveness/readines
 				ObjectMeta: metav1.ObjectMeta{
 					Name:         "Policy4",
 					Namespace:    namespace,
-					Initializers: &metav1.Initializers{}},
+				},
 				Spec: authv1alpha1api.PolicySpec{
 					Policy: istiov1alpha1.Policy{
 						Targets: []*istiov1alpha1.TargetSelector{
@@ -257,7 +257,7 @@ var _ = Describe("Know when mTLS is correctly configured for a liveness/readines
 				ObjectMeta: metav1.ObjectMeta{
 					Name:         "default",
 					Namespace:    namespace,
-					Initializers: &metav1.Initializers{}},
+				},
 				Spec: authv1alpha1api.PolicySpec{
 					Policy: istiov1alpha1.Policy{
 						Targets: []*istiov1alpha1.TargetSelector{},
@@ -271,7 +271,7 @@ var _ = Describe("Know when mTLS is correctly configured for a liveness/readines
 				ObjectMeta: metav1.ObjectMeta{
 					Name:         "default",
 					Namespace:    namespace,
-					Initializers: &metav1.Initializers{}},
+				},
 				Spec: authv1alpha1api.PolicySpec{
 					Policy: istiov1alpha1.Policy{
 						Targets: []*istiov1alpha1.TargetSelector{},
@@ -282,7 +282,7 @@ var _ = Describe("Know when mTLS is correctly configured for a liveness/readines
 				metav1.ObjectMeta{
 					Name:         "Foo",
 					Namespace:    namespace,
-					Initializers: &metav1.Initializers{}},
+				},
 				[]corev1.EndpointSubset{}}
 
 			It("Returns false when an empty auth policy list is passed and global mTLS is disabled",

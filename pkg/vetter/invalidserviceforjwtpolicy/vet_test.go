@@ -50,7 +50,7 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:         "jwt-example",
 			Namespace:    namespace,
-			Initializers: &metav1.Initializers{}},
+		},
 		Spec: authv1alpha1api.PolicySpec{
 			Policy: istiov1alpha1.Policy{
 				Origins: []*istiov1alpha1.OriginAuthenticationMethod{
@@ -82,7 +82,6 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "httpbin",
 						Namespace: namespace,
-						Initializers: &metav1.Initializers{},
 					},
 					Spec: corev1.ServiceSpec{
 						Ports: []corev1.ServicePort{
@@ -118,7 +117,6 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "httpbin",
 						Namespace: namespace,
-						Initializers: &metav1.Initializers{},
 					},
 					Spec: corev1.ServiceSpec{
 						Ports: []corev1.ServicePort{
@@ -154,7 +152,6 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "httpbin",
 						Namespace: namespace,
-						Initializers: &metav1.Initializers{},
 					},
 					Spec: corev1.ServiceSpec{
 						Ports: []corev1.ServicePort{
@@ -190,7 +187,6 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "httpbin",
 						Namespace: namespace,
-						Initializers: &metav1.Initializers{},
 					},
 					Spec: corev1.ServiceSpec{
 						Ports: []corev1.ServicePort{
@@ -226,7 +222,6 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "httpbin",
 						Namespace: namespace,
-						Initializers: &metav1.Initializers{},
 					},
 					Spec: corev1.ServiceSpec{
 						Ports: []corev1.ServicePort{
@@ -262,7 +257,6 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "httpbin",
 						Namespace: namespace,
-						Initializers: &metav1.Initializers{},
 					},
 					Spec: corev1.ServiceSpec{
 						Ports: []corev1.ServicePort{
@@ -310,7 +304,6 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "httpbin",
 						Namespace: namespace,
-						Initializers: &metav1.Initializers{},
 					},
 					Spec: corev1.ServiceSpec{
 						Ports: []corev1.ServicePort{
@@ -371,7 +364,6 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "httpbin",
 						Namespace: namespace,
-						Initializers: &metav1.Initializers{},
 					},
 					Spec: corev1.ServiceSpec{
 						Ports: []corev1.ServicePort{
