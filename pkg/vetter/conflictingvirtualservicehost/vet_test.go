@@ -39,7 +39,7 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:         "Vs1",
 				Namespace:    namespace,
-				Initializers: &metav1.Initializers{}},
+			},
 			Spec: v1alpha3.VirtualServiceSpec{
 				VirtualService: istiov1alpha3.VirtualService{
 					Hosts: []string{"host1", "host2"}}}}
@@ -48,7 +48,7 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:         "Vs2",
 				Namespace:    namespace,
-				Initializers: &metav1.Initializers{}},
+			},
 			Spec: v1alpha3.VirtualServiceSpec{
 				VirtualService: istiov1alpha3.VirtualService{
 					Hosts: []string{"host2"}}}}
@@ -56,7 +56,7 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:         "Vs3",
 				Namespace:    namespace,
-				Initializers: &metav1.Initializers{}},
+			},
 			Spec: v1alpha3.VirtualServiceSpec{
 				VirtualService: istiov1alpha3.VirtualService{
 					Hosts: []string{"host3", "host4"}}}}
@@ -65,7 +65,7 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:         "Vs4",
 				Namespace:    namespace,
-				Initializers: &metav1.Initializers{}},
+			},
 			Spec: v1alpha3.VirtualServiceSpec{
 				VirtualService: istiov1alpha3.VirtualService{
 					Hosts: []string{"foo.com"}}}}
@@ -74,7 +74,7 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:         "Vs5",
 				Namespace:    "foo",
-				Initializers: &metav1.Initializers{}},
+			},
 			Spec: v1alpha3.VirtualServiceSpec{
 				VirtualService: istiov1alpha3.VirtualService{
 					Hosts: []string{"host1"}}}}
@@ -83,7 +83,7 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:         "Vs6",
 				Namespace:    "foo",
-				Initializers: &metav1.Initializers{}},
+			},
 			Spec: v1alpha3.VirtualServiceSpec{
 				VirtualService: istiov1alpha3.VirtualService{
 					Hosts: []string{"foo.com"}}}}
@@ -92,7 +92,7 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:         "Vs7",
 				Namespace:    namespace,
-				Initializers: &metav1.Initializers{}},
+			},
 			Spec: v1alpha3.VirtualServiceSpec{
 				VirtualService: istiov1alpha3.VirtualService{
 					Hosts: []string{"*.com"}}}}
@@ -101,7 +101,7 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:         "Vs8",
 				Namespace:    namespace,
-				Initializers: &metav1.Initializers{}},
+			},
 			Spec: v1alpha3.VirtualServiceSpec{
 				VirtualService: istiov1alpha3.VirtualService{
 					Hosts: []string{"foo.com", "*.com"}}}}
@@ -110,7 +110,7 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:         "Vs9",
 				Namespace:    namespace,
-				Initializers: &metav1.Initializers{}},
+			},
 			Spec: v1alpha3.VirtualServiceSpec{
 				VirtualService: istiov1alpha3.VirtualService{
 					Hosts:    []string{"host1"},
@@ -119,7 +119,7 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:         "Vs10",
 				Namespace:    namespace,
-				Initializers: &metav1.Initializers{}},
+			},
 			Spec: v1alpha3.VirtualServiceSpec{
 				VirtualService: istiov1alpha3.VirtualService{
 					Hosts:    []string{"host1", "host2"},

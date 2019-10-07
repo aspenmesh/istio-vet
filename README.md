@@ -142,7 +142,6 @@ being included in this project. Please include your github username in the CLA e
 To build Istio-Vet locally, you will need to install the following:
 
 * A [Go environment](https://golang.org/doc/install).
-* Install [dep](https://golang.github.io/dep/docs/installation.html)
 * Install [Protobuf](https://github.com/golang/protobuf).
   * The Google protobuf compiler (a standalone binary named protoc) needs to be installed first. You can get it by downloading the corresponding file for your system from https://github.com/google/protobuf/releases.
 
@@ -179,13 +178,9 @@ Fork and clone this repo into your aspenmesh folder, then cd into istio-vet
 
 ### Build Istio-Vet
 
-* In the directory where you installed Istio-Vet, run
-    ```bash
-    dep ensure -vendor-only
-    ```
 * Install protobuf to the project's vendor directory
     ```bash
-    go install ./vendor/github.com/golang/protobuf/protoc-gen-go
+    go get github.com/golang/protobuf/protoc-gen-go
     ```
 * Run `make clean` and then `make` to compile.
 

@@ -47,7 +47,7 @@ info:
 ############################################################################
 
 go-build: $(GENERATED_GO)
-	go install $(GO_BUILD_FLAGS) $(ALL_PKGS)
+	GO111MODULE=on go install $(GO_BUILD_FLAGS) $(ALL_PKGS)
 
 fmt:
 	@if git diff --exit-code; then true; \
@@ -61,12 +61,10 @@ test: go-test
 go-test: _build/coverage.out
 
 _build/coverage.out:
-	go install -v \
-		./vendor/github.com/wadey/gocovmerge
-	go install -v \
-		./vendor/github.com/onsi/ginkgo/ginkgo
+	GO111MODULE=on go get github.com/wadey/gocovmerge
+	GO111MODULE=on go get github.com/onsi/ginkgo/ginkgo
 	@mkdir -p $(@D)
-	ginkgo -r  \
+	GO111MODULE=on ginkgo -r  \
     --randomizeAllSpecs \
     --randomizeSuites \
     --failOnPending \
