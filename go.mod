@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	cloud.google.com/go v0.41.0
-	github.com/aspenmesh/istio-client-go v0.0.0-20191007202742-7bff6df18eb2
+	github.com/aspenmesh/istio-client-go v0.0.0-20191008195124-019e33fb6a57
 	github.com/cnf/structhash v0.0.0-20180104161610-62a607eb0224
 	github.com/davecgh/go-spew v1.1.1
 	github.com/fsnotify/fsnotify v1.4.7
@@ -50,7 +50,14 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7
 	gopkg.in/yaml.v2 v2.2.2
 	istio.io/api v0.0.0-20190820204432-483f2547d882
-	k8s.io/api v0.0.0-20190923155552-eac758366a00
-	k8s.io/apimachinery v0.0.0-20190923155427-ec87dd743e08
-	k8s.io/client-go v0.0.0-20190923155754-2bd34d193bac
+	k8s.io/api v0.0.0-20190620084959-7cf5895f2711
+	k8s.io/apimachinery v0.0.0-20190612205821-1799e75a0719
+	k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
+	k8s.io/code-generator v0.0.0-20190923155300-6206bfaf5c98 // indirect
+)
+
+replace (
+	k8s.io/api => k8s.io/api v0.0.0-20190620084959-7cf5895f2711
+	k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190612205821-1799e75a0719
+	k8s.io/client-go => k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
 )
