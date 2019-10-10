@@ -24,6 +24,8 @@ github.com/aspenmesh/istio-client-go v0.0.0-20191007202742-7bff6df18eb2 h1:dlI2H
 github.com/aspenmesh/istio-client-go v0.0.0-20191007202742-7bff6df18eb2/go.mod h1:vfo6sAMeWZersvq/iFM8XaFCF2eV4fsgd6tYLBTcDMo=
 github.com/aspenmesh/istio-client-go v0.0.0-20191008195124-019e33fb6a57 h1:YLiLdh5RVGfuMAxS13revHATzdPebxMpmoLrs2EGPts=
 github.com/aspenmesh/istio-client-go v0.0.0-20191008195124-019e33fb6a57/go.mod h1:OuxsQxqgycYZvkd795DCsHm65+mc5ZkseBY1dR06HUQ=
+github.com/aspenmesh/istio-client-go v0.0.0-20191010215625-4de6e89009c4 h1:SB8uwWlnIIN6W0BD2xEuXtsHde9pzxg01CAEDKLed6o=
+github.com/aspenmesh/istio-client-go v0.0.0-20191010215625-4de6e89009c4/go.mod h1:kQHJUX5gtqzlUrN8yK2MOL2BCg13H1XBYq5hACxs+Uo=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/cnf/structhash v0.0.0-20180104161610-62a607eb0224 h1:rnCKRrdSBqc061l0CDuYB+7X3w6w8IK/VCSChJXv62g=
 github.com/cnf/structhash v0.0.0-20180104161610-62a607eb0224/go.mod h1:pCxVEbcm3AMg7ejXyorUXi6HQCzOIBf7zEDVPtw0/U4=
