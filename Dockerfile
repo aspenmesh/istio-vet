@@ -14,10 +14,11 @@ RUN curl -L -O \
  && mkdir -p /usr/local \
  && unzip protoc-3.4.0-linux-x86_64.zip -d /usr/local
 
-# Copy the locked go dependencies into vendor
+# Download the locked go dependencies
 COPY go.mod go.sum ./
+RUN GO111MODULE=on go mod download
 
-RUN GO111MODULE=on go get github.com/golang/protobuf/protoc-gen-go
+RUN GO111MODULE=on go install github.com/golang/protobuf/protoc-gen-go
 
 COPY Makefile Makefile
 
