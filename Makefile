@@ -61,8 +61,8 @@ test: go-test
 go-test: _build/coverage.out
 
 _build/coverage.out:
-	GO111MODULE=on go get github.com/wadey/gocovmerge
-	GO111MODULE=on go get github.com/onsi/ginkgo/ginkgo
+	GO111MODULE=on go install github.com/wadey/gocovmerge
+	GO111MODULE=on go install github.com/onsi/ginkgo/ginkgo
 	@mkdir -p $(@D)
 	GO111MODULE=on ginkgo -r  \
     --randomizeAllSpecs \
