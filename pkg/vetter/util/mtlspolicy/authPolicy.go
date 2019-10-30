@@ -216,9 +216,9 @@ func getModeFromPeers(peerAuthMethods []*istioauthv1alpha1.PeerAuthenticationMet
 	// peerAuthMethods is checked for being Empty in the calling function.
 
 	// Per peerAuthMethod, check if it lists mtls in any way, then check for
-	// mtls Mode. Count the number of enabled or mixed methods to determine the
+	// mtls Mode. Count the number of enabled or disabled methods to determine the
 	// final mtls state for this policy.
-	var enabled, mixed int
+	var enabled, disabled int
 	for _, pam := range peerAuthMethods {
 		// PeerAuthenticationMethod could be JWT or multiple mtls settings.
 		if pam.GetMtls() != nil {
@@ -228,7 +228,7 @@ func getModeFromPeers(peerAuthMethods []*istioauthv1alpha1.PeerAuthenticationMet
 			if peerMode == istioauthv1alpha1.MutualTls_STRICT {
 				enabled++
 			} else {
-				mixed++
+				disabled++
 			}
 		} else {
 			// A peer section exists, but the peer authentication methods are
@@ -240,11 +240,9 @@ func getModeFromPeers(peerAuthMethods []*istioauthv1alpha1.PeerAuthenticationMet
 			}
 		}
 	}
-	// If there is any occurrance of mixed, nothing else matters. If !mixed,
-	// check for enabled DISABLED will be returned in cases where there is a
-	// Peer Authentication Method, but it is JWT instead of mTls and there is no
-	// other mTls setting for the policy
-	if mixed != 0 {
+	// If there are occurrences of of disabled and enabled it is mixed. Otherwise,
+	// it will be enabled or disabled.
+	if disabled != 0 && enabled != 0 {
 		mtlsState = MTLSSetting_MIXED
 	} else if enabled != 0 {
 		mtlsState = MTLSSetting_ENABLED
@@ -267,9 +265,8 @@ func evaluateMTlsForPeer(peers []*istioauthv1alpha1.PeerAuthenticationMethod, pe
 	} else if peerOptional == true {
 		// If Peers has at least one item in the list, check to see if the user
 		// set PeerIsOptional == true. If so, this overrides any other mtls
-		// settings. Functionality is broken in Istio1.0, but is fixed as of
-		// Istio 1.3
-		mtlsState = MTLSSetting_MIXED
+		// settings and is considered mtls-disabled
+		mtlsState = MTLSSetting_DISABLED
 	} else {
 		mtlsState = getModeFromPeers(peers)
 	}
