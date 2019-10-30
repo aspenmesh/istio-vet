@@ -320,7 +320,7 @@ var _ = Describe("Check TLS Details from AuthPolicies", func() {
 		ns2svc1, pol, err := loaded.TLSDetailsByName(Service{Namespace: "ns2", Name: "ns2-svc1"})
 		Expect(err).To(BeNil())
 		Expect(pol).ToNot(BeNil())
-		Expect(ns2svc1).To(Equal(MTLSSetting_MIXED))
+		Expect(ns2svc1).To(Equal(MTLSSetting_DISABLED))
 
 		ns3svc1, pol, err := loaded.TLSDetailsByName(Service{Namespace: "ns3", Name: "ns3-svc1"})
 		Expect(err).Should(MatchError("Conflicting policies for service by name"))
@@ -335,7 +335,7 @@ var _ = Describe("Check TLS Details from AuthPolicies", func() {
 		ns4svc2, pol, err := loaded.TLSDetailsByPort(Service{Namespace: "ns4", Name: "ns4-svc2"}, uint32(8456))
 		Expect(err).To(BeNil())
 		Expect(pol).ToNot(BeNil())
-		Expect(ns4svc2).To(Equal(MTLSSetting_MIXED))
+		Expect(ns4svc2).To(Equal(MTLSSetting_DISABLED))
 
 	})
 })
@@ -511,8 +511,8 @@ var _ = Describe("ForEachPolByPort()", func() {
 			loadedOn.ForEachPolByPort(s, cb)
 
 			Expect(enabled).To(Equal(2))
-			Expect(disabled).To(Equal(1))
-			Expect(mixed).To(Equal(1))
+			Expect(disabled).To(Equal(2))
+			Expect(mixed).To(Equal(0))
 			Expect(unknown).To(Equal(1))
 		})
 		It("when passed valid policies with different target ports", func() {
@@ -525,8 +525,8 @@ var _ = Describe("ForEachPolByPort()", func() {
 			s := Service{Namespace: "default", Name: "foo"}
 			loadedOn.ForEachPolByPort(s, cb)
 
-			Expect(disabled).To(Equal(0))
-			Expect(mixed).To(Equal(1))
+			Expect(disabled).To(Equal(1))
+			Expect(mixed).To(Equal(0))
 		})
 		It("when passed valid policies with NO target port", func() {
 			loadedOn, err := LoadAuthPolicies([]*authv1alpha1.Policy{
@@ -550,7 +550,7 @@ var _ = Describe("getModeFromPeers()", func() {
 
 		It("returns MIXED when len() == 1 && Mode is set to permissive", func() {
 			mtlsState := getModeFromPeers(peersPermissive)
-			Expect(mtlsState).To(Equal(MTLSSetting_MIXED))
+			Expect(mtlsState).To(Equal(MTLSSetting_DISABLED))
 		})
 		It("returns ENABLED when len() == 1 && the Mode is STRICT", func() {
 			mtlsState := getModeFromPeers(peersStrict)
@@ -561,7 +561,7 @@ var _ = Describe("getModeFromPeers()", func() {
 			mtlsState := getModeFromPeers(peersMixed)
 			Expect(mtlsState).To(Equal(MTLSSetting_MIXED))
 		})
-		It("returns ENABLED when there are multiple options enabling auth", func() {
+		It("returns MIXED when there are multiple options enabling auth", func() {
 			mtlsState := getModeFromPeers(peersEnabledPlusJWT)
 			Expect(mtlsState).To(Equal(MTLSSetting_ENABLED))
 		})
@@ -575,10 +575,10 @@ var _ = Describe("getModeFromPeers()", func() {
 var _ = Describe("evaluateMTlsForPeer()", func() {
 	Context("takes a set of peers and the peerIsOptional setting, and returns an mTls setting", func() {
 
-		It("when peerIsOptional is true, it returns MIXED", func() {
+		It("when peerIsOptional is true, it returns DISABLED", func() {
 			pio := true
 			mtlsState := evaluateMTlsForPeer(peersEnabledPlusJWT, pio)
-			Expect(mtlsState).To(Equal(MTLSSetting_MIXED))
+			Expect(mtlsState).To(Equal(MTLSSetting_DISABLED))
 		})
 		It("when there are no peers, pio is ignored and mtls is DISABLED", func() {
 			pio := true
