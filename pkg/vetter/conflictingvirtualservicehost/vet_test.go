@@ -37,8 +37,8 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 
 		var Vs1 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:         "Vs1",
-				Namespace:    namespace,
+				Name:      "Vs1",
+				Namespace: namespace,
 			},
 			Spec: v1alpha3.VirtualServiceSpec{
 				VirtualService: istiov1alpha3.VirtualService{
@@ -46,16 +46,16 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 
 		var Vs2 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:         "Vs2",
-				Namespace:    namespace,
+				Name:      "Vs2",
+				Namespace: namespace,
 			},
 			Spec: v1alpha3.VirtualServiceSpec{
 				VirtualService: istiov1alpha3.VirtualService{
 					Hosts: []string{"host2"}}}}
 		var Vs3 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:         "Vs3",
-				Namespace:    namespace,
+				Name:      "Vs3",
+				Namespace: namespace,
 			},
 			Spec: v1alpha3.VirtualServiceSpec{
 				VirtualService: istiov1alpha3.VirtualService{
@@ -63,8 +63,8 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 
 		var Vs4 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:         "Vs4",
-				Namespace:    namespace,
+				Name:      "Vs4",
+				Namespace: namespace,
 			},
 			Spec: v1alpha3.VirtualServiceSpec{
 				VirtualService: istiov1alpha3.VirtualService{
@@ -72,8 +72,8 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 
 		var Vs5 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:         "Vs5",
-				Namespace:    "foo",
+				Name:      "Vs5",
+				Namespace: "foo",
 			},
 			Spec: v1alpha3.VirtualServiceSpec{
 				VirtualService: istiov1alpha3.VirtualService{
@@ -81,8 +81,8 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 
 		var Vs6 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:         "Vs6",
-				Namespace:    "foo",
+				Name:      "Vs6",
+				Namespace: "foo",
 			},
 			Spec: v1alpha3.VirtualServiceSpec{
 				VirtualService: istiov1alpha3.VirtualService{
@@ -90,8 +90,8 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 
 		var Vs7 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:         "Vs7",
-				Namespace:    namespace,
+				Name:      "Vs7",
+				Namespace: namespace,
 			},
 			Spec: v1alpha3.VirtualServiceSpec{
 				VirtualService: istiov1alpha3.VirtualService{
@@ -99,8 +99,8 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 
 		var Vs8 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:         "Vs8",
-				Namespace:    namespace,
+				Name:      "Vs8",
+				Namespace: namespace,
 			},
 			Spec: v1alpha3.VirtualServiceSpec{
 				VirtualService: istiov1alpha3.VirtualService{
@@ -108,8 +108,8 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 
 		var Vs9 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:         "Vs9",
-				Namespace:    namespace,
+				Name:      "Vs9",
+				Namespace: namespace,
 			},
 			Spec: v1alpha3.VirtualServiceSpec{
 				VirtualService: istiov1alpha3.VirtualService{
@@ -117,8 +117,8 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 					Gateways: []string{"gateway1"}}}}
 		var Vs10 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:         "Vs10",
-				Namespace:    namespace,
+				Name:      "Vs10",
+				Namespace: namespace,
 			},
 			Spec: v1alpha3.VirtualServiceSpec{
 				VirtualService: istiov1alpha3.VirtualService{
@@ -127,42 +127,42 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 
 		It("Does not generate notes when passed an empty list of VirtualServices", func() {
 			vsList := []*v1alpha3.VirtualService{}
-			vsNotes, err := createVirtualServiceNotes(vsList)
+			vsNotes, err := CreateVirtualServiceNotes(vsList)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vsNotes).To(HaveLen(0))
 		})
 
 		It("Does not generate notes when all (short name) hosts are unique", func() {
 			vsList := []*v1alpha3.VirtualService{Vs1, Vs3}
-			vsNotes, err := createVirtualServiceNotes(vsList)
+			vsNotes, err := CreateVirtualServiceNotes(vsList)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vsNotes).To(HaveLen(0))
 		})
 
 		It("Does not generate notes when short host names are the same, but are in different namespaces", func() {
 			vsList := []*v1alpha3.VirtualService{Vs1, Vs5}
-			vsNotes, err := createVirtualServiceNotes(vsList)
+			vsNotes, err := CreateVirtualServiceNotes(vsList)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vsNotes).To(HaveLen(0))
 		})
 
 		It("Does not generate notes when host names are the same, but have different gateways", func() {
 			vsList := []*v1alpha3.VirtualService{Vs9, Vs10}
-			vsNotes, err := createVirtualServiceNotes(vsList)
+			vsNotes, err := CreateVirtualServiceNotes(vsList)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vsNotes).To(HaveLen(0))
 		})
 
 		It("Does not generate notes when a specific hostname and a similar hostname with a wildcard are defined", func() {
 			vsList := []*v1alpha3.VirtualService{Vs6, Vs7}
-			vsNotes, err := createVirtualServiceNotes(vsList)
+			vsNotes, err := CreateVirtualServiceNotes(vsList)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vsNotes).To(HaveLen(0))
 		})
 
 		It("Generates a note when 2 short host names are identical and in the same namespace", func() {
 			vsList := []*v1alpha3.VirtualService{Vs1, Vs2}
-			vsNotes, err := createVirtualServiceNotes(vsList)
+			vsNotes, err := CreateVirtualServiceNotes(vsList)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vsNotes).To(HaveLen(1))
 			expectedNote := &apiv1.Note{
@@ -180,7 +180,7 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 
 		It("Generates a note when the same hostname is defined in 2 different namespaces", func() {
 			vsList := []*v1alpha3.VirtualService{Vs4, Vs6}
-			vsNotes, err := createVirtualServiceNotes(vsList)
+			vsNotes, err := CreateVirtualServiceNotes(vsList)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vsNotes).To(HaveLen(1))
 			expectedNote := &apiv1.Note{
@@ -198,7 +198,7 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 
 		It("Generates multiple notes with the correct number of VirtualService names when there are multiple conflicts found", func() {
 			vsList := []*v1alpha3.VirtualService{Vs1, Vs3, Vs4, Vs5, Vs6, Vs7, Vs8}
-			vsNotes, err := createVirtualServiceNotes(vsList)
+			vsNotes, err := CreateVirtualServiceNotes(vsList)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vsNotes).To(HaveLen(2))
 			expectedNote1 := &apiv1.Note{
