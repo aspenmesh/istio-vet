@@ -50,9 +50,9 @@ type hostAndGateway struct {
 
 type VirtualSvcByHostAndGateway map[hostAndGateway][]*v1alpha3.VirtualService
 
-// createVirtualServiceNotes checks for multiple vs defining the same host and
+// CreateVirtualServiceNotes checks for multiple vs defining the same host and
 // generates notes for these cases
-func createVirtualServiceNotes(virtualServices []*v1alpha3.VirtualService) ([]*apiv1.Note, error) {
+func CreateVirtualServiceNotes(virtualServices []*v1alpha3.VirtualService) ([]*apiv1.Note, error) {
 	vsByHostAndGateway := VirtualSvcByHostAndGateway{}
 	for _, vs := range virtualServices {
 		for _, host := range vs.Spec.GetHosts() {
@@ -120,7 +120,7 @@ func (v *VsHost) Vet() ([]*apiv1.Note, error) {
 		fmt.Printf("Error occurred retrieving VirtualServices: %s\n", err.Error())
 		return nil, err
 	}
-	notes, err := createVirtualServiceNotes(virtualServices)
+	notes, err := CreateVirtualServiceNotes(virtualServices)
 	if err != nil {
 		fmt.Printf("Error creating Conflicting VirtualService notes: %s\n", err.Error())
 		return nil, err
