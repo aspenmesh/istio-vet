@@ -32,8 +32,10 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 	Context("With fake VirtualServices", func() {
 		namespace := "bar"
 		vsHostNoteType := "host-in-multiple-vs"
-		vsHostSummary := "Multiple VirtualServices define the same host (${host}) and gateway (${gateway})"
-		vsHostMsg := "The VirtualServices ${vs_names} define the same host (${host}) and gateway (${gateway}). A VirtualService must have a unique combination of host and gateway. Consider updating the VirtualServices to have unique hostname and gateway."
+		vsHostSummary := "Multiple VirtualServices define the same host (${host}) and gateway (${gateway}) and conflict"
+		vsHostMsg := "The VirtualServices ${vs_names} with routes ${routes}" +
+			" define the same host (${host}) and gateway (${gateway}) and conflict. A VirtualService must have a unique combination of host and gateway or must not conflict." +
+			" Consider updating the VirtualServices to have unique hostname and gateway or remove one of the conflicting rules."
 
 		var Vs1 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
 			ObjectMeta: metav1.ObjectMeta{
@@ -97,14 +99,14 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 				VirtualService: istiov1alpha3.VirtualService{
 					Hosts: []string{"*.com"}}}}
 
-		var Vs8 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "Vs8",
-				Namespace: namespace,
-			},
-			Spec: v1alpha3.VirtualServiceSpec{
-				VirtualService: istiov1alpha3.VirtualService{
-					Hosts: []string{"foo.com", "*.com"}}}}
+		// var Vs8 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
+		// 	ObjectMeta: metav1.ObjectMeta{
+		// 		Name:      "Vs8",
+		// 		Namespace: namespace,
+		// 	},
+		// Spec: v1alpha3.VirtualServiceSpec{
+		// 	VirtualService: istiov1alpha3.VirtualService{
+		// 		Hosts: []string{"foo.com", "*.com"}}}}
 
 		var Vs9 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
 			ObjectMeta: metav1.ObjectMeta{
@@ -124,6 +126,68 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 				VirtualService: istiov1alpha3.VirtualService{
 					Hosts:    []string{"host1", "host2"},
 					Gateways: []string{"gateway2"}}}}
+		var Vs11 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "Vs11",
+				Namespace: namespace,
+			},
+			Spec: v1alpha3.VirtualServiceSpec{
+				VirtualService: istiov1alpha3.VirtualService{
+					Hosts: []string{"host1", "host2"}}}}
+
+		prefixRoute := istiov1alpha3.HTTPRoute{Name: "route1",
+			Match: []*istiov1alpha3.HTTPMatchRequest{
+				&istiov1alpha3.HTTPMatchRequest{
+					Name: "",
+					Uri:  &istiov1alpha3.StringMatch{MatchType: &istiov1alpha3.StringMatch_Prefix{Prefix: "/foo"}},
+				},
+			},
+		}
+
+		prefixRoute2Levels := istiov1alpha3.HTTPRoute{Name: "route1",
+			Match: []*istiov1alpha3.HTTPMatchRequest{
+				&istiov1alpha3.HTTPMatchRequest{
+					Name: "",
+					Uri:  &istiov1alpha3.StringMatch{MatchType: &istiov1alpha3.StringMatch_Prefix{Prefix: "/foo/bar"}},
+				},
+			},
+		}
+
+		exactRoute := istiov1alpha3.HTTPRoute{Name: "route1",
+			Match: []*istiov1alpha3.HTTPMatchRequest{
+				&istiov1alpha3.HTTPMatchRequest{
+					Name: "",
+					Uri:  &istiov1alpha3.StringMatch{MatchType: &istiov1alpha3.StringMatch_Exact{Exact: "/foo"}},
+				},
+			},
+		}
+
+		// exactRoute2Levels := istiov1alpha3.HTTPRoute{Name: "route1",
+		// 	Match: []*istiov1alpha3.HTTPMatchRequest{
+		// 		&istiov1alpha3.HTTPMatchRequest{
+		// 			Name: "",
+		// 			Uri:  &istiov1alpha3.StringMatch{MatchType: &istiov1alpha3.StringMatch_Exact{Exact: "/foo/bar"}},
+		// 		},
+		// 	},
+		// }
+
+		// exactRoute3Levels := istiov1alpha3.HTTPRoute{Name: "route1",
+		// 	Match: []*istiov1alpha3.HTTPMatchRequest{
+		// 		&istiov1alpha3.HTTPMatchRequest{
+		// 			Name: "",
+		// 			Uri:  &istiov1alpha3.StringMatch{MatchType: &istiov1alpha3.StringMatch_Exact{Exact: "/foo/bar/baz"}},
+		// 		},
+		// 	},
+		// }
+
+		// regexRoute := istiov1alpha3.HTTPRoute{Name: "route1",
+		// 	Match: []*istiov1alpha3.HTTPMatchRequest{
+		// 		&istiov1alpha3.HTTPMatchRequest{
+		// 			Name: "",
+		// 			Uri:  &istiov1alpha3.StringMatch{MatchType: &istiov1alpha3.StringMatch_Regex{Regex: "a.*"}},
+		// 		},
+		// 	},
+		// }
 
 		It("Does not generate notes when passed an empty list of VirtualServices", func() {
 			vsList := []*v1alpha3.VirtualService{}
@@ -160,20 +224,25 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 			Expect(vsNotes).To(HaveLen(0))
 		})
 
-		It("Generates a note when 2 short host names are identical and in the same namespace", func() {
+		It("Generates a note when 2 routes are identical and in the same namespace", func() {
+			Vs1.Spec.Http = []*istiov1alpha3.HTTPRoute{&exactRoute}
+			Vs2.Spec.Http = []*istiov1alpha3.HTTPRoute{&exactRoute}
 			vsList := []*v1alpha3.VirtualService{Vs1, Vs2}
 			vsNotes, err := CreateVirtualServiceNotes(vsList)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vsNotes).To(HaveLen(1))
+
 			expectedNote := &apiv1.Note{
 				Type:    vsHostNoteType,
 				Summary: vsHostSummary,
 				Msg:     vsHostMsg,
 				Level:   apiv1.NoteLevel_ERROR,
 				Attr: map[string]string{
-					"host":     "host2.bar.svc.cluster.local",
+					"vs_names": "Vs1.bar, Vs2.bar",
+					"host":     "host2.bar.svc.cluster.local host2.bar.svc.cluster.local",
 					"gateway":  "mesh",
-					"vs_names": "Vs1.bar, Vs2.bar"}}
+					"routes":   "/foo exact /foo exact",
+				}}
 			expectedNote.Id = util.ComputeID(expectedNote)
 			Expect(vsNotes[0]).To(Equal(expectedNote))
 		})
@@ -196,36 +265,90 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 			Expect(vsNotes[0]).To(Equal(expectedNote))
 		})
 
-		It("Generates multiple notes with the correct number of VirtualService names when there are multiple conflicts found", func() {
-			vsList := []*v1alpha3.VirtualService{Vs1, Vs3, Vs4, Vs5, Vs6, Vs7, Vs8}
+		FIt("Generates multiple notes with the correct number of VirtualService names when there are multiple conflicts found", func() {
+			Vs1.Spec.Http = []*istiov1alpha3.HTTPRoute{&exactRoute, &prefixRoute}
+			Vs2.Spec.Http = []*istiov1alpha3.HTTPRoute{&prefixRoute2Levels, &exactRoute}
+			Vs11.Spec.Http = []*istiov1alpha3.HTTPRoute{&prefixRoute}
+			vsList := []*v1alpha3.VirtualService{Vs1, Vs2, Vs11}
 			vsNotes, err := CreateVirtualServiceNotes(vsList)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(vsNotes).To(HaveLen(2))
+			Expect(vsNotes).To(HaveLen(8))
 			expectedNote1 := &apiv1.Note{
 				Type:    vsHostNoteType,
 				Summary: vsHostSummary,
 				Msg:     vsHostMsg,
 				Level:   apiv1.NoteLevel_ERROR,
 				Attr: map[string]string{
-					"host":     "foo.com",
+					"routes":   "/foo exact /foo exact",
+					"vs_names": "Vs1.bar, Vs2.bar",
+					"host":     "host2.bar.svc.cluster.local",
 					"gateway":  "mesh",
-					"vs_names": "Vs4.bar, Vs6.foo, Vs8.bar"}}
+				}}
 			expectedNote2 := &apiv1.Note{
 				Type:    vsHostNoteType,
 				Summary: vsHostSummary,
 				Msg:     vsHostMsg,
 				Level:   apiv1.NoteLevel_ERROR,
 				Attr: map[string]string{
-					"host":     "*.com",
 					"gateway":  "mesh",
-					"vs_names": "Vs7.bar, Vs8.bar"}}
+					"routes":   "/foo prefix /foo prefix",
+					"vs_names": "Vs1.bar, Vs11.bar",
+					"host":     "host1.bar.svc.cluster.local host1.bar.svc.cluster.local host2.bar.svc.cluster.local host2.bar.svc.cluster.local",
+				}}
+			expectedNote3 := &apiv1.Note{
+				Type:    vsHostNoteType,
+				Summary: vsHostSummary,
+				Msg:     vsHostMsg,
+				Level:   apiv1.NoteLevel_ERROR,
+				Attr: map[string]string{
+					"vs_names": "Vs1.bar, Vs2.bar",
+					"host":     "host2.bar.svc.cluster.local host2.bar.svc.cluster.local",
+					"gateway":  "mesh",
+					"routes":   "/foo exact /foo exact",
+				}}
+			expectedNote4 := &apiv1.Note{
+				Type:    vsHostNoteType,
+				Summary: vsHostSummary,
+				Msg:     vsHostMsg,
+				Level:   apiv1.NoteLevel_ERROR,
+				Attr: map[string]string{
+					"host":     "host2.bar.svc.cluster.local host2.bar.svc.cluster.local",
+					"gateway":  "mesh",
+					"routes":   "/foo prefix /foo exact",
+					"vs_names": "Vs1.bar, Vs2.bar",
+				}}
+			expectedNote5 := &apiv1.Note{
+				Type:    vsHostNoteType,
+				Summary: vsHostSummary,
+				Msg:     vsHostMsg,
+				Level:   apiv1.NoteLevel_ERROR,
+				Attr: map[string]string{
+					"gateway":  "mesh",
+					"routes":   "/foo exact /foo prefix",
+					"vs_names": "Vs2.bar, Vs11.bar",
+					"host":     "host2.bar.svc.cluster.local host2.bar.svc.cluster.local",
+				}}
 			expectedNote1.Id = util.ComputeID(expectedNote1)
 			expectedNote2.Id = util.ComputeID(expectedNote2)
+			expectedNote3.Id = util.ComputeID(expectedNote3)
+			expectedNote4.Id = util.ComputeID(expectedNote4)
+			expectedNote5.Id = util.ComputeID(expectedNote5)
 			sort.Slice(vsNotes, func(i, j int) bool {
 				return vsNotes[i].Attr["host"] > vsNotes[j].Attr["host"]
 			})
-			Expect(vsNotes[0]).To(Equal(expectedNote1))
-			Expect(vsNotes[1]).To(Equal(expectedNote2))
+			expecteds := []*apiv1.Note{expectedNote1, expectedNote2, expectedNote3, expectedNote4, expectedNote5}
+			for _, note := range vsNotes {
+				found := false
+				for _, expected := range expecteds {
+					if note == expected {
+						found = true
+					}
+					if !found {
+						Expect(false)
+					}
+				}
+			}
+			Expect(true)
 		})
 	})
 })

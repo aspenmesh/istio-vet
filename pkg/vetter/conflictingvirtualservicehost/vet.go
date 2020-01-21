@@ -18,6 +18,7 @@ package conflictingvirtualservicehost
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	v1alpha3 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
@@ -25,18 +26,43 @@ import (
 	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
 	"github.com/aspenmesh/istio-vet/pkg/vetter"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/util"
-	"k8s.io/client-go/listers/core/v1"
+
+	istiov1alpha3 "istio.io/api/networking/v1alpha3"
+	v1 "k8s.io/client-go/listers/core/v1"
 )
 
 const (
 	defaultGateway = "mesh"
 	vetterID       = "ConflictingVirtualServiceHost"
 	vsHostNoteType = "host-in-multiple-vs"
-	vsHostSummary  = "Multiple VirtualServices define the same host (${host}) and gateway (${gateway})"
-	vsHostMsg      = "The VirtualServices ${vs_names}" +
-		" define the same host (${host}) and gateway (${gateway}). A VirtualService must have a unique combination of host and gateway." +
-		" Consider updating the VirtualServices to have unique hostname and gateway."
+	vsHostSummary  = "Multiple VirtualServices define the same host (${host}) and gateway (${gateway}) and conflict"
+	vsHostMsg      = "The VirtualServices ${vs_names} with routes ${routes}" +
+		" define the same host (${host}) and gateway (${gateway}) and conflict. A VirtualService must have a unique combination of host and gateway or must not conflict." +
+		" Consider updating the VirtualServices to have unique hostname and gateway or remove one of the conflicting rules."
 )
+
+type routeRuleType int
+
+const (
+	prefix routeRuleType = iota
+	exact
+	regex
+)
+
+// We need a type that is a Note with the keys
+// that occur in this note "unfolded" (since
+// we want to use that type as a key in a map,
+// but the Attr field in Note is a map and hence
+// unhashable)
+type conflictingVsNote struct {
+	Type    string
+	Summary string
+	Msg     string
+	Level   apiv1.NoteLevel
+	vsNames string
+	gateway string
+	routes  string
+}
 
 // VsHost implements Vetter interface
 type VsHost struct {
@@ -48,7 +74,45 @@ type hostAndGateway struct {
 	hostname string
 }
 
+type routeRule struct {
+	ruleType  routeRuleType
+	route     string
+	vsName    string
+	namespace string
+}
+
+type routeTrie struct {
+	subRoutes  map[string]*routeTrie
+	regexs     []routeRule
+	routeRules []routeRule
+}
+
 type VirtualSvcByHostAndGateway map[hostAndGateway][]*v1alpha3.VirtualService
+
+func asString(rrType routeRuleType) string {
+	if rrType == prefix {
+		return "prefix"
+	} else if rrType == exact {
+		return "exact"
+	} else {
+		return "regex"
+	}
+}
+
+func unwrapNote(note conflictingVsNote, hosts []string) *apiv1.Note {
+	return &apiv1.Note{
+		Type:    note.Type,
+		Summary: note.Summary,
+		Msg:     note.Msg,
+		Level:   apiv1.NoteLevel_ERROR,
+		Attr: map[string]string{
+			"vs_names": note.vsNames,
+			"host":     strings.Join(hosts, " "),
+			"gateway":  note.gateway,
+			"routes":   note.routes,
+		}}
+
+}
 
 // CreateVirtualServiceNotes checks for multiple vs defining the same host and
 // generates notes for these cases
@@ -78,31 +142,196 @@ func CreateVirtualServiceNotes(virtualServices []*v1alpha3.VirtualService) ([]*a
 	}
 
 	// create vet notes
+	noteSet := map[conflictingVsNote][]string{}
 	notes := []*apiv1.Note{}
 	for key, vsList := range vsByHostAndGateway {
 		if len(vsList) > 1 {
-			// there are multiple vs defining a host
-			vsNames := []string{}
-			for _, vs := range vsList {
-				vsName := vs.Name + "." + vs.Namespace
-				vsNames = append(vsNames, vsName)
-
+			conflictingRules := validateMergedVirtualServices(vsList)
+			for _, conflict := range conflictingRules {
+				vs1 := conflict[0]
+				vs2 := conflict[1]
+				vsNames := []string{vs1.vsName + "." + vs1.namespace, vs2.vsName + "." + vs2.namespace}
+				conflictingRoutes := []string{vs1.route + " " + asString(vs1.ruleType),
+					vs2.route + " " + asString(vs2.ruleType)}
+				note := conflictingVsNote{
+					Type:    vsHostNoteType,
+					Summary: vsHostSummary,
+					Msg:     vsHostMsg,
+					Level:   apiv1.NoteLevel_ERROR,
+					vsNames: strings.Join(vsNames, ", "),
+					gateway: key.gateway,
+					routes:  strings.Join(conflictingRoutes, " "),
+				}
+				noteSet[note] = append(noteSet[note], key.hostname)
 			}
-			notes = append(notes, &apiv1.Note{
-				Type:    vsHostNoteType,
-				Summary: vsHostSummary,
-				Msg:     vsHostMsg,
-				Level:   apiv1.NoteLevel_ERROR,
-				Attr: map[string]string{
-					"host":     key.hostname,
-					"gateway":  key.gateway,
-					"vs_names": strings.Join(vsNames, ", ")}})
 		}
+	}
+	for k, v := range noteSet {
+		notes = append(notes, unwrapNote(k, v))
 	}
 	for i := range notes {
 		notes[i].Id = util.ComputeID(notes[i])
 	}
 	return notes, nil
+}
+
+func validateMergedVirtualServices(vsList []*v1alpha3.VirtualService) [][]routeRule {
+	trie := buildMergedVirtualServiceTrie(vsList)
+	// Do not try to validate when there is more than one regex.
+	// Ideally, we should warn when there is more than one (since determining
+	// whether one regex conflicts with another is very difficult), but this
+	// should go in another vetter since reporting that error here would be
+	// awkward and expands the scope of this vetter.
+	if len(trie.regexs) == 1 {
+		return validateVsTrie(trie, trie.regexs[0])
+	} else {
+		return validateVsTrie(trie, routeRule{})
+	}
+}
+
+func buildMergedVirtualServiceTrie(vsList []*v1alpha3.VirtualService) *routeTrie {
+	subRoutes := make(map[string]*routeTrie)
+	trie := &routeTrie{subRoutes: subRoutes, regexs: []routeRule{}, routeRules: []routeRule{}}
+	for _, vs := range vsList {
+		for _, route := range vs.Spec.GetHttp() {
+			for _, match := range route.GetMatch() {
+				addRouteToMergedVsTree(trie, match.GetUri(), vs)
+			}
+		}
+	}
+	return trie
+}
+
+func addRouteToMergedVsTree(trie *routeTrie, match *istiov1alpha3.StringMatch, vs *v1alpha3.VirtualService) {
+	current := trie
+	rRule := getRouteRuleFromMatch(match, vs)
+
+	// Regexs are treated as exceptions to the trie construction rule.
+	// This is largely due to the complexities in determining whether two regexs
+	// conflict.
+	if rRule.ruleType == regex {
+		trie.regexs = append(trie.regexs, rRule)
+		return
+	}
+
+	if strings.HasSuffix("/", rRule.route) {
+		rRule.route = strings.TrimSuffix(rRule.route, "/")
+	}
+
+	// Routes have leading slashes, remove the leading empty string from the array after the split
+	components := strings.Split(rRule.route, "/")[1:]
+	for count, component := range components {
+		if next, ok := current.subRoutes[component]; ok {
+			if count == len(components)-1 {
+				next.routeRules = append(next.routeRules, rRule)
+			} else {
+				current = next
+			}
+		} else {
+			newSubRoutes := make(map[string]*routeTrie)
+			// This is the final component in a route rule and a new node is created for it
+			if count == len(components)-1 {
+				current.subRoutes[component] = &routeTrie{subRoutes: newSubRoutes, routeRules: []routeRule{rRule}}
+			} else {
+				newSubRoute := &routeTrie{subRoutes: newSubRoutes, routeRules: []routeRule{}}
+				current.subRoutes[component] = newSubRoute
+				current = newSubRoute
+			}
+		}
+	}
+}
+
+func validateVsTrie(routeTrie *routeTrie, rRule routeRule) [][]routeRule {
+	conflictingRules := [][]routeRule{}
+	for _, rule := range routeTrie.routeRules {
+		if conflict(rRule, rule) {
+			conflictingRules = append(conflictingRules, []routeRule{rRule, rule})
+		}
+	}
+
+	for _, descendant := range routeTrie.subRoutes {
+		if len(descendant.routeRules) == 0 {
+			conflictingRules = append(conflictingRules, validateVsTrie(descendant, rRule)...)
+		} else {
+			// Recurse down but carefully! We want to report all conflicts and,
+			// if we recurse in the previous for loop (with descendantRule as the "rRule" variable),
+			// Then we'll skip potential conflicts with the current route rule.
+			oldRouteRules := make([]routeRule, len(descendant.routeRules))
+			copy(oldRouteRules, descendant.routeRules)
+			for _, rule := range append(descendant.routeRules, rRule) {
+				if conflict(rRule, rule) {
+					conflictingRules = append(conflictingRules, []routeRule{rRule, rule})
+				}
+				if len(descendant.routeRules) > 0 {
+					// remove "rule" to prevent double counting of conflicts
+					descendant.routeRules = descendant.routeRules[1:]
+				}
+
+				conflictingRules = append(conflictingRules, validateVsTrie(descendant, rule)...)
+			}
+			// once done processing, restore route rules to prevent under counting.
+			descendant.routeRules = oldRouteRules
+		}
+	}
+	return conflictingRules
+}
+
+// Document what's going on here better. Break down the cases, etc.,
+func conflict(ancestorRule routeRule, descendantRule routeRule) bool {
+	// The "(routeRule{})" needs to be in parenthesis; I'm not sure why.
+	if ancestorRule == (routeRule{}) {
+		return false
+	}
+
+	if ancestorRule.vsName == descendantRule.vsName {
+		if ancestorRule == descendantRule {
+			return false
+		}
+		if ancestorRule.ruleType == prefix {
+			return strings.HasPrefix(descendantRule.route, ancestorRule.route)
+		}
+		if descendantRule.ruleType == prefix {
+			return strings.HasPrefix(ancestorRule.route, descendantRule.route)
+		}
+		if ancestorRule != descendantRule && ancestorRule.ruleType == descendantRule.ruleType {
+			return true
+		} else {
+			return false
+		}
+	} else {
+		if ancestorRule.ruleType == regex {
+			// Throwing away the error makes me feel gross but this regex should be validated before we get to it.
+			// Even if it is invalid, giving the wrong answer isn't the biggest deal since regex validation is
+			// outside the scope of this vetter.
+			matched, _ := regexp.MatchString(ancestorRule.route, descendantRule.route)
+			return matched
+		}
+		// Two routes in different virtual services with the same route are in conflict.
+		if ancestorRule.route == descendantRule.route {
+			return true
+		} else if ancestorRule.ruleType == exact {
+			if ancestorRule.route == descendantRule.route {
+				return true
+			} else {
+				return false
+			}
+		} else {
+			// Then ancestorRule is a prefix rule and, if descendant rule starts with that prefix,
+			// it's in conflict.
+			return strings.HasPrefix(descendantRule.route, ancestorRule.route)
+		}
+	}
+}
+
+func getRouteRuleFromMatch(match *istiov1alpha3.StringMatch, vs *v1alpha3.VirtualService) routeRule {
+	if route := match.GetExact(); route != "" {
+		return routeRule{ruleType: exact, route: route, vsName: vs.Name, namespace: vs.Namespace}
+	} else if route := match.GetPrefix(); route != "" {
+		return routeRule{ruleType: prefix, route: route, vsName: vs.Name, namespace: vs.Namespace}
+	} else if route := match.GetRegex(); route != "" {
+		return routeRule{ruleType: regex, route: route, vsName: vs.Name, namespace: vs.Namespace}
+	}
+	return routeRule{}
 }
 
 func populateVirtualServiceMap(hg hostAndGateway, vs *v1alpha3.VirtualService, vsByHostAndGateway VirtualSvcByHostAndGateway) {
