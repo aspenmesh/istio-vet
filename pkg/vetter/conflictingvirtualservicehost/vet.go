@@ -142,7 +142,7 @@ func CreateVirtualServiceNotes(virtualServices []*v1alpha3.VirtualService) ([]*a
 	}
 
 	// create vet notes
-	noteSet := map[conflictingVsNote][]string{}
+	noteSet := map[conflictingVsNote]map[string]struct{}{}
 	notes := []*apiv1.Note{}
 	for key, vsList := range vsByHostAndGateway {
 		if len(vsList) > 1 {
@@ -165,12 +165,16 @@ func CreateVirtualServiceNotes(virtualServices []*v1alpha3.VirtualService) ([]*a
 					gateway: key.gateway,
 					routes:  strings.Join(conflictingRoutes, " "),
 				}
-				noteSet[note] = append(noteSet[note], key.hostname)
+				noteSet[note] = map[string]struct{}{key.hostname: struct{}{}}
 			}
 		}
 	}
 	for k, v := range noteSet {
-		notes = append(notes, unwrapNote(k, v))
+		hosts := []string{}
+		for host, _ := range v {
+			hosts = append(hosts, host)
+		}
+		notes = append(notes, unwrapNote(k, hosts))
 	}
 	for i := range notes {
 		notes[i].Id = util.ComputeID(notes[i])
@@ -330,6 +334,10 @@ func conflict(ancestorRule routeRule, descendantRule routeRule) (bool, error) {
 		return false, nil
 	}
 
+	if ancestorRule.ruleType == regex {
+		matched, err := regexp.MatchString(ancestorRule.route, descendantRule.route)
+		return matched, err
+	}
 	if ancestorRule.ruleType == prefix {
 		return strings.HasPrefix(descendantRule.route, ancestorRule.route), nil
 	}
@@ -338,10 +346,6 @@ func conflict(ancestorRule routeRule, descendantRule routeRule) (bool, error) {
 	}
 	if ancestorRule.ruleType == descendantRule.ruleType {
 		return true, nil
-	}
-	if ancestorRule.ruleType == regex {
-		matched, err := regexp.MatchString(ancestorRule.route, descendantRule.route)
-		return matched, err
 	}
 
 	if ancestorRule.route == descendantRule.route {

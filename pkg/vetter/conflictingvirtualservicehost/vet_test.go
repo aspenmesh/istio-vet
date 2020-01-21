@@ -180,14 +180,23 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 		// 	},
 		// }
 
-		// regexRoute := istiov1alpha3.HTTPRoute{Name: "route1",
-		// 	Match: []*istiov1alpha3.HTTPMatchRequest{
-		// 		&istiov1alpha3.HTTPMatchRequest{
-		// 			Name: "",
-		// 			Uri:  &istiov1alpha3.StringMatch{MatchType: &istiov1alpha3.StringMatch_Regex{Regex: "a.*"}},
-		// 		},
-		// 	},
-		// }
+		regexRoute := istiov1alpha3.HTTPRoute{Name: "route1",
+			Match: []*istiov1alpha3.HTTPMatchRequest{
+				&istiov1alpha3.HTTPMatchRequest{
+					Name: "",
+					Uri:  &istiov1alpha3.StringMatch{MatchType: &istiov1alpha3.StringMatch_Regex{Regex: "/f*"}},
+				},
+			},
+		}
+
+		regexRoute2 := istiov1alpha3.HTTPRoute{Name: "route1",
+			Match: []*istiov1alpha3.HTTPMatchRequest{
+				&istiov1alpha3.HTTPMatchRequest{
+					Name: "",
+					Uri:  &istiov1alpha3.StringMatch{MatchType: &istiov1alpha3.StringMatch_Regex{Regex: "/b*"}},
+				},
+			},
+		}
 
 		It("Does not generate notes when passed an empty list of VirtualServices", func() {
 			vsList := []*v1alpha3.VirtualService{}
@@ -239,7 +248,7 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 				Level:   apiv1.NoteLevel_ERROR,
 				Attr: map[string]string{
 					"vs_names": "Vs1.bar, Vs2.bar",
-					"host":     "host2.bar.svc.cluster.local host2.bar.svc.cluster.local",
+					"host":     "host2.bar.svc.cluster.local",
 					"gateway":  "mesh",
 					"routes":   "/foo exact /foo exact",
 				}}
@@ -247,8 +256,10 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 			Expect(vsNotes[0]).To(Equal(expectedNote))
 		})
 
-		It("Generates a note when the same hostname is defined in 2 different namespaces", func() {
+		It("Generates a note when regex conflicts with another route", func() {
 			vsList := []*v1alpha3.VirtualService{Vs4, Vs6}
+			Vs4.Spec.Http = []*istiov1alpha3.HTTPRoute{&regexRoute}
+			Vs6.Spec.Http = []*istiov1alpha3.HTTPRoute{&prefixRoute2Levels}
 			vsNotes, err := CreateVirtualServiceNotes(vsList)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vsNotes).To(HaveLen(1))
@@ -260,12 +271,22 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 				Attr: map[string]string{
 					"host":     "foo.com",
 					"gateway":  "mesh",
+					"routes":   "/f* regex /foo/bar prefix",
 					"vs_names": "Vs4.bar, Vs6.foo"}}
 			expectedNote.Id = util.ComputeID(expectedNote)
 			Expect(vsNotes[0]).To(Equal(expectedNote))
 		})
 
-		FIt("Generates multiple notes with the correct number of VirtualService names when there are multiple conflicts found", func() {
+		It("Does not generate notes when there is more than one regex", func() {
+			vsList := []*v1alpha3.VirtualService{Vs4, Vs6}
+			Vs4.Spec.Http = []*istiov1alpha3.HTTPRoute{&regexRoute, &regexRoute2}
+			Vs6.Spec.Http = []*istiov1alpha3.HTTPRoute{&prefixRoute2Levels}
+			vsNotes, err := CreateVirtualServiceNotes(vsList)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(vsNotes).To(HaveLen(0))
+		})
+
+		It("Generates multiple notes with the correct number of VirtualService names when there are multiple conflicts found", func() {
 			Vs1.Spec.Http = []*istiov1alpha3.HTTPRoute{&exactRoute, &prefixRoute}
 			Vs2.Spec.Http = []*istiov1alpha3.HTTPRoute{&prefixRoute2Levels, &exactRoute}
 			Vs11.Spec.Http = []*istiov1alpha3.HTTPRoute{&prefixRoute}
