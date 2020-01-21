@@ -241,36 +241,37 @@ func addRouteToMergedVsTree(trie *routeTrie, match *istiov1alpha3.StringMatch, v
 	}
 }
 
-func validateVsTrie(routeTrie *routeTrie, rRule routeRule) [][]routeRule {
+func validateVsTrie(trie *routeTrie, rRule routeRule) [][]routeRule {
 	conflictingRules := [][]routeRule{}
-	for _, rule := range routeTrie.routeRules {
+	for _, rule := range trie.routeRules {
 		if conflict(rRule, rule) {
 			conflictingRules = append(conflictingRules, []routeRule{rRule, rule})
 		}
 	}
 
-	for _, descendant := range routeTrie.subRoutes {
+	for _, descendant := range trie.subRoutes {
 		if len(descendant.routeRules) == 0 {
 			conflictingRules = append(conflictingRules, validateVsTrie(descendant, rRule)...)
 		} else {
-			// Recurse down but carefully! We want to report all conflicts and,
-			// if we recurse in the previous for loop (with descendantRule as the "rRule" variable),
-			// Then we'll skip potential conflicts with the current route rule.
-			oldRouteRules := make([]routeRule, len(descendant.routeRules))
-			copy(oldRouteRules, descendant.routeRules)
-			for _, rule := range append(descendant.routeRules, rRule) {
+			// Recurse down but carefully! We want to report all conflicts and
+			// we'll skip potential conflicts with the current route rule if we
+			// recurse in the previous for loop (with the descendant rule as the "rRule" variable),
+			for idx, rule := range append(descendant.routeRules, rRule) {
 				if conflict(rRule, rule) {
 					conflictingRules = append(conflictingRules, []routeRule{rRule, rule})
 				}
-				if len(descendant.routeRules) > 0 {
+				if idx < len(descendant.routeRules) {
 					// remove "rule" to prevent double counting of conflicts
-					descendant.routeRules = descendant.routeRules[1:]
+					//
+					// This block checks which of the rules defined in a same route conflict and recurses
+					// down with the given rule.
+					newRouteRules := descendant.routeRules[idx+1:]
+					newDescendant := &routeTrie{subRoutes: descendant.subRoutes, routeRules: newRouteRules}
+					conflictingRules = append(conflictingRules, validateVsTrie(newDescendant, rule)...)
+				} else {
+					conflictingRules = append(conflictingRules, validateVsTrie(descendant, rule)...)
 				}
-
-				conflictingRules = append(conflictingRules, validateVsTrie(descendant, rule)...)
 			}
-			// once done processing, restore route rules to prevent under counting.
-			descendant.routeRules = oldRouteRules
 		}
 	}
 	return conflictingRules
