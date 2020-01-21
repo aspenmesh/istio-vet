@@ -186,16 +186,16 @@ func validateMergedVirtualServices(vsList []*v1alpha3.VirtualService) ([][]route
 	// should go in another vetter since reporting that error here would be
 	// awkward and expands the scope of this vetter.
 	if len(trie.regexs) == 1 {
-		if rules, err := validateVsTrie(trie, trie.regexs[0]); err == nil {
-			return rules, nil
-		} else {
+		if rules, err := validateVsTrie(trie, trie.regexs[0]); err != nil {
 			return [][]routeRule{}, err
+		} else {
+			return rules, nil
 		}
 	} else {
-		if rules, err := validateVsTrie(trie, routeRule{}); err == nil {
-			return rules, nil
-		} else {
+		if rules, err := validateVsTrie(trie, routeRule{}); err != nil {
 			return [][]routeRule{}, err
+		} else {
+			return rules, nil
 		}
 	}
 }
@@ -255,33 +255,33 @@ func addRouteToMergedVsTree(trie *routeTrie, match *istiov1alpha3.StringMatch, v
 func validateVsTrie(trie *routeTrie, rRule routeRule) ([][]routeRule, error) {
 	conflictingRules := [][]routeRule{}
 	for _, rule := range trie.routeRules {
-		if c, err := conflict(rRule, rule); err == nil {
+		if c, err := conflict(rRule, rule); err != nil {
+			return conflictingRules, err
+		} else {
 			if c {
 				conflictingRules = append(conflictingRules, []routeRule{rRule, rule})
 			}
-		} else {
-			return conflictingRules, err
 		}
 	}
 
 	for _, descendant := range trie.subRoutes {
 		if len(descendant.routeRules) == 0 {
-			if c, err := validateVsTrie(descendant, rRule); err == nil {
-				conflictingRules = append(conflictingRules, c...)
-			} else {
+			if c, err := validateVsTrie(descendant, rRule); err != nil {
 				return conflictingRules, err
+			} else {
+				conflictingRules = append(conflictingRules, c...)
 			}
 		} else {
 			// Recurse down but carefully! We want to report all conflicts and
 			// we'll skip potential conflicts with the current route rule if we
 			// recurse in the previous for loop (with the descendant rule as the "rRule" variable),
 			for idx, rule := range append(descendant.routeRules, rRule) {
-				if c, err := conflict(rRule, rule); err == nil {
+				if c, err := conflict(rRule, rule); err != nil {
+					return conflictingRules, err
+				} else {
 					if c {
 						conflictingRules = append(conflictingRules, []routeRule{rRule, rule})
 					}
-				} else {
-					return conflictingRules, err
 				}
 				if idx < len(descendant.routeRules) {
 					// remove "rule" to prevent double counting of conflicts
@@ -294,16 +294,16 @@ func validateVsTrie(trie *routeTrie, rRule routeRule) ([][]routeRule, error) {
 					// encountered so far after each iteration of the enclosing for loop.
 					newRouteRules := descendant.routeRules[idx+1:]
 					newDescendant := &routeTrie{subRoutes: descendant.subRoutes, routeRules: newRouteRules}
-					if c, err := validateVsTrie(newDescendant, rule); err == nil {
-						conflictingRules = append(conflictingRules, c...)
-					} else {
+					if c, err := validateVsTrie(newDescendant, rule); err != nil {
 						return conflictingRules, err
+					} else {
+						conflictingRules = append(conflictingRules, c...)
 					}
 				} else {
-					if c, err := validateVsTrie(descendant, rule); err == nil {
-						conflictingRules = append(conflictingRules, c...)
-					} else {
+					if c, err := validateVsTrie(descendant, rule); err != nil {
 						return conflictingRules, err
+					} else {
+						conflictingRules = append(conflictingRules, c...)
 					}
 				}
 			}
