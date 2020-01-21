@@ -340,9 +340,6 @@ func conflict(ancestorRule routeRule, descendantRule routeRule) (bool, error) {
 		return true, nil
 	}
 	if ancestorRule.ruleType == regex {
-		// Throwing away the error makes me feel gross but this regex should be validated before we get to it.
-		// Even if it is invalid, giving the wrong answer isn't the biggest deal since regex validation is
-		// outside the scope of this vetter.
 		matched, err := regexp.MatchString(ancestorRule.route, descendantRule.route)
 		return matched, err
 	}
@@ -350,7 +347,7 @@ func conflict(ancestorRule routeRule, descendantRule routeRule) (bool, error) {
 	if ancestorRule.route == descendantRule.route {
 		return true, nil
 	}
-	// Fix this.
+
 	return true, fmt.Errorf("Could not determine whether these %v and %v are in conflict! This "+
 		"is the result of a bug in the vetter.", ancestorRule, descendantRule)
 }
