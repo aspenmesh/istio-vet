@@ -146,7 +146,10 @@ func CreateVirtualServiceNotes(virtualServices []*v1alpha3.VirtualService) ([]*a
 	notes := []*apiv1.Note{}
 	for key, vsList := range vsByHostAndGateway {
 		if len(vsList) > 1 {
-			conflictingRules := validateMergedVirtualServices(vsList)
+			conflictingRules, err := validateMergedVirtualServices(vsList)
+			if err != nil {
+				return notes, err
+			}
 			for _, conflict := range conflictingRules {
 				vs1 := conflict[0]
 				vs2 := conflict[1]
@@ -175,7 +178,7 @@ func CreateVirtualServiceNotes(virtualServices []*v1alpha3.VirtualService) ([]*a
 	return notes, nil
 }
 
-func validateMergedVirtualServices(vsList []*v1alpha3.VirtualService) [][]routeRule {
+func validateMergedVirtualServices(vsList []*v1alpha3.VirtualService) ([][]routeRule, error) {
 	trie := buildMergedVirtualServiceTrie(vsList)
 	// Do not try to validate when there is more than one regex.
 	// Ideally, we should warn when there is more than one (since determining
@@ -183,9 +186,17 @@ func validateMergedVirtualServices(vsList []*v1alpha3.VirtualService) [][]routeR
 	// should go in another vetter since reporting that error here would be
 	// awkward and expands the scope of this vetter.
 	if len(trie.regexs) == 1 {
-		return validateVsTrie(trie, trie.regexs[0])
+		if rules, err := validateVsTrie(trie, trie.regexs[0]); err == nil {
+			return rules, nil
+		} else {
+			return [][]routeRule{}, err
+		}
 	} else {
-		return validateVsTrie(trie, routeRule{})
+		if rules, err := validateVsTrie(trie, routeRule{}); err == nil {
+			return rules, nil
+		} else {
+			return [][]routeRule{}, err
+		}
 	}
 }
 
@@ -241,87 +252,107 @@ func addRouteToMergedVsTree(trie *routeTrie, match *istiov1alpha3.StringMatch, v
 	}
 }
 
-func validateVsTrie(trie *routeTrie, rRule routeRule) [][]routeRule {
+func validateVsTrie(trie *routeTrie, rRule routeRule) ([][]routeRule, error) {
 	conflictingRules := [][]routeRule{}
 	for _, rule := range trie.routeRules {
-		if conflict(rRule, rule) {
-			conflictingRules = append(conflictingRules, []routeRule{rRule, rule})
+		if c, err := conflict(rRule, rule); err == nil {
+			if c {
+				conflictingRules = append(conflictingRules, []routeRule{rRule, rule})
+			}
+		} else {
+			return conflictingRules, err
 		}
 	}
 
 	for _, descendant := range trie.subRoutes {
 		if len(descendant.routeRules) == 0 {
-			conflictingRules = append(conflictingRules, validateVsTrie(descendant, rRule)...)
+			if c, err := validateVsTrie(descendant, rRule); err == nil {
+				conflictingRules = append(conflictingRules, c...)
+			} else {
+				return conflictingRules, err
+			}
 		} else {
 			// Recurse down but carefully! We want to report all conflicts and
 			// we'll skip potential conflicts with the current route rule if we
 			// recurse in the previous for loop (with the descendant rule as the "rRule" variable),
 			for idx, rule := range append(descendant.routeRules, rRule) {
-				if conflict(rRule, rule) {
-					conflictingRules = append(conflictingRules, []routeRule{rRule, rule})
+				if c, err := conflict(rRule, rule); err == nil {
+					if c {
+						conflictingRules = append(conflictingRules, []routeRule{rRule, rule})
+					}
+				} else {
+					return conflictingRules, err
 				}
 				if idx < len(descendant.routeRules) {
 					// remove "rule" to prevent double counting of conflicts
 					//
 					// This block checks which of the rules defined in a same route conflict and recurses
 					// down with the given rule.
+					//
+					// Note that we need to keep track of the rule's index within the routeRules array
+					// and create a subslice accordingly; otherwise, we would not remove every rule
+					// encountered so far after each iteration of the enclosing for loop.
 					newRouteRules := descendant.routeRules[idx+1:]
 					newDescendant := &routeTrie{subRoutes: descendant.subRoutes, routeRules: newRouteRules}
-					conflictingRules = append(conflictingRules, validateVsTrie(newDescendant, rule)...)
+					if c, err := validateVsTrie(newDescendant, rule); err == nil {
+						conflictingRules = append(conflictingRules, c...)
+					} else {
+						return conflictingRules, err
+					}
 				} else {
-					conflictingRules = append(conflictingRules, validateVsTrie(descendant, rule)...)
+					if c, err := validateVsTrie(descendant, rule); err == nil {
+						conflictingRules = append(conflictingRules, c...)
+					} else {
+						return conflictingRules, err
+					}
 				}
 			}
 		}
 	}
-	return conflictingRules
+	return conflictingRules, nil
 }
 
-// Document what's going on here better. Break down the cases, etc.,
-func conflict(ancestorRule routeRule, descendantRule routeRule) bool {
+// Returns true if the rules conflict, false otherwise.
+//
+// NOTE: Given how the algorithm works, ancestorRule and descendantRule
+// may be on the same path, making the terminology "ancestor" and "descendant"
+// somewhat misleading.
+//
+//
+func conflict(ancestorRule routeRule, descendantRule routeRule) (bool, error) {
 	// The "(routeRule{})" needs to be in parenthesis; I'm not sure why.
 	if ancestorRule == (routeRule{}) {
-		return false
+		return false, nil
 	}
 
-	if ancestorRule.vsName == descendantRule.vsName {
-		if ancestorRule == descendantRule {
-			return false
-		}
-		if ancestorRule.ruleType == prefix {
-			return strings.HasPrefix(descendantRule.route, ancestorRule.route)
-		}
-		if descendantRule.ruleType == prefix {
-			return strings.HasPrefix(ancestorRule.route, descendantRule.route)
-		}
-		if ancestorRule != descendantRule && ancestorRule.ruleType == descendantRule.ruleType {
-			return true
-		} else {
-			return false
-		}
-	} else {
-		if ancestorRule.ruleType == regex {
-			// Throwing away the error makes me feel gross but this regex should be validated before we get to it.
-			// Even if it is invalid, giving the wrong answer isn't the biggest deal since regex validation is
-			// outside the scope of this vetter.
-			matched, _ := regexp.MatchString(ancestorRule.route, descendantRule.route)
-			return matched
-		}
-		// Two routes in different virtual services with the same route are in conflict.
-		if ancestorRule.route == descendantRule.route {
-			return true
-		} else if ancestorRule.ruleType == exact {
-			if ancestorRule.route == descendantRule.route {
-				return true
-			} else {
-				return false
-			}
-		} else {
-			// Then ancestorRule is a prefix rule and, if descendant rule starts with that prefix,
-			// it's in conflict.
-			return strings.HasPrefix(descendantRule.route, ancestorRule.route)
-		}
+	// If the rules are identically equal, no merge conflicts occur.
+	if ancestorRule == descendantRule {
+		return false, nil
 	}
+
+	if ancestorRule.ruleType == prefix {
+		return strings.HasPrefix(descendantRule.route, ancestorRule.route), nil
+	}
+	if descendantRule.ruleType == prefix {
+		return strings.HasPrefix(ancestorRule.route, descendantRule.route), nil
+	}
+	if ancestorRule.ruleType == descendantRule.ruleType {
+		return true, nil
+	}
+	if ancestorRule.ruleType == regex {
+		// Throwing away the error makes me feel gross but this regex should be validated before we get to it.
+		// Even if it is invalid, giving the wrong answer isn't the biggest deal since regex validation is
+		// outside the scope of this vetter.
+		matched, err := regexp.MatchString(ancestorRule.route, descendantRule.route)
+		return matched, err
+	}
+
+	if ancestorRule.route == descendantRule.route {
+		return true, nil
+	}
+	// Fix this.
+	return true, fmt.Errorf("Could not determine whether these %v and %v are in conflict! This "+
+		"is the result of a bug in the vetter.", ancestorRule, descendantRule)
 }
 
 func getRouteRuleFromMatch(match *istiov1alpha3.StringMatch, vs *v1alpha3.VirtualService) routeRule {
