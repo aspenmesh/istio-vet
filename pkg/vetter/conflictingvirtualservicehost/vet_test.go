@@ -33,10 +33,10 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 		namespace := "bar"
 		vsHostNoteType := "host-in-multiple-vs"
 		vsHostSummary := "Multiple VirtualServices define the same host (${host}) and conflict"
-		vsHostMsg := "The VirtualServices ${vs_names} with routes ${routes}" +
-			" define the same host (${host}) and conflict. A VirtualServices defining the same host must" +
-			" not conflict. Consider updating the VirtualServices to have a unique hostname or " +
-			"remove one of the conflicting rules."
+		vsHostMsg := "The VirtualServices ${vs_names} matching uris ${routes}" +
+			" define the same host (${host}) and conflict. VirtualServices defining the same host must" +
+			" not conflict. Consider updating the VirtualServices to have unique hostnames or " +
+			"update the rules so they do not conflict."
 		var Vs1 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "Vs1",

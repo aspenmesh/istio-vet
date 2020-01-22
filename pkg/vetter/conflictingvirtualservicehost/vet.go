@@ -36,10 +36,10 @@ const (
 	vetterID       = "ConflictingVirtualServiceHost"
 	vsHostNoteType = "host-in-multiple-vs"
 	vsHostSummary  = "Multiple VirtualServices define the same host (${host}) and conflict"
-	vsHostMsg      = "The VirtualServices ${vs_names} with routes ${routes}" +
-		" define the same host (${host}) and conflict. A VirtualServices defining the same host must" +
-		" not conflict. Consider updating the VirtualServices to have a unique hostname or " +
-		"remove one of the conflicting rules."
+	vsHostMsg      = "The VirtualServices ${vs_names} matching uris ${routes}" +
+		" define the same host (${host}) and conflict. VirtualServices defining the same host must" +
+		" not conflict. Consider updating the VirtualServices to have uniques hostname or " +
+		"update the rules so they do not conflict."
 
 	sidecarRoutingSummary = "Multiple VirtualServices define the same host and ${vs_name} uses sidecar routing."
 	sidecarRoutingMsg     = "The VirtualService ${vs_name} uses sidecar routing (no gateway is explicitly attached)." +
