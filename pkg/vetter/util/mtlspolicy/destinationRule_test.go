@@ -72,7 +72,7 @@ var (
 
 	drFooPortOnlyOn8443 = &netv1alpha3.TrafficPolicy_PortTrafficPolicy{
 		Port: &netv1alpha3.PortSelector{
-			Port: &netv1alpha3.PortSelector_Number{8443},
+			Number: 8443,
 		},
 		Tls: &netv1alpha3.TLSSettings{
 			Mode: netv1alpha3.TLSSettings_MUTUAL,
@@ -103,7 +103,7 @@ var (
 
 	drFooPortOnlyOff8443 = &netv1alpha3.TrafficPolicy_PortTrafficPolicy{
 		Port: &netv1alpha3.PortSelector{
-			Port: &netv1alpha3.PortSelector_Number{8443},
+			Number: 8443,
 		},
 		Tls: &netv1alpha3.TLSSettings{
 			Mode: netv1alpha3.TLSSettings_DISABLE,
@@ -172,7 +172,7 @@ var (
 					PortLevelSettings: []*netv1alpha3.TrafficPolicy_PortTrafficPolicy{
 						&netv1alpha3.TrafficPolicy_PortTrafficPolicy{
 							Port: &netv1alpha3.PortSelector{
-								Port: &netv1alpha3.PortSelector_Number{8443},
+								Number: 8443,
 							},
 							Tls: &netv1alpha3.TLSSettings{
 								Mode: netv1alpha3.TLSSettings_MUTUAL,
