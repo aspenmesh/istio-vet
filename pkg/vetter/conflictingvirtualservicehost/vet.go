@@ -150,7 +150,7 @@ func CreateVirtualServiceNotes(virtualServices []*v1alpha3.VirtualService) ([]*a
 	notes := []*apiv1.Note{}
 	for key, vsList := range vsByHostAndGateway {
 		if len(vsList) > 1 {
-			conflictingRules, err := validateMergedVirtualServices(vsList)
+			conflictingRules, err := conflictingVirtualServices(vsList)
 			if err != nil {
 				return notes, err
 			}
@@ -186,7 +186,8 @@ func CreateVirtualServiceNotes(virtualServices []*v1alpha3.VirtualService) ([]*a
 	return notes, nil
 }
 
-func validateMergedVirtualServices(vsList []*v1alpha3.VirtualService) ([][]routeRule, error) {
+// Return a list of pairs of virtual services that conflict.
+func conflictingVirtualServices(vsList []*v1alpha3.VirtualService) ([][]routeRule, error) {
 	trie := buildMergedVirtualServiceTrie(vsList)
 	// Do not try to validate when there is more than one regex.
 	// Ideally, we should warn when there is more than one (since determining
@@ -195,13 +196,13 @@ func validateMergedVirtualServices(vsList []*v1alpha3.VirtualService) ([][]route
 	// awkward and expands the scope of this vetter.
 	conflictingRules := addConflictsForSameRoute(trie, [][]routeRule{})
 	if len(trie.regexs) == 1 {
-		if rules, err := validateSubroutes(trie, trie.regexs[0], conflictingRules); err != nil {
+		if rules, err := conflictingSubroutes(trie, trie.regexs[0], conflictingRules); err != nil {
 			return [][]routeRule{}, err
 		} else {
 			return rules, nil
 		}
 	} else {
-		if rules, err := validateSubroutes(trie, routeRule{}, conflictingRules); err != nil {
+		if rules, err := conflictingSubroutes(trie, routeRule{}, conflictingRules); err != nil {
 			return [][]routeRule{}, err
 		} else {
 			return rules, nil
@@ -209,6 +210,8 @@ func validateMergedVirtualServices(vsList []*v1alpha3.VirtualService) ([][]route
 	}
 }
 
+// Create a trie representing the routes with their corresponding match rules
+// from a list of virtual services.
 func buildMergedVirtualServiceTrie(vsList []*v1alpha3.VirtualService) *routeTrie {
 	subRoutes := make(map[string]*routeTrie)
 	trie := &routeTrie{subRoutes: subRoutes, regexs: []routeRule{}, routeRules: []routeRule{}}
@@ -222,6 +225,8 @@ func buildMergedVirtualServiceTrie(vsList []*v1alpha3.VirtualService) *routeTrie
 	return trie
 }
 
+// Add a particular route to the route trie. If the given route already has a route rule,
+// add it to the list of route rules for the given node/route.
 func addRouteToMergedVsTree(trie *routeTrie, match *istiov1alpha3.StringMatch, vs *v1alpha3.VirtualService) {
 	current := trie
 	rRule := getRouteRuleFromMatch(match, vs)
@@ -261,7 +266,7 @@ func addRouteToMergedVsTree(trie *routeTrie, match *istiov1alpha3.StringMatch, v
 	}
 }
 
-func validateSubroutes(trie *routeTrie, rRule routeRule, conflictingRules [][]routeRule) ([][]routeRule, error) {
+func conflictingSubroutes(trie *routeTrie, rRule routeRule, conflictingRules [][]routeRule) ([][]routeRule, error) {
 	for _, rule := range trie.routeRules {
 		if c, err := conflict(rRule, rule); err != nil {
 			return conflictingRules, err
@@ -274,7 +279,7 @@ func validateSubroutes(trie *routeTrie, rRule routeRule, conflictingRules [][]ro
 
 	for _, descendant := range trie.subRoutes {
 		if len(descendant.routeRules) == 0 {
-			if c, err := validateSubroutes(descendant, rRule, conflictingRules); err != nil {
+			if c, err := conflictingSubroutes(descendant, rRule, conflictingRules); err != nil {
 				return conflictingRules, err
 			} else {
 				conflictingRules = append(conflictingRules, c...)
@@ -284,7 +289,7 @@ func validateSubroutes(trie *routeTrie, rRule routeRule, conflictingRules [][]ro
 			// we'll skip potential conflicts with the current route rule if we
 			// recurse in the previous for loop (with the descendant rule as the "rRule" variable),
 			for _, rule := range append(trie.routeRules, rRule) {
-				newRules, err := validateSubroutes(descendant, rule, conflictingRules)
+				newRules, err := conflictingSubroutes(descendant, rule, conflictingRules)
 				if err != nil {
 					return conflictingRules, err
 				}
@@ -309,10 +314,6 @@ func addConflictsForSameRoute(trie *routeTrie, conflictingRules [][]routeRule) [
 }
 
 // Returns true if the rules conflict, false otherwise.
-//
-// NOTE: Given how the algorithm works, ancestorRule and descendantRule
-// may be on the same path, making the terminology "ancestor" and "descendant"
-// somewhat misleading.
 //
 // There are several cases that we need to keep track of:
 //

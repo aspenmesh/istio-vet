@@ -153,6 +153,15 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 			},
 		}
 
+		prefixRoute2Levelsbar := istiov1alpha3.HTTPRoute{Name: "route1",
+			Match: []*istiov1alpha3.HTTPMatchRequest{
+				&istiov1alpha3.HTTPMatchRequest{
+					Name: "",
+					Uri:  &istiov1alpha3.StringMatch{MatchType: &istiov1alpha3.StringMatch_Prefix{Prefix: "/bar/foo"}},
+				},
+			},
+		}
+
 		exactRoute := istiov1alpha3.HTTPRoute{Name: "route1",
 			Match: []*istiov1alpha3.HTTPMatchRequest{
 				&istiov1alpha3.HTTPMatchRequest{
@@ -162,23 +171,32 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 			},
 		}
 
-		// exactRoute2Levels := istiov1alpha3.HTTPRoute{Name: "route1",
-		// 	Match: []*istiov1alpha3.HTTPMatchRequest{
-		// 		&istiov1alpha3.HTTPMatchRequest{
-		// 			Name: "",
-		// 			Uri:  &istiov1alpha3.StringMatch{MatchType: &istiov1alpha3.StringMatch_Exact{Exact: "/foo/bar"}},
-		// 		},
-		// 	},
-		// }
+		exactRoute2Levels := istiov1alpha3.HTTPRoute{Name: "route1",
+			Match: []*istiov1alpha3.HTTPMatchRequest{
+				&istiov1alpha3.HTTPMatchRequest{
+					Name: "",
+					Uri:  &istiov1alpha3.StringMatch{MatchType: &istiov1alpha3.StringMatch_Exact{Exact: "/bar/foo"}},
+				},
+			},
+		}
 
-		// exactRoute3Levels := istiov1alpha3.HTTPRoute{Name: "route1",
-		// 	Match: []*istiov1alpha3.HTTPMatchRequest{
-		// 		&istiov1alpha3.HTTPMatchRequest{
-		// 			Name: "",
-		// 			Uri:  &istiov1alpha3.StringMatch{MatchType: &istiov1alpha3.StringMatch_Exact{Exact: "/foo/bar/baz"}},
-		// 		},
-		// 	},
-		// }
+		exactRoute3Levels := istiov1alpha3.HTTPRoute{Name: "route1",
+			Match: []*istiov1alpha3.HTTPMatchRequest{
+				&istiov1alpha3.HTTPMatchRequest{
+					Name: "",
+					Uri:  &istiov1alpha3.StringMatch{MatchType: &istiov1alpha3.StringMatch_Exact{Exact: "/foo/bar/baz"}},
+				},
+			},
+		}
+
+		exactRoute3Levelsbar := istiov1alpha3.HTTPRoute{Name: "route1",
+			Match: []*istiov1alpha3.HTTPMatchRequest{
+				&istiov1alpha3.HTTPMatchRequest{
+					Name: "",
+					Uri:  &istiov1alpha3.StringMatch{MatchType: &istiov1alpha3.StringMatch_Exact{Exact: "/bar/foo/baz"}},
+				},
+			},
+		}
 
 		regexRoute := istiov1alpha3.HTTPRoute{Name: "route1",
 			Match: []*istiov1alpha3.HTTPMatchRequest{
@@ -251,6 +269,37 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 					"host":     "host2.bar.svc.cluster.local",
 					"gateway":  "mesh",
 					"routes":   "/foo exact /foo exact",
+				}}
+			expectedNote.Id = util.ComputeID(expectedNote)
+			Expect(vsNotes[0]).To(Equal(expectedNote))
+		})
+
+		It("Does not generate a note when two routes start with a different component", func() {
+			Vs1.Spec.Http = []*istiov1alpha3.HTTPRoute{&exactRoute2Levels}
+			Vs2.Spec.Http = []*istiov1alpha3.HTTPRoute{&exactRoute3Levels}
+			vsList := []*v1alpha3.VirtualService{Vs1, Vs2}
+			vsNotes, err := CreateVirtualServiceNotes(vsList)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(vsNotes).To(HaveLen(0))
+		})
+
+		It("Generates a note when routes exist in two virtual services with different initial components", func() {
+			Vs1.Spec.Http = []*istiov1alpha3.HTTPRoute{&prefixRoute2Levelsbar}
+			Vs2.Spec.Http = []*istiov1alpha3.HTTPRoute{&exactRoute3Levels, &exactRoute3Levelsbar}
+			vsList := []*v1alpha3.VirtualService{Vs1, Vs2}
+			vsNotes, err := CreateVirtualServiceNotes(vsList)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(vsNotes).To(HaveLen(1))
+			expectedNote := &apiv1.Note{
+				Type:    vsHostNoteType,
+				Summary: vsHostSummary,
+				Msg:     vsHostMsg,
+				Level:   apiv1.NoteLevel_ERROR,
+				Attr: map[string]string{
+					"vs_names": "Vs1.bar, Vs2.bar",
+					"host":     "host2.bar.svc.cluster.local",
+					"gateway":  "mesh",
+					"routes":   "/bar/foo prefix /bar/foo/baz exact",
 				}}
 			expectedNote.Id = util.ComputeID(expectedNote)
 			Expect(vsNotes[0]).To(Equal(expectedNote))
