@@ -50,7 +50,7 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7
 	gopkg.in/yaml.v2 v2.2.2
 	istio.io/api v0.0.0-20191115173247-e1a1952e5b81
-	k8s.io/api v0.0.0-20190620084959-7cf5895f2711
+	k8s.io/api v0.0.0-20190918195907-bd6ac527cfd2
 	k8s.io/apimachinery v0.0.0-20190913080033-27d36303b655
 	k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
 	k8s.io/code-generator v0.0.0-20190923155300-6206bfaf5c98 // indirect
@@ -58,7 +58,8 @@ require (
 
 replace (
 	github.com/golang/protobuf => github.com/golang/protobuf v1.3.2
-	k8s.io/api => k8s.io/api v0.0.0-20190620084959-7cf5895f2711
-	k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190612205821-1799e75a0719
-	k8s.io/client-go => k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
+	k8s.io/api => k8s.io/api v0.0.0-20191003000013-35e20aa79eb8
+	k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190913080033-27d36303b655
+	k8s.io/client-go => k8s.io/client-go v0.0.0-20190918200256-06eb1244587a
+	k8s.io/code-generator => k8s.io/code-generator v0.0.0-20190927045949-f81bca4f5e85
 )
