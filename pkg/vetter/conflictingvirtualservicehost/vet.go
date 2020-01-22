@@ -35,10 +35,16 @@ const (
 	defaultGateway = "mesh"
 	vetterID       = "ConflictingVirtualServiceHost"
 	vsHostNoteType = "host-in-multiple-vs"
-	vsHostSummary  = "Multiple VirtualServices define the same host (${host}) and gateway (${gateway}) and conflict"
+	vsHostSummary  = "Multiple VirtualServices define the same host (${host}) and conflict"
 	vsHostMsg      = "The VirtualServices ${vs_names} with routes ${routes}" +
-		" define the same host (${host}) and gateway (${gateway}) and conflict. A VirtualService must have a unique combination of host and gateway or must not conflict." +
-		" Consider updating the VirtualServices to have unique hostname and gateway or remove one of the conflicting rules."
+		" define the same host (${host}) and conflict. A VirtualServices defining the same host must" +
+		" not conflict. Consider updating the VirtualServices to have a unique hostname or " +
+		"remove one of the conflicting rules."
+
+	sidecarRoutingSummary = "Multiple VirtualServices define the same host and ${vs_name} uses sidecar routing."
+	sidecarRoutingMsg     = "The VirtualService ${vs_name} uses sidecar routing (no gateway is explicitly attached)." +
+		" However, other VirtualServices use " +
+		"the same host: ${vs_names}, either fix the conflicts or add a non-default gateway to ${vs_name}"
 )
 
 type routeRuleType int
@@ -60,7 +66,6 @@ type conflictingVsNote struct {
 	Msg     string
 	Level   apiv1.NoteLevel
 	vsNames string
-	gateway string
 	routes  string
 }
 
@@ -108,7 +113,6 @@ func unwrapNote(note conflictingVsNote, hosts []string) *apiv1.Note {
 		Attr: map[string]string{
 			"vs_names": note.vsNames,
 			"host":     strings.Join(hosts, " "),
-			"gateway":  note.gateway,
 			"routes":   note.routes,
 		}}
 
@@ -117,7 +121,7 @@ func unwrapNote(note conflictingVsNote, hosts []string) *apiv1.Note {
 // CreateVirtualServiceNotes checks for multiple vs defining the same host and
 // generates notes for these cases
 func CreateVirtualServiceNotes(virtualServices []*v1alpha3.VirtualService) ([]*apiv1.Note, error) {
-	vsByHostAndGateway := VirtualSvcByHostAndGateway{}
+	vsByHost := map[string][]*v1alpha3.VirtualService{}
 	for _, vs := range virtualServices {
 		for _, host := range vs.Spec.GetHosts() {
 			h, err := util.ConvertHostnameToFQDN(host, vs.Namespace)
@@ -125,18 +129,10 @@ func CreateVirtualServiceNotes(virtualServices []*v1alpha3.VirtualService) ([]*a
 				fmt.Printf("Unable to convert hostname: %s\n", err.Error())
 				return nil, err
 			}
-
-			// One VS can have multiple hosts and gateways. Make 1 key per
-			// combination.
-			hg := hostAndGateway{hostname: h}
-			if len(vs.Spec.GetGateways()) > 0 {
-				for _, g := range vs.Spec.GetGateways() {
-					hg.gateway = g
-					populateVirtualServiceMap(hg, vs, vsByHostAndGateway)
-				}
+			if _, ok := vsByHost[h]; !ok {
+				vsByHost[h] = []*v1alpha3.VirtualService{vs}
 			} else {
-				hg.gateway = defaultGateway
-				populateVirtualServiceMap(hg, vs, vsByHostAndGateway)
+				vsByHost[h] = append(vsByHost[h], vs)
 			}
 		}
 	}
@@ -148,11 +144,40 @@ func CreateVirtualServiceNotes(virtualServices []*v1alpha3.VirtualService) ([]*a
 	// host names.
 	notesToUniqueHost := map[conflictingVsNote]map[string]struct{}{}
 	notes := []*apiv1.Note{}
-	for key, vsList := range vsByHostAndGateway {
+	for host, vsList := range vsByHost {
 		if len(vsList) > 1 {
 			conflictingRules, err := conflictingVirtualServices(vsList)
 			if err != nil {
 				return notes, err
+			}
+			for _, vs := range vsList {
+				gateways := vs.Spec.GetGateways()
+				// If there are no gateways, then
+				// this vs uses sidecar routing.
+				// Since there are multiple virtual
+				// services using the same host,
+				// merging needs to occur, which
+				// cannot happen with sidecar routing.
+				if len(gateways) == 0 {
+					vsNames := ""
+					for _, sidecarRoutingVs := range vsList {
+						if vsNames == "" {
+							vsNames = sidecarRoutingVs.GetName()
+						} else {
+							vsNames = vsNames + ", " + sidecarRoutingVs.GetName()
+						}
+					}
+					notes = append(notes, &apiv1.Note{
+						Type:    vsHostNoteType,
+						Summary: sidecarRoutingSummary,
+						Msg:     sidecarRoutingMsg,
+						Level:   apiv1.NoteLevel_ERROR,
+						Attr: map[string]string{
+							"vs_name":  vs.GetName(),
+							"vs_names": vsNames,
+						},
+					})
+				}
 			}
 			for _, conflict := range conflictingRules {
 				vs1 := conflict[0]
@@ -166,10 +191,9 @@ func CreateVirtualServiceNotes(virtualServices []*v1alpha3.VirtualService) ([]*a
 					Msg:     vsHostMsg,
 					Level:   apiv1.NoteLevel_ERROR,
 					vsNames: strings.Join(vsNames, ", "),
-					gateway: key.gateway,
 					routes:  strings.Join(conflictingRoutes, " "),
 				}
-				notesToUniqueHost[note] = map[string]struct{}{key.hostname: struct{}{}}
+				notesToUniqueHost[note] = map[string]struct{}{host: struct{}{}}
 			}
 		}
 	}
