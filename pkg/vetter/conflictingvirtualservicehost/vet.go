@@ -193,14 +193,15 @@ func validateMergedVirtualServices(vsList []*v1alpha3.VirtualService) ([][]route
 	// whether one regex conflicts with another is very difficult), but this
 	// should go in another vetter since reporting that error here would be
 	// awkward and expands the scope of this vetter.
+	conflictingRules := addConflictsForSameRoute(trie, [][]routeRule{})
 	if len(trie.regexs) == 1 {
-		if rules, err := validateVsTrie(trie, trie.regexs[0]); err != nil {
+		if rules, err := validateSubroutes(trie, trie.regexs[0], conflictingRules); err != nil {
 			return [][]routeRule{}, err
 		} else {
 			return rules, nil
 		}
 	} else {
-		if rules, err := validateVsTrie(trie, routeRule{}); err != nil {
+		if rules, err := validateSubroutes(trie, routeRule{}, conflictingRules); err != nil {
 			return [][]routeRule{}, err
 		} else {
 			return rules, nil
@@ -260,8 +261,7 @@ func addRouteToMergedVsTree(trie *routeTrie, match *istiov1alpha3.StringMatch, v
 	}
 }
 
-func validateVsTrie(trie *routeTrie, rRule routeRule) ([][]routeRule, error) {
-	conflictingRules := [][]routeRule{}
+func validateSubroutes(trie *routeTrie, rRule routeRule, conflictingRules [][]routeRule) ([][]routeRule, error) {
 	for _, rule := range trie.routeRules {
 		if c, err := conflict(rRule, rule); err != nil {
 			return conflictingRules, err
@@ -274,7 +274,7 @@ func validateVsTrie(trie *routeTrie, rRule routeRule) ([][]routeRule, error) {
 
 	for _, descendant := range trie.subRoutes {
 		if len(descendant.routeRules) == 0 {
-			if c, err := validateVsTrie(descendant, rRule); err != nil {
+			if c, err := validateSubroutes(descendant, rRule, conflictingRules); err != nil {
 				return conflictingRules, err
 			} else {
 				conflictingRules = append(conflictingRules, c...)
@@ -283,41 +283,29 @@ func validateVsTrie(trie *routeTrie, rRule routeRule) ([][]routeRule, error) {
 			// Recurse down but carefully! We want to report all conflicts and
 			// we'll skip potential conflicts with the current route rule if we
 			// recurse in the previous for loop (with the descendant rule as the "rRule" variable),
-			for idx, rule := range append(descendant.routeRules, rRule) {
-				if c, err := conflict(rRule, rule); err != nil {
+			for _, rule := range append(trie.routeRules, rRule) {
+				newRules, err := validateSubroutes(descendant, rule, conflictingRules)
+				if err != nil {
 					return conflictingRules, err
-				} else {
-					if c {
-						conflictingRules = append(conflictingRules, []routeRule{rRule, rule})
-					}
 				}
-				if idx < len(descendant.routeRules) {
-					// remove "rule" to prevent double counting of conflicts
-					//
-					// This block checks which of the rules defined in a same route conflict and recurses
-					// down with the given rule.
-					//
-					// Note that we need to keep track of the rule's index within the routeRules array
-					// and create a subslice accordingly; otherwise, we would not remove every rule
-					// encountered so far after each iteration of the enclosing for loop.
-					newRouteRules := descendant.routeRules[idx+1:]
-					newDescendant := &routeTrie{subRoutes: descendant.subRoutes, routeRules: newRouteRules}
-					if c, err := validateVsTrie(newDescendant, rule); err != nil {
-						return conflictingRules, err
-					} else {
-						conflictingRules = append(conflictingRules, c...)
-					}
-				} else {
-					if c, err := validateVsTrie(descendant, rule); err != nil {
-						return conflictingRules, err
-					} else {
-						conflictingRules = append(conflictingRules, c...)
-					}
-				}
+				conflictingRules = newRules
 			}
 		}
 	}
 	return conflictingRules, nil
+}
+func addConflictsForSameRoute(trie *routeTrie, conflictingRules [][]routeRule) [][]routeRule {
+	routeRules := trie.routeRules
+	for i := 0; i < len(routeRules)-1; i++ {
+		for j := i + 1; j < len(routeRules); j++ {
+			conflictingRules = append(conflictingRules, []routeRule{routeRules[i], routeRules[j]})
+		}
+	}
+
+	for _, descendant := range trie.subRoutes {
+		return addConflictsForSameRoute(descendant, conflictingRules)
+	}
+	return conflictingRules
 }
 
 // Returns true if the rules conflict, false otherwise.
