@@ -142,7 +142,11 @@ func CreateVirtualServiceNotes(virtualServices []*v1alpha3.VirtualService) ([]*a
 	}
 
 	// create vet notes
-	noteSet := map[conflictingVsNote]map[string]struct{}{}
+
+	// We only want to report the unique hosts for a given conflict.
+	// This should be thought of as a hash map from notes to a set of
+	// host names.
+	notesToUniqueHost := map[conflictingVsNote]map[string]struct{}{}
 	notes := []*apiv1.Note{}
 	for key, vsList := range vsByHostAndGateway {
 		if len(vsList) > 1 {
@@ -165,11 +169,11 @@ func CreateVirtualServiceNotes(virtualServices []*v1alpha3.VirtualService) ([]*a
 					gateway: key.gateway,
 					routes:  strings.Join(conflictingRoutes, " "),
 				}
-				noteSet[note] = map[string]struct{}{key.hostname: struct{}{}}
+				notesToUniqueHost[note] = map[string]struct{}{key.hostname: struct{}{}}
 			}
 		}
 	}
-	for k, v := range noteSet {
+	for k, v := range notesToUniqueHost {
 		hosts := []string{}
 		for host, _ := range v {
 			hosts = append(hosts, host)
@@ -322,7 +326,31 @@ func validateVsTrie(trie *routeTrie, rRule routeRule) ([][]routeRule, error) {
 // may be on the same path, making the terminology "ancestor" and "descendant"
 // somewhat misleading.
 //
+// There are several cases that we need to keep track of:
 //
+// case 1: ancestor rule is an empty struct
+//   This happens after we've encountered our first "real" route rule. This should
+//   always return false.
+//
+// case 2: ancestorRule and descendantRule are identically equal
+//   Since rules don't conflict with themselves, this should also be false.
+
+// case 3: The routes for ancestorRule and descendantRule are the same, but they're different rules.
+//   This should be a conflict.
+//
+// case 4: There is exactly one regex in the trie
+//   For reasons elaborated elsewhere, there will only ever be one regex in
+//   a given trie. Given how the trie is traversed, the regex will always be
+//   the ancestorRule; it can never be the descendantRule.
+//
+// case 5: The ancestorRule is a prefix rule
+//   Note that the only relevant case here is when the route for descendantRule is a
+//   strict subroute of ancestorRule (because case 3 handles the case when routes are equal).
+//   In practice, this should always result in a conflict because of how the trie is traversed.
+//
+//  case 6: The ancestorRule is an exact rule
+//    Since the only relevant case is when the route for descendantRule is a strict
+//    subroute of ancestorRule (same as case 5), this should always be false in practice.
 func conflict(ancestorRule routeRule, descendantRule routeRule) (bool, error) {
 	// The "(routeRule{})" needs to be in parenthesis; I'm not sure why.
 	if ancestorRule == (routeRule{}) {
@@ -334,22 +362,25 @@ func conflict(ancestorRule routeRule, descendantRule routeRule) (bool, error) {
 		return false, nil
 	}
 
+	if ancestorRule.route == descendantRule.route {
+		return true, nil
+	}
+
 	if ancestorRule.ruleType == regex {
 		matched, err := regexp.MatchString(ancestorRule.route, descendantRule.route)
 		return matched, err
 	}
+
 	if ancestorRule.ruleType == prefix {
+		// This should always be true (since a given rule will only check its "descendants"),
+		// but this is more explicit.
 		return strings.HasPrefix(descendantRule.route, ancestorRule.route), nil
 	}
-	if descendantRule.ruleType == prefix {
-		return strings.HasPrefix(ancestorRule.route, descendantRule.route), nil
-	}
-	if ancestorRule.ruleType == descendantRule.ruleType {
-		return true, nil
-	}
 
-	if ancestorRule.route == descendantRule.route {
-		return true, nil
+	if ancestorRule.ruleType == exact {
+		// Since a rule will only be checked against its strict descendants or a rule on the same
+		// path (which is checked earlier), this should always be false. This is more explicit, though.
+		return ancestorRule.route == descendantRule.route, nil
 	}
 
 	return true, fmt.Errorf("Could not determine whether these %v and %v are in conflict! This "+
