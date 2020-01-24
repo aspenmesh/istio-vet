@@ -38,7 +38,7 @@ const (
 	vsHostSummary  = "Multiple VirtualServices define the same host (${host}) and conflict"
 	vsHostMsg      = "The VirtualServices ${vs_names} matching uris ${routes}" +
 		" define the same host (${host}) and conflict. VirtualServices defining the same host must" +
-		" not conflict. Consider updating the VirtualServices to have uniques hostname or " +
+		" not conflict. Consider updating the VirtualServices to have unique hostnames or " +
 		"update the rules so they do not conflict."
 
 	sidecarRoutingSummary = "Multiple VirtualServices define the same host and ${vs_name} uses sidecar routing."
