@@ -175,12 +175,13 @@ func CreateVirtualServiceNotes(virtualServices []*v1alpha3.VirtualService) ([]*a
 // Return a list of pairs of virtual services that conflict.
 func conflictingVirtualServices(vsList []*v1alpha3.VirtualService) ([][]routeRule, error) {
 	trie := buildMergedVirtualServiceTrie(vsList)
+	conflictingRules := addConflictsForSameRoute(trie, [][]routeRule{})
+
 	// Do not try to validate when there is more than one regex.
 	// Ideally, we should warn when there is more than one (since determining
-	// whether one regex conflicts with another is very difficult), but this
+	// whether one regex conflicts with another is computationally very difficult), but this
 	// should go in another vetter since reporting that error here would be
 	// awkward and expands the scope of this vetter.
-	conflictingRules := addConflictsForSameRoute(trie, [][]routeRule{})
 	if len(trie.regexs) == 1 {
 		if rules, err := conflictingSubroutes(trie, trie.regexs[0], conflictingRules); err != nil {
 			return [][]routeRule{}, err
@@ -291,7 +292,15 @@ func addConflictsForSameRoute(trie *routeTrie, conflictingRules [][]routeRule) [
 	routeRules := trie.routeRules
 	for i := 0; i < len(routeRules)-1; i++ {
 		for j := i + 1; j < len(routeRules); j++ {
-			conflictingRules = append(conflictingRules, []routeRule{routeRules[i], routeRules[j]})
+			// Do not report when the rules are in the same namespace.
+			// Order matters for conflicting rules in the same namespace,
+			// however, this can be finnicky enough that I'm leaving it out
+			// of the first pass and we can add it in later if it is a cause
+			// of confusion.
+			if routeRules[i].vsName != routeRules[j].vsName &&
+				routeRules[i].namespace == routeRules[j].namespace {
+				conflictingRules = append(conflictingRules, []routeRule{routeRules[i], routeRules[j]})
+			}
 		}
 	}
 

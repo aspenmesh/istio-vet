@@ -17,8 +17,6 @@ limitations under the License.
 package conflictingvirtualservicehost
 
 import (
-	"sort"
-
 	"github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/util"
@@ -333,14 +331,11 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 			Expect(vsNotes).To(HaveLen(0))
 		})
 
-		FIt("Generates multiple notes with the correct number of VirtualService names when there are multiple conflicts found", func() {
+		It("Generates multiple notes with the correct number of VirtualService names when there are multiple conflicts found", func() {
 			Vs4.Spec.Http = []*istiov1alpha3.HTTPRoute{&exactRoute, &prefixRoute}
 			Vs8.Spec.Http = []*istiov1alpha3.HTTPRoute{&prefixRoute2Levels, &exactRoute}
 			Vs11.Spec.Http = []*istiov1alpha3.HTTPRoute{&prefixRoute}
 			vsList := []*v1alpha3.VirtualService{Vs4, Vs8, Vs11}
-			vsNotes, err := CreateVirtualServiceNotes(vsList)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(vsNotes).To(HaveLen(8))
 			expectedNote1 := &apiv1.Note{
 				Type:    vsHostNoteType,
 				Summary: vsHostSummary,
@@ -425,17 +420,6 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 				},
 			}
 
-			expectedNote8 := &apiv1.Note{
-				Type:    vsHostNoteType,
-				Summary: vsHostSummary,
-				Msg:     vsHostMsg,
-				Level:   apiv1.NoteLevel_ERROR,
-				Attr: map[string]string{
-					"vs_names": "Vs4.bar, Vs4.bar",
-					"host":     "foo.com",
-					"routes":   "/foo exact /foo prefix",
-				},
-			}
 			expectedNote1.Id = util.ComputeID(expectedNote1)
 			expectedNote2.Id = util.ComputeID(expectedNote2)
 			expectedNote3.Id = util.ComputeID(expectedNote3)
@@ -443,16 +427,27 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 			expectedNote5.Id = util.ComputeID(expectedNote5)
 			expectedNote6.Id = util.ComputeID(expectedNote6)
 			expectedNote7.Id = util.ComputeID(expectedNote7)
-			expectedNote8.Id = util.ComputeID(expectedNote8)
-			sort.Slice(vsNotes, func(i, j int) bool {
-				return vsNotes[i].Attr["host"] > vsNotes[j].Attr["host"]
-			})
+
 			expecteds := []*apiv1.Note{expectedNote1, expectedNote2, expectedNote3, expectedNote4, expectedNote5,
-				expectedNote6, expectedNote7, expectedNote8,
+				expectedNote6, expectedNote7,
 			}
+
+			vsNotes, err := CreateVirtualServiceNotes(vsList)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(vsNotes).To(HaveLen(len(expecteds)))
 			for _, note := range vsNotes {
 				Expect(expecteds).To(ContainElement(note))
 			}
+		})
+
+		It("Does not warn if two routes conflict but are on different hosts", func() {
+			Vs1.Spec.Http = []*istiov1alpha3.HTTPRoute{&exactRoute, &prefixRoute}
+			Vs8.Spec.Http = []*istiov1alpha3.HTTPRoute{&prefixRoute2Levels, &exactRoute}
+			vsList := []*v1alpha3.VirtualService{Vs1, Vs8}
+
+			vsNotes, err := CreateVirtualServiceNotes(vsList)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(vsNotes).To(BeEmpty())
 		})
 	})
 })
