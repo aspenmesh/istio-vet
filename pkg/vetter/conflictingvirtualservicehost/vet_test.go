@@ -281,7 +281,7 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 			Expect(vsNotes).To(HaveLen(0))
 		})
 
-		FIt("Generates a note when routes exist in two virtual services with different initial components", func() {
+		It("Generates a note when routes exist in two virtual services with different initial components", func() {
 			Vs1.Spec.Http = []*istiov1alpha3.HTTPRoute{&prefixRoute2Levelsbar}
 			Vs2.Spec.Http = []*istiov1alpha3.HTTPRoute{&exactRoute3Levels, &exactRoute3Levelsbar}
 			vsList := []*v1alpha3.VirtualService{Vs1, Vs2}

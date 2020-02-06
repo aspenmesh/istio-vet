@@ -99,7 +99,18 @@ func CreateVirtualServiceNotes(virtualServices []*v1alpha3.VirtualService) ([]*a
 	}
 
 	// create vet notes
+	notes, err := addConflictingRulesNotes(vsByHost)
 
+	if err != nil {
+		return []*apiv1.Note{}, err
+	}
+	for i := range notes {
+		notes[i].Id = util.ComputeID(notes[i])
+	}
+	return notes, nil
+}
+
+func addConflictingRulesNotes(vsByHost map[string][]*v1alpha3.VirtualService) ([]*apiv1.Note, error) {
 	notes := []*apiv1.Note{}
 	for host, vsList := range vsByHost {
 		if len(vsList) > 1 {
@@ -129,9 +140,7 @@ func CreateVirtualServiceNotes(virtualServices []*v1alpha3.VirtualService) ([]*a
 			}
 		}
 	}
-	for i := range notes {
-		notes[i].Id = util.ComputeID(notes[i])
-	}
+
 	return notes, nil
 }
 
@@ -260,7 +269,7 @@ func addConflictsForSameRoute(trie *routeTrie, conflictingRules [][]routeRule) [
 			// however, this can be finnicky enough that I'm leaving it out
 			// of the first pass and we can add it in later if it is a cause
 			// of confusion.
-			if routeRules[i].vsName != routeRules[j].vsName &&
+			if routeRules[i].vsName != routeRules[j].vsName ||
 				routeRules[i].namespace != routeRules[j].namespace {
 				conflictingRules = append(conflictingRules, []routeRule{routeRules[i], routeRules[j]})
 			}
