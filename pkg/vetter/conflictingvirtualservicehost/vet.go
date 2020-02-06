@@ -171,6 +171,29 @@ func conflictingVirtualServices(vsList []*v1alpha3.VirtualService) ([][]routeRul
 
 // Create a trie representing the routes with their corresponding match rules
 // from a list of virtual services.
+//
+// The nodes of the trie can be thought of as the components of a route with
+// arrays/slices containing the match type of the route rules for that node
+// if there are any.
+//
+// For example, consider the route rules:
+//   /foo/bar exact
+//   /foo/bar prefix
+//   /bar exact
+//   /bar/baz prefix
+//
+// Then the trie could be thought of like
+//
+//                         o (dummy node)
+//                        / \
+//                       /   \
+//                      /     \
+//                     /       \
+//                (/foo, [])  (/bar, [exact])
+//                   /          \
+//                  /            \
+//                 /              \
+// (/foo/bar, [prefix, exact])    (/bar/baz, [prefix])
 func buildMergedVirtualServiceTrie(vsList []*v1alpha3.VirtualService) *routeTrie {
 	subRoutes := make(map[string]*routeTrie)
 	trie := &routeTrie{subRoutes: subRoutes, regexs: []routeRule{}, routeRules: []routeRule{}}
