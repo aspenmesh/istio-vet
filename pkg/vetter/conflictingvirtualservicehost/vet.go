@@ -249,6 +249,7 @@ func addRouteToMergedVsTree(trie *routeTrie, match *istiov1alpha3.StringMatch, v
 	}
 }
 
+// Traverse the trie depth-first and add any conflicts to the list of conflicting rules.
 func conflictingSubroutes(trie *routeTrie, rRule routeRule, conflictingRules [][]routeRule) ([][]routeRule, error) {
 	for _, rule := range trie.routeRules {
 		if c, err := conflict(rRule, rule); err != nil {
@@ -283,6 +284,9 @@ func conflictingSubroutes(trie *routeTrie, rRule routeRule, conflictingRules [][
 	}
 	return conflictingRules, nil
 }
+
+// Add conflicts for the same route to the list of conflicting rules. Traverse the trie depth-first.
+// Rules for a given route will always conflict if they are not in the same virtual service.
 func addConflictsForSameRoute(trie *routeTrie, conflictingRules [][]routeRule) [][]routeRule {
 	routeRules := trie.routeRules
 	for i := 0; i < len(routeRules)-1; i++ {
