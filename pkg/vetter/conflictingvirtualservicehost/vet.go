@@ -100,20 +100,6 @@ func asString(rrType routeRuleType) string {
 	}
 }
 
-func unwrapNote(note conflictingVsNote) *apiv1.Note {
-	return &apiv1.Note{
-		Type:    note.Type,
-		Summary: note.Summary,
-		Msg:     note.Msg,
-		Level:   apiv1.NoteLevel_ERROR,
-		Attr: map[string]string{
-			"vs_names": note.vsNames,
-			"host":     note.host,
-			"routes":   note.routes,
-		}}
-
-}
-
 // CreateVirtualServiceNotes checks for multiple vs defining the same host and
 // generates notes for these cases
 func CreateVirtualServiceNotes(virtualServices []*v1alpha3.VirtualService) ([]*apiv1.Note, error) {
@@ -135,7 +121,6 @@ func CreateVirtualServiceNotes(virtualServices []*v1alpha3.VirtualService) ([]*a
 
 	// create vet notes
 
-	uniqueNotes := map[conflictingVsNote]struct{}{}
 	notes := []*apiv1.Note{}
 	for host, vsList := range vsByHost {
 		if len(vsList) > 1 {
@@ -150,21 +135,20 @@ func CreateVirtualServiceNotes(virtualServices []*v1alpha3.VirtualService) ([]*a
 				vsNames := []string{vs1.vsName + "." + vs1.namespace, vs2.vsName + "." + vs2.namespace}
 				conflictingRoutes := []string{vs1.route + " " + asString(vs1.ruleType),
 					vs2.route + " " + asString(vs2.ruleType)}
-				note := conflictingVsNote{
+				note := &apiv1.Note{
 					Type:    vsHostNoteType,
 					Summary: vsHostSummary,
 					Msg:     vsHostMsg,
 					Level:   apiv1.NoteLevel_ERROR,
-					vsNames: strings.Join(vsNames, ", "),
-					host:    host,
-					routes:  strings.Join(conflictingRoutes, " "),
+					Attr: map[string]string{
+						"vs_names": strings.Join(vsNames, ", "),
+						"host":     host,
+						"routes":   strings.Join(conflictingRoutes, " "),
+					},
 				}
-				uniqueNotes[note] = struct{}{}
+				notes = append(notes, note)
 			}
 		}
-	}
-	for k, _ := range uniqueNotes {
-		notes = append(notes, unwrapNote(k))
 	}
 	for i := range notes {
 		notes[i].Id = util.ComputeID(notes[i])
@@ -266,12 +250,12 @@ func conflictingSubroutes(trie *routeTrie, rRule routeRule, conflictingRules [][
 	}
 
 	for _, descendant := range trie.subRoutes {
-		// There are now route rules for this node, recurse down with the same rule.
+		// There are no route rules for this node, recurse down with the same rule.
 		if len(descendant.routeRules) == 0 {
 			if c, err := conflictingSubroutes(descendant, rRule, conflictingRules); err != nil {
 				return conflictingRules, err
 			} else {
-				conflictingRules = append(conflictingRules, c...)
+				conflictingRules = c
 			}
 		} else {
 			// Recurse down but carefully! We want to report all conflicts and
@@ -292,13 +276,13 @@ func addConflictsForSameRoute(trie *routeTrie, conflictingRules [][]routeRule) [
 	routeRules := trie.routeRules
 	for i := 0; i < len(routeRules)-1; i++ {
 		for j := i + 1; j < len(routeRules); j++ {
-			// Do not report when the rules are in the same namespace.
-			// Order matters for conflicting rules in the same namespace,
+			// Do not report when the rules are in the same virtual service.
+			// Order matters for conflicting rules in the same virtual service,
 			// however, this can be finnicky enough that I'm leaving it out
 			// of the first pass and we can add it in later if it is a cause
 			// of confusion.
 			if routeRules[i].vsName != routeRules[j].vsName &&
-				routeRules[i].namespace == routeRules[j].namespace {
+				routeRules[i].namespace != routeRules[j].namespace {
 				conflictingRules = append(conflictingRules, []routeRule{routeRules[i], routeRules[j]})
 			}
 		}
