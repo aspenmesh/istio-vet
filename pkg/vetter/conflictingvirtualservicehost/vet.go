@@ -61,6 +61,7 @@ type conflictingVsNote struct {
 	Msg     string
 	Level   apiv1.NoteLevel
 	vsNames string
+	host    string
 	routes  string
 }
 
@@ -99,7 +100,7 @@ func asString(rrType routeRuleType) string {
 	}
 }
 
-func unwrapNote(note conflictingVsNote, hosts []string) *apiv1.Note {
+func unwrapNote(note conflictingVsNote) *apiv1.Note {
 	return &apiv1.Note{
 		Type:    note.Type,
 		Summary: note.Summary,
@@ -107,7 +108,7 @@ func unwrapNote(note conflictingVsNote, hosts []string) *apiv1.Note {
 		Level:   apiv1.NoteLevel_ERROR,
 		Attr: map[string]string{
 			"vs_names": note.vsNames,
-			"host":     strings.Join(hosts, " "),
+			"host":     note.host,
 			"routes":   note.routes,
 		}}
 
@@ -137,7 +138,7 @@ func CreateVirtualServiceNotes(virtualServices []*v1alpha3.VirtualService) ([]*a
 	// We only want to report the unique hosts for a given conflict.
 	// This should be thought of as a hash map from notes to a set of
 	// host names.
-	notesToUniqueHost := map[conflictingVsNote]map[string]struct{}{}
+	uniqueNotes := map[conflictingVsNote]struct{}{}
 	notes := []*apiv1.Note{}
 	for host, vsList := range vsByHost {
 		if len(vsList) > 1 {
@@ -157,18 +158,15 @@ func CreateVirtualServiceNotes(virtualServices []*v1alpha3.VirtualService) ([]*a
 					Msg:     vsHostMsg,
 					Level:   apiv1.NoteLevel_ERROR,
 					vsNames: strings.Join(vsNames, ", "),
+					host:    host,
 					routes:  strings.Join(conflictingRoutes, " "),
 				}
-				notesToUniqueHost[note] = map[string]struct{}{host: struct{}{}}
+				uniqueNotes[note] = struct{}{}
 			}
 		}
 	}
-	for k, v := range notesToUniqueHost {
-		hosts := []string{}
-		for host, _ := range v {
-			hosts = append(hosts, host)
-		}
-		notes = append(notes, unwrapNote(k, hosts))
+	for k, v := range uniqueNotes {
+		notes = append(notes, unwrapNote(k))
 	}
 	for i := range notes {
 		notes[i].Id = util.ComputeID(notes[i])
