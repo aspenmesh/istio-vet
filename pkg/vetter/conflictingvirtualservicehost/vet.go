@@ -135,13 +135,11 @@ func CreateVirtualServiceNotes(virtualServices []*v1alpha3.VirtualService) ([]*a
 
 	// create vet notes
 
-	// We only want to report the unique hosts for a given conflict.
-	// This should be thought of as a hash map from notes to a set of
-	// host names.
 	uniqueNotes := map[conflictingVsNote]struct{}{}
 	notes := []*apiv1.Note{}
 	for host, vsList := range vsByHost {
 		if len(vsList) > 1 {
+
 			conflictingRules, err := conflictingVirtualServices(vsList)
 			if err != nil {
 				return notes, err
@@ -165,7 +163,7 @@ func CreateVirtualServiceNotes(virtualServices []*v1alpha3.VirtualService) ([]*a
 			}
 		}
 	}
-	for k, v := range uniqueNotes {
+	for k, _ := range uniqueNotes {
 		notes = append(notes, unwrapNote(k))
 	}
 	for i := range notes {
