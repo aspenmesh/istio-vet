@@ -10,8 +10,8 @@ behavior in your cluster. Additionally, if two virtual services define the
 same hostname and at least one of them uses sidecar routing (i.e., not
 attached to a specific gateway), merging cannot occur.
 
-Istio requires that each VirtualService uses a unique combination of hostname,
- gateway, and route. Short hostnames (those that do not contain a '\.') are
+Istio requires that each VirtualService uses a unique combination of hostname
+  and route. Short hostnames (those that do not contain a '\.') are
  converted to fully qualified domain names (FQDN) that include the namespace
  where the VirtualService resource is defined, so short hostnames are allowed to
  be repeated so long as they are defined in separate namespaces. Converting short

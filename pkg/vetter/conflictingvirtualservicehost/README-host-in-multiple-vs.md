@@ -2,7 +2,7 @@
 
 ## Example
 
-ERROR: The VirtualServices vs1.default, vs2.default with routes /foo prefix /foo exact define the same host (*) and conflict. A Virtual Service defining the same host must not conflict. Consider updating the VirtualServices to have unique hostname or update the rules so they do not conflict.
+ERROR: The VirtualServices vs1.default, vs2.default with routes /foo prefix /foo exact define the same host (*) and conflict. A Virtual Service defining the same host must not conflict. Consider updating the VirtualServices to have unique hostnames or update the rules so they do not conflict.
 
 ## Description
 
@@ -89,8 +89,8 @@ The following note will be generated:
 ```shell
 Summary: "Multiple VirtualServices define the same host (reviews) and conflict"
 
-Message: "ERROR: The VirtualServices vs3.default, vs4.default  define the same host (reviews)
-matching uris (/service1 prefix /service1/start prefix) conflict. VirtualServices defining the same
+Message: "ERROR: The VirtualServices vs3.default, vs4.default define the same host (reviews)
+matching uris /service1 prefix /service1/start prefix conflict. VirtualServices defining the same
 host must not conflict. Considuring updating the VirtualServices to have unique hostnames or update the
 rules so they do not conflict."
 ```
