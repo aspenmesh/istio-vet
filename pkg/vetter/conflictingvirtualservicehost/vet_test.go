@@ -449,5 +449,17 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vsNotes).To(BeEmpty())
 		})
+
+		// This test can be deleted/return a conflict if we want to report
+		// on conflicts within the same VS.
+		It("Does not warn if two routes conflict but are in the same VS", func() {
+			Vs1.Spec.Http = []*istiov1alpha3.HTTPRoute{&prefixRoute, &prefixRoute2Levels}
+			vsList := []*v1alpha3.VirtualService{Vs1}
+
+			vsNotes, err := CreateVirtualServiceNotes(vsList)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(vsNotes).To(BeEmpty())
+		})
 	})
 })

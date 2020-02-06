@@ -318,22 +318,31 @@ func addConflictsForSameRoute(trie *routeTrie, conflictingRules [][]routeRule) [
 //   This happens after we've encountered our first "real" route rule. This should
 //   always return false.
 //
-// case 2: There is exactly one regex in the trie
+// case 2: Ancestor and descendant are in the same virtual service:
+//   Order of declaration matters when applying route rules from the
+//   same virtual service. However, the current implementation doesn't
+//   track this. Always report no conflict for now.
+//
+// case 3: There is exactly one regex in the trie
 //   For reasons elaborated elsewhere, there will only ever be one regex in
 //   a given trie. Given how the trie is traversed, the regex will always be
 //   the ancestorRule; it can never be the descendantRule.
 //
-// case 3: The ancestorRule is a prefix rule
-//   Note that the only relevant case here is when the route for descendantRule is a
+// case 4: The ancestorRule is a prefix rule
+//   The only relevant case here is when the route for descendantRule is a
 //   strict subroute of ancestorRule (because rules for the same route are handled in a different
-//   code path). In practice, this should always result in a conflict because of how the trie is traversed.
+//   code path). This should always return true because of how the trie is traversed.
 //
-//  case 4: The ancestorRule is an exact rule
-//    Since the only relevant case is when the route for descendantRule is a strict
-//    subroute of ancestorRule (same as case 3), this should always be false in practice.
+// case 5: The ancestorRule is an exact rule
+//   Since the only relevant case is when the route for descendantRule is a strict
+//   subroute of ancestorRule (same as case 3), this should always be false.
 func conflict(ancestorRule routeRule, descendantRule routeRule) (bool, error) {
 	// The "(routeRule{})" needs to be in parenthesis; I'm not sure why.
 	if ancestorRule == (routeRule{}) {
+		return false, nil
+	}
+
+	if ancestorRule.vsName == descendantRule.vsName && ancestorRule.namespace == descendantRule.namespace {
 		return false, nil
 	}
 
