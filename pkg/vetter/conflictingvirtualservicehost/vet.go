@@ -263,6 +263,7 @@ func addRouteToMergedVsTree(trie *routeTrie, match *istiov1alpha3.StringMatch, v
 		return
 	}
 
+	// Trim trailing slashes
 	if strings.HasSuffix("/", rRule.route) {
 		rRule.route = strings.TrimSuffix(rRule.route, "/")
 	}
@@ -302,6 +303,7 @@ func conflictingSubroutes(trie *routeTrie, rRule routeRule, conflictingRules [][
 	}
 
 	for _, descendant := range trie.subRoutes {
+		// There are now route rules for this node, recurse down with the same rule.
 		if len(descendant.routeRules) == 0 {
 			if c, err := conflictingSubroutes(descendant, rRule, conflictingRules); err != nil {
 				return conflictingRules, err
