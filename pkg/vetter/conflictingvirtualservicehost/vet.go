@@ -40,11 +40,6 @@ const (
 		" define the same host (${host}) and conflict. VirtualServices defining the same host must" +
 		" not conflict. Consider updating the VirtualServices to have unique hostnames or " +
 		"update the rules so they do not conflict."
-
-	sidecarRoutingSummary = "Multiple VirtualServices define the same host and ${vs_name} uses sidecar routing."
-	sidecarRoutingMsg     = "The VirtualService ${vs_name} uses sidecar routing (no gateway is explicitly attached)." +
-		" However, other VirtualServices use " +
-		"the same host: ${vs_names}, either fix the conflicts or add a non-default gateway to ${vs_name}"
 )
 
 type routeRuleType int
@@ -149,35 +144,6 @@ func CreateVirtualServiceNotes(virtualServices []*v1alpha3.VirtualService) ([]*a
 			conflictingRules, err := conflictingVirtualServices(vsList)
 			if err != nil {
 				return notes, err
-			}
-			for _, vs := range vsList {
-				gateways := vs.Spec.GetGateways()
-				// If there are no gateways, then
-				// this vs uses sidecar routing.
-				// Since there are multiple virtual
-				// services using the same host,
-				// merging needs to occur, which
-				// cannot happen with sidecar routing.
-				if len(gateways) == 0 {
-					vsNames := ""
-					for _, sidecarRoutingVs := range vsList {
-						if vsNames == "" {
-							vsNames = sidecarRoutingVs.GetName()
-						} else {
-							vsNames = vsNames + ", " + sidecarRoutingVs.GetName()
-						}
-					}
-					notes = append(notes, &apiv1.Note{
-						Type:    vsHostNoteType,
-						Summary: sidecarRoutingSummary,
-						Msg:     sidecarRoutingMsg,
-						Level:   apiv1.NoteLevel_ERROR,
-						Attr: map[string]string{
-							"vs_name":  vs.GetName(),
-							"vs_names": vsNames,
-						},
-					})
-				}
 			}
 			for _, conflict := range conflictingRules {
 				vs1 := conflict[0]
