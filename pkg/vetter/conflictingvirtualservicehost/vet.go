@@ -50,29 +50,10 @@ const (
 	regex
 )
 
-// We need a type that is a Note with the keys
-// that occur in this note "unfolded" (since
-// we want to use that type as a key in a map,
-// but the Attr field in Note is a map and hence
-// unhashable)
-type conflictingVsNote struct {
-	Type    string
-	Summary string
-	Msg     string
-	Level   apiv1.NoteLevel
-	vsNames string
-	host    string
-	routes  string
-}
-
 // VsHost implements Vetter interface
 type VsHost struct {
 	nsLister v1.NamespaceLister
 	vsLister netv1alpha3.VirtualServiceLister
-}
-type hostAndGateway struct {
-	gateway  string
-	hostname string
 }
 
 type routeRule struct {
@@ -87,8 +68,6 @@ type routeTrie struct {
 	regexs     []routeRule
 	routeRules []routeRule
 }
-
-type VirtualSvcByHostAndGateway map[hostAndGateway][]*v1alpha3.VirtualService
 
 func asString(rrType routeRuleType) string {
 	if rrType == prefix {
@@ -360,14 +339,6 @@ func getRouteRuleFromMatch(match *istiov1alpha3.StringMatch, vs *v1alpha3.Virtua
 		return routeRule{ruleType: regex, route: route, vsName: vs.Name, namespace: vs.Namespace}
 	}
 	return routeRule{}
-}
-
-func populateVirtualServiceMap(hg hostAndGateway, vs *v1alpha3.VirtualService, vsByHostAndGateway VirtualSvcByHostAndGateway) {
-	if _, ok := vsByHostAndGateway[hg]; !ok {
-		vsByHostAndGateway[hg] = []*v1alpha3.VirtualService{vs}
-	} else {
-		vsByHostAndGateway[hg] = append(vsByHostAndGateway[hg], vs)
-	}
 }
 
 // Vet returns the list of generated notes
