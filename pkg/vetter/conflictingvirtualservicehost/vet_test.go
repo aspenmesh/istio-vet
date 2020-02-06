@@ -461,5 +461,120 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vsNotes).To(BeEmpty())
 		})
+
+		It("Generates a note for each host", func() {
+			var fooBarVs1 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "fooBarVs1",
+					Namespace: namespace,
+				},
+				Spec: v1alpha3.VirtualServiceSpec{
+					VirtualService: istiov1alpha3.VirtualService{
+						Hosts: []string{"foo.com", "bar.com"}}}}
+			var fooBarVs2 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "fooBarVs2",
+					Namespace: namespace,
+				},
+				Spec: v1alpha3.VirtualServiceSpec{
+					VirtualService: istiov1alpha3.VirtualService{
+						Hosts: []string{"foo.com", "bar.com"}}}}
+
+			fooBarVs1.Spec.Http = []*istiov1alpha3.HTTPRoute{&exactRoute, &prefixRoute}
+			fooBarVs2.Spec.Http = []*istiov1alpha3.HTTPRoute{&prefixRoute2Levels, &exactRoute}
+
+			vsList := []*v1alpha3.VirtualService{fooBarVs1, fooBarVs2}
+
+			expectedNote1 := &apiv1.Note{
+				Type:    vsHostNoteType,
+				Summary: vsHostSummary,
+				Msg:     vsHostMsg,
+				Level:   apiv1.NoteLevel_ERROR,
+				Attr: map[string]string{
+					"vs_names": "fooBarVs1.bar, fooBarVs2.bar",
+					"host":     "bar.com",
+					"routes":   "/foo prefix /foo exact",
+				},
+			}
+			expectedNote2 := &apiv1.Note{
+				Type:    vsHostNoteType,
+				Summary: vsHostSummary,
+				Msg:     vsHostMsg,
+				Level:   apiv1.NoteLevel_ERROR,
+				Attr: map[string]string{
+					"routes":   "/foo prefix /foo/bar prefix",
+					"vs_names": "fooBarVs1.bar, fooBarVs2.bar",
+					"host":     "bar.com",
+				},
+			}
+
+			expectedNote3 := &apiv1.Note{
+				Type:    vsHostNoteType,
+				Summary: vsHostSummary,
+				Msg:     vsHostMsg,
+				Level:   apiv1.NoteLevel_ERROR,
+				Attr: map[string]string{
+					"vs_names": "fooBarVs1.bar, fooBarVs2.bar",
+					"host":     "foo.com",
+					"routes":   "/foo exact /foo exact",
+				},
+			}
+
+			expectedNote4 := &apiv1.Note{
+				Type:    vsHostNoteType,
+				Summary: vsHostSummary,
+				Msg:     vsHostMsg,
+				Level:   apiv1.NoteLevel_ERROR,
+				Attr: map[string]string{
+					"vs_names": "fooBarVs1.bar, fooBarVs2.bar",
+					"host":     "foo.com",
+					"routes":   "/foo prefix /foo exact",
+				},
+			}
+
+			expectedNote5 := &apiv1.Note{
+				Type:    vsHostNoteType,
+				Summary: vsHostSummary,
+				Msg:     vsHostMsg,
+				Level:   apiv1.NoteLevel_ERROR,
+				Attr: map[string]string{
+					"vs_names": "fooBarVs1.bar, fooBarVs2.bar",
+					"host":     "foo.com",
+					"routes":   "/foo prefix /foo/bar prefix",
+				},
+			}
+
+			expectedNote6 := &apiv1.Note{
+				Type:    vsHostNoteType,
+				Summary: vsHostSummary,
+				Msg:     vsHostMsg,
+				Level:   apiv1.NoteLevel_ERROR,
+				Attr: map[string]string{
+					"routes":   "/foo exact /foo exact",
+					"vs_names": "fooBarVs1.bar, fooBarVs2.bar",
+					"host":     "bar.com",
+				},
+			}
+			expecteds := []*apiv1.Note{expectedNote1, expectedNote2, expectedNote3, expectedNote4, expectedNote5,
+				expectedNote6,
+			}
+			expectedNote1.Id = util.ComputeID(expectedNote1)
+			expectedNote2.Id = util.ComputeID(expectedNote2)
+			expectedNote3.Id = util.ComputeID(expectedNote3)
+			expectedNote4.Id = util.ComputeID(expectedNote4)
+			expectedNote5.Id = util.ComputeID(expectedNote5)
+			expectedNote6.Id = util.ComputeID(expectedNote6)
+
+			vsNotes, err := CreateVirtualServiceNotes(vsList)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(vsNotes).To(HaveLen(6))
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(vsNotes).To(HaveLen(len(expecteds)))
+			for _, note := range vsNotes {
+				Expect(expecteds).To(ContainElement(note))
+			}
+		})
 	})
 })
