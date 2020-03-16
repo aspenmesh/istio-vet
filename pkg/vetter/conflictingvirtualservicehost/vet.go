@@ -301,11 +301,11 @@ func addConflictsForSameRoute(trie *routeTrie, conflictingRules [][]routeRule) [
 			if routeRules[i].vsName != routeRules[j].vsName ||
 				routeRules[i].namespace != routeRules[j].namespace {
 				conflictingRules = append(conflictingRules, []routeRule{routeRules[i], routeRules[j]})
-			} else if routeRules[i].vsName == routeRules[j].vsName {
+			} else {
 				if c, err := sameVSconflict(routeRules[i], routeRules[j]); err == nil && c {
 					conflictingRules = append(conflictingRules, []routeRule{routeRules[i], routeRules[j]})
 				}
-		    }
+			}
 		}
 	}
 
@@ -401,17 +401,27 @@ func (v *VsHost) Vet() ([]*apiv1.Note, error) {
 // check same VS route conflict
 func sameVSconflict(rule1 routeRule, rule2 routeRule) (bool, error) {
 
-       if (rule1.priority > rule2.priority &&
-		((rule1.ruleType == prefix && (rule2.ruleType == prefix || rule2.ruleType == exact)) ||
-			(rule1.ruleType == exact && rule2.ruleType == exact))) {
-		return strings.HasPrefix(rule2.route, rule1.route), nil
+	if rule1.priority > rule2.priority {
+		return sameVSCheck(rule1, rule2)
 
-	} else if (rule2.priority > rule1.priority &&
-		((rule2.ruleType == prefix && (rule1.ruleType == prefix || rule1.ruleType == exact)) ||
-			   (rule2.ruleType == exact && rule1.ruleType == exact))) {
-		return strings.HasPrefix(rule1.route, rule2.route), nil
+	} else if rule2.priority > rule1.priority {
+		return sameVSCheck(rule2, rule1)
 	}
 	return false, nil
+}
+
+func sameVSCheck(rule1 routeRule, rule2 routeRule) (bool, error) {
+	if rule1.ruleType == prefix {
+		return strings.HasPrefix(rule2.route, rule1.route), nil
+	} else if rule1.ruleType == exact {
+		if rule2.ruleType == exact {
+			return rule1.route == rule2.route, nil
+		} else if rule2.ruleType == prefix {
+			return false, nil
+		}
+	}
+	return true, fmt.Errorf("Could not determine whether %v and %v conflict. This is because of a bug in istio-vet", rule1, rule2)
+
 }
 
 // Info returns information about the vetter
