@@ -231,6 +231,7 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 		})
 
 		It("Does not generate notes when short host names are the same, but are in different namespaces", func() {
+			Vs1.Spec.Http = []*istiov1alpha3.HTTPRoute{&exactRoute}
 			vsList := []*v1alpha3.VirtualService{Vs1, Vs5}
 			vsNotes, err := CreateVirtualServiceNotes(vsList)
 			Expect(err).NotTo(HaveOccurred())
@@ -465,7 +466,7 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 
 		// This test can be deleted/return a conflict if we want to report
 		// on conflicts within the same VS. This is not a conflict because second one is more specific
-		It("Does not warn if two routes conflict but are in the same VS", func() {
+		It("Does not warn if two routes in the same VS and do not conflict", func() {
 			Vs1.Spec.Http = []*istiov1alpha3.HTTPRoute{&prefixRoute, &prefixRoute2Levels}
 			vsList := []*v1alpha3.VirtualService{Vs1}
 
@@ -477,7 +478,7 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 
 
 		// Conflict in same VS.
-		It("Warn if two routes conflict in the same VS", func() {
+		It("Generates a note for each host of each conflict in the same VS", func() {
 			Vs1.Spec.Http = []*istiov1alpha3.HTTPRoute{&prefixRoute2Levels, &prefixRoute}
 			vsList := []*v1alpha3.VirtualService{Vs1}
 

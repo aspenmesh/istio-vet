@@ -401,15 +401,15 @@ func (v *VsHost) Vet() ([]*apiv1.Note, error) {
 // check same VS route conflict
 func sameVSconflict(rule1 routeRule, rule2 routeRule) (bool, error) {
 
-	if rule1.vsName == rule2.vsName && rule1.namespace == rule2.namespace {
-		if (rule1.priority > rule2.priority &&
-			rule1.ruleType <= rule2.ruleType) {
-			return strings.HasPrefix(rule2.route, rule1.route), nil
+       if (rule1.priority > rule2.priority &&
+		((rule1.ruleType == prefix && (rule2.ruleType == prefix || rule2.ruleType == exact)) ||
+			(rule1.ruleType == exact && rule2.ruleType == exact))) {
+		return strings.HasPrefix(rule2.route, rule1.route), nil
 
-		} else if (rule2.priority > rule1.priority &&
-			rule2.ruleType <= rule1.ruleType) {
-			return strings.HasPrefix(rule1.route, rule2.route), nil
-		}
+	} else if (rule2.priority > rule1.priority &&
+		((rule2.ruleType == prefix && (rule1.ruleType == prefix || rule1.ruleType == exact)) ||
+			   (rule2.ruleType == exact && rule1.ruleType == exact))) {
+		return strings.HasPrefix(rule1.route, rule2.route), nil
 	}
 	return false, nil
 }
