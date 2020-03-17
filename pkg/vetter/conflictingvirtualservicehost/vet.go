@@ -61,6 +61,7 @@ type routeRule struct {
 	route     string
 	vsName    string
 	namespace string
+	priority  int
 }
 
 type routeTrie struct {
@@ -113,7 +114,7 @@ func CreateVirtualServiceNotes(virtualServices []*v1alpha3.VirtualService) ([]*a
 func addConflictingRulesNotes(vsByHost map[string][]*v1alpha3.VirtualService) ([]*apiv1.Note, error) {
 	notes := []*apiv1.Note{}
 	for host, vsList := range vsByHost {
-		if len(vsList) > 1 {
+		if len(vsList) >= 1 {
 
 			conflictingRules, err := conflictingVirtualServices(vsList)
 			if err != nil {
@@ -198,9 +199,9 @@ func buildMergedVirtualServiceTrie(vsList []*v1alpha3.VirtualService) *routeTrie
 	subRoutes := make(map[string]*routeTrie)
 	trie := &routeTrie{subRoutes: subRoutes, regexs: []routeRule{}, routeRules: []routeRule{}}
 	for _, vs := range vsList {
-		for _, route := range vs.Spec.GetHttp() {
+		for prio, route := range vs.Spec.GetHttp() {
 			for _, match := range route.GetMatch() {
-				addRouteToMergedVsTree(trie, match.GetUri(), vs)
+				addRouteToMergedVsTree(trie, match.GetUri(), vs, prio)
 			}
 		}
 	}
@@ -209,9 +210,9 @@ func buildMergedVirtualServiceTrie(vsList []*v1alpha3.VirtualService) *routeTrie
 
 // Add a particular route to the route trie. If the given route already has a route rule,
 // add it to the list of route rules for the given node/route.
-func addRouteToMergedVsTree(trie *routeTrie, match *istiov1alpha3.StringMatch, vs *v1alpha3.VirtualService) {
+func addRouteToMergedVsTree(trie *routeTrie, match *istiov1alpha3.StringMatch, vs *v1alpha3.VirtualService, prio int) {
 	current := trie
-	rRule := getRouteRuleFromMatch(match, vs)
+	rRule := getRouteRuleFromMatch(match, vs, prio)
 
 	// Regexs are treated as exceptions to the trie construction rule.
 	// This is largely due to the complexities in determining whether two regexs
@@ -287,6 +288,7 @@ func conflictingSubroutes(trie *routeTrie, rRule routeRule, conflictingRules [][
 
 // Add conflicts for the same route to the list of conflicting rules. Traverse the trie depth-first.
 // Rules for a given route will always conflict if they are not in the same virtual service.
+// At root, routeRules should be all regex, therefore, we should skip check of the regex rules
 func addConflictsForSameRoute(trie *routeTrie, conflictingRules [][]routeRule) [][]routeRule {
 	routeRules := trie.routeRules
 	for i := 0; i < len(routeRules)-1; i++ {
@@ -299,6 +301,10 @@ func addConflictsForSameRoute(trie *routeTrie, conflictingRules [][]routeRule) [
 			if routeRules[i].vsName != routeRules[j].vsName ||
 				routeRules[i].namespace != routeRules[j].namespace {
 				conflictingRules = append(conflictingRules, []routeRule{routeRules[i], routeRules[j]})
+			} else {
+				if c, err := sameVSconflict(routeRules[i], routeRules[j]); err == nil && c {
+					conflictingRules = append(conflictingRules, []routeRule{routeRules[i], routeRules[j]})
+				}
 			}
 		}
 	}
@@ -342,7 +348,7 @@ func conflict(ancestorRule routeRule, descendantRule routeRule) (bool, error) {
 	}
 
 	if ancestorRule.vsName == descendantRule.vsName && ancestorRule.namespace == descendantRule.namespace {
-		return false, nil
+		return sameVSconflict(ancestorRule, descendantRule)
 	}
 
 	if ancestorRule.ruleType == regex {
@@ -366,13 +372,13 @@ func conflict(ancestorRule routeRule, descendantRule routeRule) (bool, error) {
 		"is the result of a bug in the vetter.", ancestorRule, descendantRule)
 }
 
-func getRouteRuleFromMatch(match *istiov1alpha3.StringMatch, vs *v1alpha3.VirtualService) routeRule {
+func getRouteRuleFromMatch(match *istiov1alpha3.StringMatch, vs *v1alpha3.VirtualService, prio int) routeRule {
 	if route := match.GetExact(); route != "" {
-		return routeRule{ruleType: exact, route: route, vsName: vs.Name, namespace: vs.Namespace}
+		return routeRule{ruleType: exact, route: route, vsName: vs.Name, namespace: vs.Namespace, priority: prio}
 	} else if route := match.GetPrefix(); route != "" {
-		return routeRule{ruleType: prefix, route: route, vsName: vs.Name, namespace: vs.Namespace}
+		return routeRule{ruleType: prefix, route: route, vsName: vs.Name, namespace: vs.Namespace, priority: prio}
 	} else if route := match.GetRegex(); route != "" {
-		return routeRule{ruleType: regex, route: route, vsName: vs.Name, namespace: vs.Namespace}
+		return routeRule{ruleType: regex, route: route, vsName: vs.Name, namespace: vs.Namespace, priority: prio}
 	}
 	return routeRule{}
 }
@@ -390,6 +396,32 @@ func (v *VsHost) Vet() ([]*apiv1.Note, error) {
 		return nil, err
 	}
 	return notes, nil
+}
+
+// check same VS route conflict
+func sameVSconflict(rule1 routeRule, rule2 routeRule) (bool, error) {
+
+	if rule1.priority > rule2.priority {
+		return sameVSCheck(rule1, rule2)
+
+	} else if rule2.priority > rule1.priority {
+		return sameVSCheck(rule2, rule1)
+	}
+	return false, nil
+}
+
+func sameVSCheck(rule1 routeRule, rule2 routeRule) (bool, error) {
+	if rule1.ruleType == prefix {
+		return strings.HasPrefix(rule2.route, rule1.route), nil
+	} else if rule1.ruleType == exact {
+		if rule2.ruleType == exact {
+			return rule1.route == rule2.route, nil
+		} else if rule2.ruleType == prefix {
+			return false, nil
+		}
+	}
+	return true, fmt.Errorf("Could not determine whether %v and %v conflict. This is because of a bug in istio-vet", rule1, rule2)
+
 }
 
 // Info returns information about the vetter
