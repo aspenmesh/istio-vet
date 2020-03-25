@@ -17,13 +17,14 @@ limitations under the License.
 package mtlsprobes
 
 import (
-	authv1alpha1api "github.com/aspenmesh/istio-client-go/pkg/apis/authentication/v1alpha1"
-	mtlspolicyutil "github.com/aspenmesh/istio-vet/pkg/vetter/util/mtlspolicy"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	istiov1alpha1 "istio.io/api/authentication/v1alpha1"
+	authv1alpha1api "istio.io/client-go/pkg/apis/authentication/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	mtlspolicyutil "github.com/aspenmesh/istio-vet/pkg/vetter/util/mtlspolicy"
 )
 
 var _ = Describe("Get an Endpoint Address that refers to a pod", func() {
@@ -34,8 +35,8 @@ var _ = Describe("Get an Endpoint Address that refers to a pod", func() {
 		var Pod1 *corev1.Pod = &corev1.Pod{
 			metav1.TypeMeta{},
 			metav1.ObjectMeta{
-				Name:         "Pod1",
-				Namespace:    namespace,
+				Name:      "Pod1",
+				Namespace: namespace,
 			},
 			corev1.PodSpec{},
 			corev1.PodStatus{}}
@@ -60,7 +61,7 @@ var _ = Describe("Get an Endpoint Address that refers to a pod", func() {
 		var Endpoint1 *corev1.Endpoints = &corev1.Endpoints{
 			metav1.TypeMeta{},
 			metav1.ObjectMeta{
-				Namespace:    namespace,
+				Namespace: namespace,
 			},
 			[]corev1.EndpointSubset{
 				{
@@ -70,7 +71,7 @@ var _ = Describe("Get an Endpoint Address that refers to a pod", func() {
 		var Endpoint2 *corev1.Endpoints = &corev1.Endpoints{
 			metav1.TypeMeta{},
 			metav1.ObjectMeta{
-				Namespace:    namespace,
+				Namespace: namespace,
 			},
 			[]corev1.EndpointSubset{
 				{
@@ -80,7 +81,7 @@ var _ = Describe("Get an Endpoint Address that refers to a pod", func() {
 		var Endpoint3 *corev1.Endpoints = &corev1.Endpoints{
 			metav1.TypeMeta{},
 			metav1.ObjectMeta{
-				Namespace:    namespace,
+				Namespace: namespace,
 			},
 			[]corev1.EndpointSubset{
 				{
@@ -90,7 +91,7 @@ var _ = Describe("Get an Endpoint Address that refers to a pod", func() {
 		var Endpoint4 *corev1.Endpoints = &corev1.Endpoints{
 			metav1.TypeMeta{},
 			metav1.ObjectMeta{
-				Namespace:    namespace,
+				Namespace: namespace,
 			},
 			[]corev1.EndpointSubset{
 				{
@@ -183,18 +184,17 @@ var _ = Describe("Know when mTLS is correctly configured for a liveness/readines
 					Kind:       "Policy",
 					APIVersion: "authentication.istio.io/v1alpha1"},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:         "Policy1",
-					Namespace:    namespace,
+					Name:      "Policy1",
+					Namespace: namespace,
 				},
-				Spec: authv1alpha1api.PolicySpec{
-					Policy: istiov1alpha1.Policy{
-						Targets: []*istiov1alpha1.TargetSelector{
-							&istiov1alpha1.TargetSelector{
-								Name: "Foo",
-								Ports: []*istiov1alpha1.PortSelector{
-									&istiov1alpha1.PortSelector{
-										Port: &istiov1alpha1.PortSelector_Number{probePort1}}}}},
-						Peers: []*istiov1alpha1.PeerAuthenticationMethod{}}}}
+				Spec: istiov1alpha1.Policy{
+					Targets: []*istiov1alpha1.TargetSelector{
+						&istiov1alpha1.TargetSelector{
+							Name: "Foo",
+							Ports: []*istiov1alpha1.PortSelector{
+								&istiov1alpha1.PortSelector{
+									Port: &istiov1alpha1.PortSelector_Number{probePort1}}}}},
+					Peers: []*istiov1alpha1.PeerAuthenticationMethod{}}}
 
 			// this is a port-specific policy to enable mTLS (for probePort1)
 			var Policy2 *authv1alpha1api.Policy = &authv1alpha1api.Policy{
@@ -202,18 +202,17 @@ var _ = Describe("Know when mTLS is correctly configured for a liveness/readines
 					Kind:       "Policy",
 					APIVersion: "authentication.istio.io/v1alpha1"},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:         "Policy2",
-					Namespace:    namespace,
+					Name:      "Policy2",
+					Namespace: namespace,
 				},
-				Spec: authv1alpha1api.PolicySpec{
-					Policy: istiov1alpha1.Policy{
-						Targets: []*istiov1alpha1.TargetSelector{
-							&istiov1alpha1.TargetSelector{
-								Name: "Foo",
-								Ports: []*istiov1alpha1.PortSelector{
-									&istiov1alpha1.PortSelector{
-										Port: &istiov1alpha1.PortSelector_Number{probePort1}}}}},
-						Peers: []*istiov1alpha1.PeerAuthenticationMethod{enableMtls}}}}
+				Spec: istiov1alpha1.Policy{
+					Targets: []*istiov1alpha1.TargetSelector{
+						&istiov1alpha1.TargetSelector{
+							Name: "Foo",
+							Ports: []*istiov1alpha1.PortSelector{
+								&istiov1alpha1.PortSelector{
+									Port: &istiov1alpha1.PortSelector_Number{probePort1}}}}},
+					Peers: []*istiov1alpha1.PeerAuthenticationMethod{enableMtls}}}
 
 			// this is a name-specific policy to disable mTLS for Foo
 			var Policy3 *authv1alpha1api.Policy = &authv1alpha1api.Policy{
@@ -221,16 +220,15 @@ var _ = Describe("Know when mTLS is correctly configured for a liveness/readines
 					Kind:       "Policy",
 					APIVersion: "authentication.istio.io/v1alpha1"},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:         "Policy3",
-					Namespace:    namespace,
+					Name:      "Policy3",
+					Namespace: namespace,
 				},
-				Spec: authv1alpha1api.PolicySpec{
-					Policy: istiov1alpha1.Policy{
-						Targets: []*istiov1alpha1.TargetSelector{
-							&istiov1alpha1.TargetSelector{
-								Name:  "Foo",
-								Ports: []*istiov1alpha1.PortSelector{}}},
-						Peers: []*istiov1alpha1.PeerAuthenticationMethod{}}}}
+				Spec: istiov1alpha1.Policy{
+					Targets: []*istiov1alpha1.TargetSelector{
+						&istiov1alpha1.TargetSelector{
+							Name:  "Foo",
+							Ports: []*istiov1alpha1.PortSelector{}}},
+					Peers: []*istiov1alpha1.PeerAuthenticationMethod{}}}
 
 			// this is a name-specific policy to enable mTLS for Foo
 			var Policy4 *authv1alpha1api.Policy = &authv1alpha1api.Policy{
@@ -238,16 +236,15 @@ var _ = Describe("Know when mTLS is correctly configured for a liveness/readines
 					Kind:       "Policy",
 					APIVersion: "authentication.istio.io/v1alpha1"},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:         "Policy4",
-					Namespace:    namespace,
+					Name:      "Policy4",
+					Namespace: namespace,
 				},
-				Spec: authv1alpha1api.PolicySpec{
-					Policy: istiov1alpha1.Policy{
-						Targets: []*istiov1alpha1.TargetSelector{
-							&istiov1alpha1.TargetSelector{
-								Name:  "Foo",
-								Ports: []*istiov1alpha1.PortSelector{}}},
-						Peers: []*istiov1alpha1.PeerAuthenticationMethod{enableMtls}}}}
+				Spec: istiov1alpha1.Policy{
+					Targets: []*istiov1alpha1.TargetSelector{
+						&istiov1alpha1.TargetSelector{
+							Name:  "Foo",
+							Ports: []*istiov1alpha1.PortSelector{}}},
+					Peers: []*istiov1alpha1.PeerAuthenticationMethod{enableMtls}}}
 
 			// this is a namespace-specific policy to disable mTLS for default
 			var Policy5 *authv1alpha1api.Policy = &authv1alpha1api.Policy{
@@ -255,13 +252,12 @@ var _ = Describe("Know when mTLS is correctly configured for a liveness/readines
 					Kind:       "Policy",
 					APIVersion: "authentication.istio.io/v1alpha1"},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:         "default",
-					Namespace:    namespace,
+					Name:      "default",
+					Namespace: namespace,
 				},
-				Spec: authv1alpha1api.PolicySpec{
-					Policy: istiov1alpha1.Policy{
-						Targets: []*istiov1alpha1.TargetSelector{},
-						Peers:   []*istiov1alpha1.PeerAuthenticationMethod{}}}}
+				Spec: istiov1alpha1.Policy{
+					Targets: []*istiov1alpha1.TargetSelector{},
+					Peers:   []*istiov1alpha1.PeerAuthenticationMethod{}}}
 
 			// this is a namespace-specific policy to enable mTLS for default
 			var Policy6 *authv1alpha1api.Policy = &authv1alpha1api.Policy{
@@ -269,19 +265,18 @@ var _ = Describe("Know when mTLS is correctly configured for a liveness/readines
 					Kind:       "Policy",
 					APIVersion: "authentication.istio.io/v1alpha1"},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:         "default",
-					Namespace:    namespace,
+					Name:      "default",
+					Namespace: namespace,
 				},
-				Spec: authv1alpha1api.PolicySpec{
-					Policy: istiov1alpha1.Policy{
-						Targets: []*istiov1alpha1.TargetSelector{},
-						Peers:   []*istiov1alpha1.PeerAuthenticationMethod{enableMtls}}}}
+				Spec: istiov1alpha1.Policy{
+					Targets: []*istiov1alpha1.TargetSelector{},
+					Peers:   []*istiov1alpha1.PeerAuthenticationMethod{enableMtls}}}
 
 			var Endpoint1 *corev1.Endpoints = &corev1.Endpoints{
 				metav1.TypeMeta{},
 				metav1.ObjectMeta{
-					Name:         "Foo",
-					Namespace:    namespace,
+					Name:      "Foo",
+					Namespace: namespace,
 				},
 				[]corev1.EndpointSubset{}}
 

@@ -24,17 +24,18 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
-	netv1alpha3 "github.com/aspenmesh/istio-client-go/pkg/client/listers/networking/v1alpha3"
-	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
 	"github.com/cnf/structhash"
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	meshv1alpha1 "istio.io/api/mesh/v1alpha1"
+	"istio.io/client-go/pkg/apis/networking/v1alpha3"
+	netv1alpha3 "istio.io/client-go/pkg/listers/networking/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/listers/core/v1"
+	v1 "k8s.io/client-go/listers/core/v1"
+
+	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
 )
 
 // Constants related to Istio

@@ -21,9 +21,10 @@ limitations under the License.
 package vetter
 
 import (
-	"github.com/aspenmesh/istio-client-go/pkg/client/informers/externalversions"
-	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
+	"istio.io/client-go/pkg/informers/externalversions"
 	"k8s.io/client-go/informers"
+
+	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
 )
 
 // Vetter interface is implemented by vetters.

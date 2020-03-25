@@ -21,16 +21,17 @@ package mtlsprobes
 import (
 	"errors"
 
-	authv1alpha1 "github.com/aspenmesh/istio-client-go/pkg/client/listers/authentication/v1alpha1"
+	"github.com/golang/glog"
+	authv1alpha1 "istio.io/client-go/pkg/listers/authentication/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	v1 "k8s.io/client-go/listers/core/v1"
+
 	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
 	"github.com/aspenmesh/istio-vet/pkg/vetter"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/util"
 	mtlspolicyutil "github.com/aspenmesh/istio-vet/pkg/vetter/util/mtlspolicy"
-	"github.com/golang/glog"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/client-go/listers/core/v1"
 )
 
 const (

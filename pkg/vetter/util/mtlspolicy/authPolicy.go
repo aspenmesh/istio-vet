@@ -19,8 +19,8 @@ import (
 	"errors"
 	"strings"
 
-	authv1alpha1 "github.com/aspenmesh/istio-client-go/pkg/apis/authentication/v1alpha1"
 	istioauthv1alpha1 "istio.io/api/authentication/v1alpha1"
+	authv1alpha1 "istio.io/client-go/pkg/apis/authentication/v1alpha1"
 )
 
 // State of the mTLS settings

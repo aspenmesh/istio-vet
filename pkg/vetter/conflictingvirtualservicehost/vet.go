@@ -21,14 +21,14 @@ import (
 	"regexp"
 	"strings"
 
-	v1alpha3 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
-	netv1alpha3 "github.com/aspenmesh/istio-client-go/pkg/client/listers/networking/v1alpha3"
+	istiov1alpha3 "istio.io/api/networking/v1alpha3"
+	"istio.io/client-go/pkg/apis/networking/v1alpha3"
+	netv1alpha3 "istio.io/client-go/pkg/listers/networking/v1alpha3"
+	v1 "k8s.io/client-go/listers/core/v1"
+
 	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
 	"github.com/aspenmesh/istio-vet/pkg/vetter"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/util"
-
-	istiov1alpha3 "istio.io/api/networking/v1alpha3"
-	v1 "k8s.io/client-go/listers/core/v1"
 )
 
 const (

@@ -22,8 +22,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	authv1alpha1 "github.com/aspenmesh/istio-client-go/pkg/apis/authentication/v1alpha1"
 	istioauthv1alpha1 "istio.io/api/authentication/v1alpha1"
+	authv1alpha1 "istio.io/client-go/pkg/apis/authentication/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -37,12 +37,10 @@ var (
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "default",
 			},
-			Spec: authv1alpha1.MeshPolicySpec{
-				Policy: istioauthv1alpha1.Policy{
-					Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{
-						&istioauthv1alpha1.PeerAuthenticationMethod{
-							Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{},
-						},
+			Spec: istioauthv1alpha1.Policy{
+				Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{
+					&istioauthv1alpha1.PeerAuthenticationMethod{
+						Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{},
 					},
 				},
 			},
@@ -58,13 +56,11 @@ var (
 			Name:      "default",
 			Namespace: "barNs",
 		},
-		Spec: authv1alpha1.PolicySpec{
-			Policy: istioauthv1alpha1.Policy{
-				Targets: []*istioauthv1alpha1.TargetSelector{},
-				Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{
-					&istioauthv1alpha1.PeerAuthenticationMethod{
-						Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{},
-					},
+		Spec: istioauthv1alpha1.Policy{
+			Targets: []*istioauthv1alpha1.TargetSelector{},
+			Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{
+				&istioauthv1alpha1.PeerAuthenticationMethod{
+					Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{},
 				},
 			},
 		},
@@ -79,10 +75,8 @@ var (
 			Name:      "default",
 			Namespace: "barNs",
 		},
-		Spec: authv1alpha1.PolicySpec{
-			Policy: istioauthv1alpha1.Policy{
-				Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{},
-			},
+		Spec: istioauthv1alpha1.Policy{
+			Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{},
 		},
 	}
 
@@ -95,17 +89,15 @@ var (
 			Name:      "nsDefault_apFoo_On",
 			Namespace: "default",
 		},
-		Spec: authv1alpha1.PolicySpec{
-			Policy: istioauthv1alpha1.Policy{
-				Targets: []*istioauthv1alpha1.TargetSelector{
-					&istioauthv1alpha1.TargetSelector{
-						Name: "foo",
-					},
+		Spec: istioauthv1alpha1.Policy{
+			Targets: []*istioauthv1alpha1.TargetSelector{
+				&istioauthv1alpha1.TargetSelector{
+					Name: "foo",
 				},
-				Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{
-					&istioauthv1alpha1.PeerAuthenticationMethod{
-						Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{},
-					},
+			},
+			Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{
+				&istioauthv1alpha1.PeerAuthenticationMethod{
+					Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{},
 				},
 			},
 		},
@@ -120,16 +112,14 @@ var (
 			Name:      "nsDefault_apFoo_Off",
 			Namespace: "default",
 		},
-		Spec: authv1alpha1.PolicySpec{
-			Policy: istioauthv1alpha1.Policy{
-				Targets: []*istioauthv1alpha1.TargetSelector{
-					&istioauthv1alpha1.TargetSelector{
-						Name: "foo",
-					},
+		Spec: istioauthv1alpha1.Policy{
+			Targets: []*istioauthv1alpha1.TargetSelector{
+				&istioauthv1alpha1.TargetSelector{
+					Name: "foo",
 				},
-				Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{
-					&istioauthv1alpha1.PeerAuthenticationMethod{},
-				},
+			},
+			Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{
+				&istioauthv1alpha1.PeerAuthenticationMethod{},
 			},
 		},
 	}
@@ -143,20 +133,18 @@ var (
 			Name:      "nsDefault_apFoo_apBar_On",
 			Namespace: "default",
 		},
-		Spec: authv1alpha1.PolicySpec{
-			Policy: istioauthv1alpha1.Policy{
-				Targets: []*istioauthv1alpha1.TargetSelector{
-					&istioauthv1alpha1.TargetSelector{
-						Name: "foo",
-					},
-					&istioauthv1alpha1.TargetSelector{
-						Name: "bar",
-					},
+		Spec: istioauthv1alpha1.Policy{
+			Targets: []*istioauthv1alpha1.TargetSelector{
+				&istioauthv1alpha1.TargetSelector{
+					Name: "foo",
 				},
-				Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{
-					&istioauthv1alpha1.PeerAuthenticationMethod{
-						Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{},
-					},
+				&istioauthv1alpha1.TargetSelector{
+					Name: "bar",
+				},
+			},
+			Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{
+				&istioauthv1alpha1.PeerAuthenticationMethod{
+					Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{},
 				},
 			},
 		},
@@ -171,25 +159,23 @@ var (
 			Name:      "nsDefault_apFooPorts_apBar_On",
 			Namespace: "default",
 		},
-		Spec: authv1alpha1.PolicySpec{
-			Policy: istioauthv1alpha1.Policy{
-				Targets: []*istioauthv1alpha1.TargetSelector{
-					&istioauthv1alpha1.TargetSelector{
-						Name: "foo",
-						Ports: []*istioauthv1alpha1.PortSelector{
-							&istioauthv1alpha1.PortSelector{
-								Port: &istioauthv1alpha1.PortSelector_Number{8443},
-							},
+		Spec: istioauthv1alpha1.Policy{
+			Targets: []*istioauthv1alpha1.TargetSelector{
+				&istioauthv1alpha1.TargetSelector{
+					Name: "foo",
+					Ports: []*istioauthv1alpha1.PortSelector{
+						&istioauthv1alpha1.PortSelector{
+							Port: &istioauthv1alpha1.PortSelector_Number{8443},
 						},
 					},
-					&istioauthv1alpha1.TargetSelector{
-						Name: "bar",
-					},
 				},
-				Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{
-					&istioauthv1alpha1.PeerAuthenticationMethod{
-						Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{},
-					},
+				&istioauthv1alpha1.TargetSelector{
+					Name: "bar",
+				},
+			},
+			Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{
+				&istioauthv1alpha1.PeerAuthenticationMethod{
+					Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{},
 				},
 			},
 		},
@@ -269,11 +255,9 @@ func diyPolicy(nsName, polName string, peers []*istioauthv1alpha1.PeerAuthentica
 			Name:      polName,
 			Namespace: nsName,
 		},
-		Spec: authv1alpha1.PolicySpec{
-			Policy: istioauthv1alpha1.Policy{
-				Peers:   peers,
-				Targets: targets,
-			},
+		Spec: istioauthv1alpha1.Policy{
+			Peers:   peers,
+			Targets: targets,
 		},
 	}
 }
@@ -626,12 +610,10 @@ var (
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "default",
 		},
-		Spec: authv1alpha1.MeshPolicySpec{
-			Policy: istioauthv1alpha1.Policy{
-				Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{
-					&istioauthv1alpha1.PeerAuthenticationMethod{
-						Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{},
-					},
+		Spec: istioauthv1alpha1.Policy{
+			Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{
+				&istioauthv1alpha1.PeerAuthenticationMethod{
+					Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{},
 				},
 			},
 		},
@@ -645,10 +627,8 @@ var (
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "default",
 		},
-		Spec: authv1alpha1.MeshPolicySpec{
-			Policy: istioauthv1alpha1.Policy{
-				Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{},
-			},
+		Spec: istioauthv1alpha1.Policy{
+			Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{},
 		},
 	}
 
@@ -660,12 +640,10 @@ var (
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "named",
 		},
-		Spec: authv1alpha1.MeshPolicySpec{
-			Policy: istioauthv1alpha1.Policy{
-				Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{
-					&istioauthv1alpha1.PeerAuthenticationMethod{
-						Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{},
-					},
+		Spec: istioauthv1alpha1.Policy{
+			Peers: []*istioauthv1alpha1.PeerAuthenticationMethod{
+				&istioauthv1alpha1.PeerAuthenticationMethod{
+					Params: &istioauthv1alpha1.PeerAuthenticationMethod_Mtls{},
 				},
 			},
 		},

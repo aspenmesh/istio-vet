@@ -17,20 +17,21 @@ limitations under the License.
 package invalidserviceforjwtpolicy
 
 import (
-	authv1alpha1api "github.com/aspenmesh/istio-client-go/pkg/apis/authentication/v1alpha1"
-	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
-	"github.com/aspenmesh/istio-vet/pkg/vetter/util"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	istiov1alpha1 "istio.io/api/authentication/v1alpha1"
+	authv1alpha1api "istio.io/client-go/pkg/apis/authentication/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
+	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
+	"github.com/aspenmesh/istio-vet/pkg/vetter/util"
 )
 
 var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 	const (
-		namespace = "default"
+		namespace                               = "default"
 		vetterID                                = "InvalidServiceForJWTPolicy"
 		invalidTargetServicePortNameNoteType    = "invalid-target-service-port-name"
 		invalidTargetServicePortNameNoteSummary = "Target services must have valid service port names"
@@ -48,24 +49,22 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 			Kind:       "Policy",
 			APIVersion: "authentication.istio.io/v1alpha1"},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:         "jwt-example",
-			Namespace:    namespace,
+			Name:      "jwt-example",
+			Namespace: namespace,
 		},
-		Spec: authv1alpha1api.PolicySpec{
-			Policy: istiov1alpha1.Policy{
-				Origins: []*istiov1alpha1.OriginAuthenticationMethod{
-					{
-						Jwt: &istiov1alpha1.Jwt{
-							Issuer: "testing@secure.istio.io",
-							JwksUri: "https://raw.githubusercontent.com/istio/istio/release-1.2/security/tools/jwt/samples/jwks.json",
-						},
+		Spec: istiov1alpha1.Policy{
+			Origins: []*istiov1alpha1.OriginAuthenticationMethod{
+				{
+					Jwt: &istiov1alpha1.Jwt{
+						Issuer:  "testing@secure.istio.io",
+						JwksUri: "https://raw.githubusercontent.com/istio/istio/release-1.2/security/tools/jwt/samples/jwks.json",
 					},
 				},
-				Targets: []*istiov1alpha1.TargetSelector{
-					{
-						Name:  "httpbin",
-						Ports: []*istiov1alpha1.PortSelector{},
-					},
+			},
+			Targets: []*istiov1alpha1.TargetSelector{
+				{
+					Name:  "httpbin",
+					Ports: []*istiov1alpha1.PortSelector{},
 				},
 			},
 		},
@@ -80,15 +79,15 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 						APIVersion: "v1",
 					},
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "httpbin",
+						Name:      "httpbin",
 						Namespace: namespace,
 					},
 					Spec: corev1.ServiceSpec{
 						Ports: []corev1.ServicePort{
 							{
 								Protocol: "TCP",
-								Name: "http",
-								Port: 80,
+								Name:     "http",
+								Port:     80,
 								TargetPort: intstr.IntOrString{
 									Type:   0,
 									IntVal: 9376,
@@ -96,7 +95,7 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 								},
 							},
 						},
-						Selector: map[string]string {
+						Selector: map[string]string{
 							"app": "httpbin",
 						},
 					},
@@ -115,15 +114,15 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 						APIVersion: "v1",
 					},
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "httpbin",
+						Name:      "httpbin",
 						Namespace: namespace,
 					},
 					Spec: corev1.ServiceSpec{
 						Ports: []corev1.ServicePort{
 							{
 								Protocol: "TCP",
-								Name: "http2",
-								Port: 80,
+								Name:     "http2",
+								Port:     80,
 								TargetPort: intstr.IntOrString{
 									Type:   0,
 									IntVal: 9376,
@@ -131,7 +130,7 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 								},
 							},
 						},
-						Selector: map[string]string {
+						Selector: map[string]string{
 							"app": "httpbin",
 						},
 					},
@@ -150,15 +149,15 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 						APIVersion: "v1",
 					},
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "httpbin",
+						Name:      "httpbin",
 						Namespace: namespace,
 					},
 					Spec: corev1.ServiceSpec{
 						Ports: []corev1.ServicePort{
 							{
 								Protocol: "TCP",
-								Name: "https",
-								Port: 80,
+								Name:     "https",
+								Port:     80,
 								TargetPort: intstr.IntOrString{
 									Type:   0,
 									IntVal: 9376,
@@ -166,7 +165,7 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 								},
 							},
 						},
-						Selector: map[string]string {
+						Selector: map[string]string{
 							"app": "httpbin",
 						},
 					},
@@ -185,15 +184,15 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 						APIVersion: "v1",
 					},
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "httpbin",
+						Name:      "httpbin",
 						Namespace: namespace,
 					},
 					Spec: corev1.ServiceSpec{
 						Ports: []corev1.ServicePort{
 							{
 								Protocol: "TCP",
-								Name: "http-app",
-								Port: 80,
+								Name:     "http-app",
+								Port:     80,
 								TargetPort: intstr.IntOrString{
 									Type:   0,
 									IntVal: 9376,
@@ -201,7 +200,7 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 								},
 							},
 						},
-						Selector: map[string]string {
+						Selector: map[string]string{
 							"app": "httpbin",
 						},
 					},
@@ -220,15 +219,15 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 						APIVersion: "v1",
 					},
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "httpbin",
+						Name:      "httpbin",
 						Namespace: namespace,
 					},
 					Spec: corev1.ServiceSpec{
 						Ports: []corev1.ServicePort{
 							{
 								Protocol: "TCP",
-								Name: "http2-app",
-								Port: 80,
+								Name:     "http2-app",
+								Port:     80,
 								TargetPort: intstr.IntOrString{
 									Type:   0,
 									IntVal: 9376,
@@ -236,7 +235,7 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 								},
 							},
 						},
-						Selector: map[string]string {
+						Selector: map[string]string{
 							"app": "httpbin",
 						},
 					},
@@ -255,15 +254,15 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 						APIVersion: "v1",
 					},
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "httpbin",
+						Name:      "httpbin",
 						Namespace: namespace,
 					},
 					Spec: corev1.ServiceSpec{
 						Ports: []corev1.ServicePort{
 							{
 								Protocol: "TCP",
-								Name: "https-app",
-								Port: 80,
+								Name:     "https-app",
+								Port:     80,
 								TargetPort: intstr.IntOrString{
 									Type:   0,
 									IntVal: 9376,
@@ -271,7 +270,7 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 								},
 							},
 						},
-						Selector: map[string]string {
+						Selector: map[string]string{
 							"app": "httpbin",
 						},
 					},
@@ -289,8 +288,8 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 				Msg:     invalidTargetServicePortNameNoteMsg,
 				Level:   apiv1.NoteLevel_ERROR,
 				Attr: map[string]string{
-					"policy": "jwt-example",
-					"namespace": "default",
+					"policy":         "jwt-example",
+					"namespace":      "default",
 					"service_target": "httpbin",
 				},
 			}
@@ -302,15 +301,15 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 						APIVersion: "v1",
 					},
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "httpbin",
+						Name:      "httpbin",
 						Namespace: namespace,
 					},
 					Spec: corev1.ServiceSpec{
 						Ports: []corev1.ServicePort{
 							{
 								Protocol: "TCP",
-								Name: "not-valid-name",
-								Port: 80,
+								Name:     "not-valid-name",
+								Port:     80,
 								TargetPort: intstr.IntOrString{
 									Type:   0,
 									IntVal: 9376,
@@ -319,8 +318,8 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 							},
 							{
 								Protocol: "TCP",
-								Name: "httpbutstillnotvalid",
-								Port: 81,
+								Name:     "httpbutstillnotvalid",
+								Port:     81,
 								TargetPort: intstr.IntOrString{
 									Type:   0,
 									IntVal: 9377,
@@ -328,7 +327,7 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 								},
 							},
 						},
-						Selector: map[string]string {
+						Selector: map[string]string{
 							"app": "httpbin",
 						},
 					},
@@ -349,8 +348,8 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 				Msg:     invalidTargetServicePortNameNoteMsg,
 				Level:   apiv1.NoteLevel_ERROR,
 				Attr: map[string]string{
-					"policy": "jwt-example",
-					"namespace": "default",
+					"policy":         "jwt-example",
+					"namespace":      "default",
 					"service_target": "httpbin",
 				},
 			}
@@ -362,14 +361,14 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 						APIVersion: "v1",
 					},
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "httpbin",
+						Name:      "httpbin",
 						Namespace: namespace,
 					},
 					Spec: corev1.ServiceSpec{
 						Ports: []corev1.ServicePort{
 							{
 								Protocol: "TCP",
-								Port: 80,
+								Port:     80,
 								TargetPort: intstr.IntOrString{
 									Type:   0,
 									IntVal: 9376,
@@ -378,7 +377,7 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 							},
 							{
 								Protocol: "TCP",
-								Port: 81,
+								Port:     81,
 								TargetPort: intstr.IntOrString{
 									Type:   0,
 									IntVal: 9377,
@@ -386,7 +385,7 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 								},
 							},
 						},
-						Selector: map[string]string {
+						Selector: map[string]string{
 							"app": "httpbin",
 						},
 					},
@@ -407,8 +406,8 @@ var _ = Describe("Invalid Service For JWT Policy Vet Notes", func() {
 				Msg:     missingTargetServiceNoteMsg,
 				Level:   apiv1.NoteLevel_WARNING,
 				Attr: map[string]string{
-					"policy": "jwt-example",
-					"namespace": "default",
+					"policy":         "jwt-example",
+					"namespace":      "default",
 					"service_target": "httpbin",
 				},
 			}
