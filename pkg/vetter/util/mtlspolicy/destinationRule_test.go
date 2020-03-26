@@ -20,8 +20,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	metanetv1alpha3 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	netv1alpha3 "istio.io/api/networking/v1alpha3"
+	metanetv1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -35,16 +35,14 @@ var (
 			Name:      "drFooOn",
 			Namespace: "default",
 		},
-		Spec: metanetv1alpha3.DestinationRuleSpec{
-			DestinationRule: netv1alpha3.DestinationRule{
-				Host: "foo.default.svc.cluster.local",
-				TrafficPolicy: &netv1alpha3.TrafficPolicy{
-					Tls: &netv1alpha3.TLSSettings{
-						Mode: netv1alpha3.TLSSettings_MUTUAL,
-					},
+		Spec: netv1alpha3.DestinationRule{
+			Host: "foo.default.svc.cluster.local",
+			TrafficPolicy: &netv1alpha3.TrafficPolicy{
+				Tls: &netv1alpha3.TLSSettings{
+					Mode: netv1alpha3.TLSSettings_MUTUAL,
 				},
-				Subsets: []*netv1alpha3.Subset{},
 			},
+			Subsets: []*netv1alpha3.Subset{},
 		},
 	}
 
@@ -57,16 +55,14 @@ var (
 			Name:      "drBarOff",
 			Namespace: "default",
 		},
-		Spec: metanetv1alpha3.DestinationRuleSpec{
-			DestinationRule: netv1alpha3.DestinationRule{
-				Host: "bar.default.svc.cluster.local",
-				TrafficPolicy: &netv1alpha3.TrafficPolicy{
-					Tls: &netv1alpha3.TLSSettings{
-						Mode: netv1alpha3.TLSSettings_DISABLE,
-					},
+		Spec: netv1alpha3.DestinationRule{
+			Host: "bar.default.svc.cluster.local",
+			TrafficPolicy: &netv1alpha3.TrafficPolicy{
+				Tls: &netv1alpha3.TLSSettings{
+					Mode: netv1alpha3.TLSSettings_DISABLE,
 				},
-				Subsets: []*netv1alpha3.Subset{},
 			},
+			Subsets: []*netv1alpha3.Subset{},
 		},
 	}
 
@@ -88,16 +84,14 @@ var (
 			Name:      "drFooPortOnlyOn",
 			Namespace: "default",
 		},
-		Spec: metanetv1alpha3.DestinationRuleSpec{
-			DestinationRule: netv1alpha3.DestinationRule{
-				Host: "foo.default.svc.cluster.local",
-				TrafficPolicy: &netv1alpha3.TrafficPolicy{
-					PortLevelSettings: []*netv1alpha3.TrafficPolicy_PortTrafficPolicy{
-						drFooPortOnlyOn8443,
-					},
+		Spec: netv1alpha3.DestinationRule{
+			Host: "foo.default.svc.cluster.local",
+			TrafficPolicy: &netv1alpha3.TrafficPolicy{
+				PortLevelSettings: []*netv1alpha3.TrafficPolicy_PortTrafficPolicy{
+					drFooPortOnlyOn8443,
 				},
-				Subsets: []*netv1alpha3.Subset{},
 			},
+			Subsets: []*netv1alpha3.Subset{},
 		},
 	}
 
@@ -119,16 +113,14 @@ var (
 			Name:      "drFooPortOnlyOff",
 			Namespace: "default",
 		},
-		Spec: metanetv1alpha3.DestinationRuleSpec{
-			DestinationRule: netv1alpha3.DestinationRule{
-				Host: "foo.default.svc.cluster.local",
-				TrafficPolicy: &netv1alpha3.TrafficPolicy{
-					PortLevelSettings: []*netv1alpha3.TrafficPolicy_PortTrafficPolicy{
-						drFooPortOnlyOff8443,
-					},
+		Spec: netv1alpha3.DestinationRule{
+			Host: "foo.default.svc.cluster.local",
+			TrafficPolicy: &netv1alpha3.TrafficPolicy{
+				PortLevelSettings: []*netv1alpha3.TrafficPolicy_PortTrafficPolicy{
+					drFooPortOnlyOff8443,
 				},
-				Subsets: []*netv1alpha3.Subset{},
 			},
+			Subsets: []*netv1alpha3.Subset{},
 		},
 	}
 
@@ -141,16 +133,14 @@ var (
 			Name:      "drDefaultNsFooPortOnlyOn",
 			Namespace: "default",
 		},
-		Spec: metanetv1alpha3.DestinationRuleSpec{
-			DestinationRule: netv1alpha3.DestinationRule{
-				Host: "*.default.svc.cluster.local",
-				TrafficPolicy: &netv1alpha3.TrafficPolicy{
-					Tls: &netv1alpha3.TLSSettings{
-						Mode: netv1alpha3.TLSSettings_DISABLE,
-					},
+		Spec: netv1alpha3.DestinationRule{
+			Host: "*.default.svc.cluster.local",
+			TrafficPolicy: &netv1alpha3.TrafficPolicy{
+				Tls: &netv1alpha3.TLSSettings{
+					Mode: netv1alpha3.TLSSettings_DISABLE,
 				},
-				Subsets: []*netv1alpha3.Subset{},
 			},
+			Subsets: []*netv1alpha3.Subset{},
 		},
 	}
 
@@ -165,23 +155,21 @@ var (
 			Name:      "drDefaultNsFooPortOnlyOn",
 			Namespace: "default",
 		},
-		Spec: metanetv1alpha3.DestinationRuleSpec{
-			DestinationRule: netv1alpha3.DestinationRule{
-				Host: "*.default.svc.cluster.local",
-				TrafficPolicy: &netv1alpha3.TrafficPolicy{
-					PortLevelSettings: []*netv1alpha3.TrafficPolicy_PortTrafficPolicy{
-						&netv1alpha3.TrafficPolicy_PortTrafficPolicy{
-							Port: &netv1alpha3.PortSelector{
-								Number: 8443,
-							},
-							Tls: &netv1alpha3.TLSSettings{
-								Mode: netv1alpha3.TLSSettings_MUTUAL,
-							},
+		Spec: netv1alpha3.DestinationRule{
+			Host: "*.default.svc.cluster.local",
+			TrafficPolicy: &netv1alpha3.TrafficPolicy{
+				PortLevelSettings: []*netv1alpha3.TrafficPolicy_PortTrafficPolicy{
+					&netv1alpha3.TrafficPolicy_PortTrafficPolicy{
+						Port: &netv1alpha3.PortSelector{
+							Number: 8443,
+						},
+						Tls: &netv1alpha3.TLSSettings{
+							Mode: netv1alpha3.TLSSettings_MUTUAL,
 						},
 					},
 				},
-				Subsets: []*netv1alpha3.Subset{},
 			},
+			Subsets: []*netv1alpha3.Subset{},
 		},
 	}
 )

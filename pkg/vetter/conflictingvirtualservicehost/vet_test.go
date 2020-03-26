@@ -17,13 +17,14 @@ limitations under the License.
 package conflictingvirtualservicehost
 
 import (
-	"github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
-	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
-	"github.com/aspenmesh/istio-vet/pkg/vetter/util"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	istiov1alpha3 "istio.io/api/networking/v1alpha3"
+	"istio.io/client-go/pkg/apis/networking/v1alpha3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
+	"github.com/aspenmesh/istio-vet/pkg/vetter/util"
 )
 
 var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
@@ -40,99 +41,88 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 				Name:      "Vs1",
 				Namespace: namespace,
 			},
-			Spec: v1alpha3.VirtualServiceSpec{
-				VirtualService: istiov1alpha3.VirtualService{
-					Hosts:    []string{"host1", "host2"},
-					Gateways: []string{"gateway1"}}}}
+			Spec: istiov1alpha3.VirtualService{
+				Hosts:    []string{"host1", "host2"},
+				Gateways: []string{"gateway1"}}}
 
 		var Vs2 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "Vs2",
 				Namespace: namespace,
 			},
-			Spec: v1alpha3.VirtualServiceSpec{
-				VirtualService: istiov1alpha3.VirtualService{
-					Hosts:    []string{"host2"},
-					Gateways: []string{"gateway1"}}}}
+			Spec: istiov1alpha3.VirtualService{
+				Hosts:    []string{"host2"},
+				Gateways: []string{"gateway1"}}}
 		var Vs3 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "Vs3",
 				Namespace: namespace,
 			},
-			Spec: v1alpha3.VirtualServiceSpec{
-				VirtualService: istiov1alpha3.VirtualService{
-					Hosts: []string{"host3", "host4"}}}}
+			Spec: istiov1alpha3.VirtualService{
+				Hosts: []string{"host3", "host4"}}}
 
 		var Vs4 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "Vs4",
 				Namespace: namespace,
 			},
-			Spec: v1alpha3.VirtualServiceSpec{
-				VirtualService: istiov1alpha3.VirtualService{
-					Hosts: []string{"foo.com"}}}}
+			Spec: istiov1alpha3.VirtualService{
+				Hosts: []string{"foo.com"}}}
 		var Vs5 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "Vs5",
 				Namespace: "foo",
 			},
-			Spec: v1alpha3.VirtualServiceSpec{
-				VirtualService: istiov1alpha3.VirtualService{
-					Hosts: []string{"host1"}}}}
+			Spec: istiov1alpha3.VirtualService{
+				Hosts: []string{"host1"}}}
 
 		var Vs6 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "Vs6",
 				Namespace: "foo",
 			},
-			Spec: v1alpha3.VirtualServiceSpec{
-				VirtualService: istiov1alpha3.VirtualService{
-					Hosts: []string{"foo.com"}}}}
+			Spec: istiov1alpha3.VirtualService{
+				Hosts: []string{"foo.com"}}}
 
 		var Vs7 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "Vs7",
 				Namespace: namespace,
 			},
-			Spec: v1alpha3.VirtualServiceSpec{
-				VirtualService: istiov1alpha3.VirtualService{
-					Hosts: []string{"*.com"}}}}
+			Spec: istiov1alpha3.VirtualService{
+				Hosts: []string{"*.com"}}}
 
 		var Vs8 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "Vs8",
 				Namespace: namespace,
 			},
-			Spec: v1alpha3.VirtualServiceSpec{
-				VirtualService: istiov1alpha3.VirtualService{
-					Hosts: []string{"foo.com"}}}}
+			Spec: istiov1alpha3.VirtualService{
+				Hosts: []string{"foo.com"}}}
 
 		var Vs9 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "Vs9",
 				Namespace: namespace,
 			},
-			Spec: v1alpha3.VirtualServiceSpec{
-				VirtualService: istiov1alpha3.VirtualService{
-					Hosts:    []string{"host1"},
-					Gateways: []string{"gateway1"}}}}
+			Spec: istiov1alpha3.VirtualService{
+				Hosts:    []string{"host1"},
+				Gateways: []string{"gateway1"}}}
 		var Vs10 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "Vs10",
 				Namespace: namespace,
 			},
-			Spec: v1alpha3.VirtualServiceSpec{
-				VirtualService: istiov1alpha3.VirtualService{
-					Hosts:    []string{"host1", "host2"},
-					Gateways: []string{"gateway2"}}}}
+			Spec: istiov1alpha3.VirtualService{
+				Hosts:    []string{"host1", "host2"},
+				Gateways: []string{"gateway2"}}}
 		var Vs11 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "Vs11",
 				Namespace: namespace,
 			},
-			Spec: v1alpha3.VirtualServiceSpec{
-				VirtualService: istiov1alpha3.VirtualService{
-					Hosts: []string{"foo.com"}}}}
+			Spec: istiov1alpha3.VirtualService{
+				Hosts: []string{"foo.com"}}}
 
 		prefixRoute := istiov1alpha3.HTTPRoute{Name: "route1",
 			Match: []*istiov1alpha3.HTTPMatchRequest{
@@ -476,7 +466,6 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 			Expect(vsNotes).To(BeEmpty())
 		})
 
-
 		// Conflict in same VS.
 		It("Generates a note for each host of each conflict in the same VS", func() {
 			Vs1.Spec.Http = []*istiov1alpha3.HTTPRoute{&prefixRoute2Levels, &prefixRoute}
@@ -506,8 +495,7 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 					"routes":   "/foo prefix /foo/bar prefix",
 				},
 			}
-			expecteds := []*apiv1.Note{expectedNote1, expectedNote2,
-			}
+			expecteds := []*apiv1.Note{expectedNote1, expectedNote2}
 			expectedNote1.Id = util.ComputeID(expectedNote1)
 			expectedNote2.Id = util.ComputeID(expectedNote2)
 
@@ -522,24 +510,21 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 
 		})
 
-
 		It("Generates a note for each host", func() {
 			var fooBarVs1 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "fooBarVs1",
 					Namespace: namespace,
 				},
-				Spec: v1alpha3.VirtualServiceSpec{
-					VirtualService: istiov1alpha3.VirtualService{
-						Hosts: []string{"foo.com", "bar.com"}}}}
+				Spec: istiov1alpha3.VirtualService{
+					Hosts: []string{"foo.com", "bar.com"}}}
 			var fooBarVs2 *v1alpha3.VirtualService = &v1alpha3.VirtualService{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "fooBarVs2",
 					Namespace: namespace,
 				},
-				Spec: v1alpha3.VirtualServiceSpec{
-					VirtualService: istiov1alpha3.VirtualService{
-						Hosts: []string{"foo.com", "bar.com"}}}}
+				Spec: istiov1alpha3.VirtualService{
+					Hosts: []string{"foo.com", "bar.com"}}}
 
 			fooBarVs1.Spec.Http = []*istiov1alpha3.HTTPRoute{&exactRoute, &prefixRoute}
 			fooBarVs2.Spec.Http = []*istiov1alpha3.HTTPRoute{&prefixRoute2Levels, &exactRoute}
@@ -652,7 +637,6 @@ var _ = Describe("Conflicting Virtual Service Host Vet Notes", func() {
 			expectedNote6.Id = util.ComputeID(expectedNote6)
 			expectedNote7.Id = util.ComputeID(expectedNote7)
 			expectedNote8.Id = util.ComputeID(expectedNote8)
-
 
 			vsNotes, err := CreateVirtualServiceNotes(vsList)
 

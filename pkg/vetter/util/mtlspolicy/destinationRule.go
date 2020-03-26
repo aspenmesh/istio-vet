@@ -19,8 +19,8 @@ package mtlspolicyutil
 import (
 	"errors"
 
-	netv1alpha3 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	istionetv1alpha3 "istio.io/api/networking/v1alpha3"
+	netv1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 )
 
 // Destination Rules can have arbitrary PortTrafficPolicy; we don't want to

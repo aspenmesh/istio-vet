@@ -18,7 +18,7 @@ limitations under the License.
 package istioclient
 
 import (
-	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
+	"istio.io/client-go/pkg/clientset/versioned"
 	"k8s.io/client-go/rest"
 )
 
