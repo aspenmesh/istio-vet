@@ -22,8 +22,8 @@ package danglingroutedestinationhost
 import (
 	"strings"
 
-	"istio.io/client-go/pkg/apis/networking/v1alpha3"
-	netv1alpha3 "istio.io/client-go/pkg/listers/networking/v1alpha3"
+	istioClientNet "istio.io/client-go/pkg/apis/networking/v1beta1"
+	istioNetListers "istio.io/client-go/pkg/listers/networking/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/client-go/listers/core/v1"
 
@@ -46,7 +46,7 @@ const (
 type DanglingRouteDestinationHost struct {
 	nsLister  v1.NamespaceLister
 	svcLister v1.ServiceLister
-	vsLister  netv1alpha3.VirtualServiceLister
+	vsLister  istioNetListers.VirtualServiceLister
 }
 
 func createServiceMap(svcs []*corev1.Service) map[string]bool {
@@ -61,7 +61,7 @@ func createServiceMap(svcs []*corev1.Service) map[string]bool {
 // createDanglingRouteHostNotes creates notes for VirtualService(s) which have
 // dangling route hostname(s).
 func createDanglingRouteHostNotes(svcs []*corev1.Service,
-	vsList []*v1alpha3.VirtualService) []*apiv1.Note {
+	vsList []*istioClientNet.VirtualService) []*apiv1.Note {
 	var err error
 	var host string
 	notes := []*apiv1.Note{}
@@ -132,6 +132,6 @@ func NewVetter(factory vetter.ResourceListGetter) *DanglingRouteDestinationHost 
 	return &DanglingRouteDestinationHost{
 		nsLister:  factory.K8s().Core().V1().Namespaces().Lister(),
 		svcLister: factory.K8s().Core().V1().Services().Lister(),
-		vsLister:  factory.Istio().Networking().V1alpha3().VirtualServices().Lister(),
+		vsLister:  factory.Istio().Networking().V1beta1().VirtualServices().Lister(),
 	}
 }

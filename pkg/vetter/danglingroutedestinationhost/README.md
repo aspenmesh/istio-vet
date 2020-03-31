@@ -1,10 +1,10 @@
 # Dangling Route Destination Host
 
 The `danglingroutedestinationhost` vetter inspects the
-[VirtualService(s)](https://istio.io/docs/reference/config/istio.networking.v1alpha3/#VirtualService)
+[VirtualService(s)](https://istio.io/docs/reference/config/networking/virtual-service/)
 resources in your cluster and generates warning notes if any of the route
 [destination
-hosts](https://istio.io/docs/reference/config/istio.networking.v1alpha3/#Destination)
+hosts](https://istio.io/docs/reference/config/networking/virtual-service/#Destination)
 point to services which don't exist in the cluster. Any HTTP request routed
 to these hosts will return a `503 Service Unavailable` response code as there is
 no backend service to fulfill the request.

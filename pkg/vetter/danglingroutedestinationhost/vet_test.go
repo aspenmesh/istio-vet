@@ -19,8 +19,8 @@ package danglingroutedestinationhost
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	istiov1alpha3 "istio.io/api/networking/v1alpha3"
-	"istio.io/client-go/pkg/apis/networking/v1alpha3"
+	istioNet "istio.io/api/networking/v1beta1"
+	istioClientNet "istio.io/client-go/pkg/apis/networking/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -55,27 +55,27 @@ var _ = Describe("Vet", func() {
 				},
 			},
 		}
-		vsList := []*v1alpha3.VirtualService{
-			&v1alpha3.VirtualService{
+		vsList := []*istioClientNet.VirtualService{
+			&istioClientNet.VirtualService{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "foo",
 					Namespace: "team-baz",
 				},
-				Spec: istiov1alpha3.VirtualService{
-					Http: []*istiov1alpha3.HTTPRoute{
-						&istiov1alpha3.HTTPRoute{
-							Route: []*istiov1alpha3.HTTPRouteDestination{
-								&istiov1alpha3.HTTPRouteDestination{
-									Destination: &istiov1alpha3.Destination{
+				Spec: istioNet.VirtualService{
+					Http: []*istioNet.HTTPRoute{
+						&istioNet.HTTPRoute{
+							Route: []*istioNet.HTTPRouteDestination{
+								&istioNet.HTTPRouteDestination{
+									Destination: &istioNet.Destination{
 										Host: "foo.team-foo.svc.cluster.local",
 									},
 								},
 							},
 						},
-						&istiov1alpha3.HTTPRoute{
-							Route: []*istiov1alpha3.HTTPRouteDestination{
-								&istiov1alpha3.HTTPRouteDestination{
-									Destination: &istiov1alpha3.Destination{
+						&istioNet.HTTPRoute{
+							Route: []*istioNet.HTTPRouteDestination{
+								&istioNet.HTTPRouteDestination{
+									Destination: &istioNet.Destination{
 										Host: "foo.com",
 									},
 								},
@@ -84,26 +84,26 @@ var _ = Describe("Vet", func() {
 					},
 				},
 			},
-			&v1alpha3.VirtualService{
+			&istioClientNet.VirtualService{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "bar",
 					Namespace: "team-bar",
 				},
-				Spec: istiov1alpha3.VirtualService{
-					Http: []*istiov1alpha3.HTTPRoute{
-						&istiov1alpha3.HTTPRoute{
-							Route: []*istiov1alpha3.HTTPRouteDestination{
-								&istiov1alpha3.HTTPRouteDestination{
-									Destination: &istiov1alpha3.Destination{
+				Spec: istioNet.VirtualService{
+					Http: []*istioNet.HTTPRoute{
+						&istioNet.HTTPRoute{
+							Route: []*istioNet.HTTPRouteDestination{
+								&istioNet.HTTPRouteDestination{
+									Destination: &istioNet.Destination{
 										Host: "bar",
 									},
 								},
 							},
 						},
-						&istiov1alpha3.HTTPRoute{
-							Route: []*istiov1alpha3.HTTPRouteDestination{
-								&istiov1alpha3.HTTPRouteDestination{
-									Destination: &istiov1alpha3.Destination{
+						&istioNet.HTTPRoute{
+							Route: []*istioNet.HTTPRouteDestination{
+								&istioNet.HTTPRouteDestination{
+									Destination: &istioNet.Destination{
 										Host: "baz.team-baz.svc.cluster.local",
 									},
 								},
@@ -138,28 +138,28 @@ var _ = Describe("Vet", func() {
 				},
 			},
 		}
-		vsList := []*v1alpha3.VirtualService{
-			&v1alpha3.VirtualService{
+		vsList := []*istioClientNet.VirtualService{
+			&istioClientNet.VirtualService{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "foo",
 					Namespace: "team-baz",
 				},
 				// Ignores FQDN hostnames
-				Spec: istiov1alpha3.VirtualService{
-					Http: []*istiov1alpha3.HTTPRoute{
-						&istiov1alpha3.HTTPRoute{
-							Route: []*istiov1alpha3.HTTPRouteDestination{
-								&istiov1alpha3.HTTPRouteDestination{
-									Destination: &istiov1alpha3.Destination{
+				Spec: istioNet.VirtualService{
+					Http: []*istioNet.HTTPRoute{
+						&istioNet.HTTPRoute{
+							Route: []*istioNet.HTTPRouteDestination{
+								&istioNet.HTTPRouteDestination{
+									Destination: &istioNet.Destination{
 										Host: "foo.team-foo",
 									},
 								},
 							},
 						},
-						&istiov1alpha3.HTTPRoute{
-							Route: []*istiov1alpha3.HTTPRouteDestination{
-								&istiov1alpha3.HTTPRouteDestination{
-									Destination: &istiov1alpha3.Destination{
+						&istioNet.HTTPRoute{
+							Route: []*istioNet.HTTPRouteDestination{
+								&istioNet.HTTPRouteDestination{
+									Destination: &istioNet.Destination{
 										Host: "foo.com",
 									},
 								},
@@ -168,28 +168,28 @@ var _ = Describe("Vet", func() {
 					},
 				},
 			},
-			&v1alpha3.VirtualService{
+			&istioClientNet.VirtualService{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "bar",
 					Namespace: "team-bar",
 				},
 				// Generates notes if FQDN ending with .svc.cluster.local doesn't match
 				// or shortnames after expansion don't match services in the registry
-				Spec: istiov1alpha3.VirtualService{
-					Http: []*istiov1alpha3.HTTPRoute{
-						&istiov1alpha3.HTTPRoute{
-							Route: []*istiov1alpha3.HTTPRouteDestination{
-								&istiov1alpha3.HTTPRouteDestination{
-									Destination: &istiov1alpha3.Destination{
+				Spec: istioNet.VirtualService{
+					Http: []*istioNet.HTTPRoute{
+						&istioNet.HTTPRoute{
+							Route: []*istioNet.HTTPRouteDestination{
+								&istioNet.HTTPRouteDestination{
+									Destination: &istioNet.Destination{
 										Host: "bar.team-baz.svc.cluster.local",
 									},
 								},
 							},
 						},
-						&istiov1alpha3.HTTPRoute{
-							Route: []*istiov1alpha3.HTTPRouteDestination{
-								&istiov1alpha3.HTTPRouteDestination{
-									Destination: &istiov1alpha3.Destination{
+						&istioNet.HTTPRoute{
+							Route: []*istioNet.HTTPRouteDestination{
+								&istioNet.HTTPRouteDestination{
+									Destination: &istioNet.Destination{
 										Host: "baz",
 									},
 								},
@@ -200,18 +200,18 @@ var _ = Describe("Vet", func() {
 			},
 			// Tests that dangling hosts in multiple VirtualService(s) generates
 			// multiple vet notes
-			&v1alpha3.VirtualService{
+			&istioClientNet.VirtualService{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "bah",
 					Namespace: "team-bah",
 				},
 				// Generates notes when no service exist
-				Spec: istiov1alpha3.VirtualService{
-					Http: []*istiov1alpha3.HTTPRoute{
-						&istiov1alpha3.HTTPRoute{
-							Route: []*istiov1alpha3.HTTPRouteDestination{
-								&istiov1alpha3.HTTPRouteDestination{
-									Destination: &istiov1alpha3.Destination{
+				Spec: istioNet.VirtualService{
+					Http: []*istioNet.HTTPRoute{
+						&istioNet.HTTPRoute{
+							Route: []*istioNet.HTTPRouteDestination{
+								&istioNet.HTTPRouteDestination{
+									Destination: &istioNet.Destination{
 										Host: "bah.team-bah.svc.cluster.local",
 									},
 								},
