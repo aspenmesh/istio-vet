@@ -24,7 +24,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.0.0
 	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad // indirect
-	istio.io/api v0.0.0-20200316191724-7632cba5ff4b
+	istio.io/api v0.0.0-20200316215140-da46fe8e25be
 	istio.io/client-go v0.0.0-20200316192452-065c59267750
 	k8s.io/api v0.17.0
 	k8s.io/apimachinery v0.17.0
