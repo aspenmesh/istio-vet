@@ -28,8 +28,8 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	meshv1alpha1 "istio.io/api/mesh/v1alpha1"
-	"istio.io/client-go/pkg/apis/networking/v1alpha3"
-	netv1alpha3 "istio.io/client-go/pkg/listers/networking/v1alpha3"
+	istioClientNet "istio.io/client-go/pkg/apis/networking/v1beta1"
+	istioNetListers "istio.io/client-go/pkg/listers/networking/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -369,8 +369,8 @@ func ComputeID(n *apiv1.Note) string {
 
 // ListVirtualServices returns a list of VirtualService resources in the mesh.
 func ListVirtualServicesInMesh(nsLister v1.NamespaceLister,
-	vsLister netv1alpha3.VirtualServiceLister) ([]*v1alpha3.VirtualService, error) {
-	virtualServices := []*v1alpha3.VirtualService{}
+	vsLister istioNetListers.VirtualServiceLister) ([]*istioClientNet.VirtualService, error) {
+	virtualServices := []*istioClientNet.VirtualService{}
 	ns, err := ListNamespacesInMesh(nsLister)
 	if err != nil {
 		return nil, err

@@ -16,27 +16,19 @@ require (
 	github.com/magiconair/properties v1.7.4 // indirect
 	github.com/mitchellh/mapstructure v0.0.0-20180111000720-b4575eea38cc // indirect
 	github.com/onsi/ginkgo v1.10.2
-	github.com/onsi/gomega v1.5.0
+	github.com/onsi/gomega v1.7.0
 	github.com/pelletier/go-toml v1.0.1 // indirect
-	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cast v1.1.0 // indirect
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/jwalterweatherman v0.0.0-20180109140146-7c0cea34c8ec // indirect
-	github.com/spf13/pflag v1.0.3
+	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.0.0
-	github.com/stretchr/testify v1.4.0 // indirect
 	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad // indirect
-	istio.io/api v0.0.0-20191115173247-e1a1952e5b81
-	istio.io/client-go v0.0.0-20191120150049-26c62a04cdbc
-	k8s.io/api v0.0.0-20191025225708-5524a3672fbb
-	k8s.io/apimachinery v0.0.0-20191025225532-af6325b3a843
-	k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
+	istio.io/api v0.0.0-20200316215140-da46fe8e25be
+	istio.io/client-go v0.0.0-20200316192452-065c59267750
+	k8s.io/api v0.17.0
+	k8s.io/apimachinery v0.17.0
+	k8s.io/client-go v0.17.0
 )
 
-replace (
-	github.com/golang/protobuf => github.com/golang/protobuf v1.3.2
-	k8s.io/api => k8s.io/api v0.0.0-20191003000013-35e20aa79eb8
-	k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190913080033-27d36303b655
-	k8s.io/client-go => k8s.io/client-go v0.0.0-20190918200256-06eb1244587a
-	k8s.io/code-generator => k8s.io/code-generator v0.0.0-20190927045949-f81bca4f5e85
-)
+replace github.com/golang/protobuf => github.com/golang/protobuf v1.3.2

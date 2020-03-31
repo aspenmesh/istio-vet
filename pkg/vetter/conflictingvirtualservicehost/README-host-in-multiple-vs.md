@@ -20,7 +20,7 @@ which they are defined.
 The FQDNs assigned to the hosts below would be reviews.foo.svc.cluster.local and reviews.bar.svc.cluster.local respectively. They use the same gateway "my-gateway-1". This is allowed.
 
 ```yaml
-  apiVersion: networking.istio.io/v1alpha3
+  apiVersion: networking.istio.io/v1beta1
   kind: VirtualService
   metadata:
     name: vs1
@@ -32,7 +32,7 @@ The FQDNs assigned to the hosts below would be reviews.foo.svc.cluster.local and
     - my-gateway-1
     ...
 ---
-  apiVersion: networking.istio.io/v1alpha3
+  apiVersion: networking.istio.io/v1beta1
   kind: VirtualService
   metadata:
     name: vs2
@@ -53,7 +53,7 @@ This is not allowed, and will cause indeterminate routing behavior in your
 cluster.
 
 ```yaml
-  apiVersion: networking.istio.io/v1alpha3
+  apiVersion: networking.istio.io/v1beta1
   kind: VirtualService
   metadata:
     name: vs3
@@ -68,7 +68,7 @@ cluster.
         - uri:
           prefix: /service1
 ---
-  apiVersion: networking.istio.io/v1alpha3
+  apiVersion: networking.istio.io/v1beta1
   kind: VirtualService
   metadata:
     name: vs4
@@ -105,7 +105,7 @@ two different VirtualService resources. This will also cause indeterminate
 routing behavior in your cluster.
 
 ```yaml
-  apiVersion: networking.istio.io/v1alpha3
+  apiVersion: networking.istio.io/v1beta1
   kind: VirtualService
   metadata:
     name: vs5
@@ -123,7 +123,7 @@ routing behavior in your cluster.
       - destination:
           host: search.foo.svc.cluster.local
 ---
-  apiVersion: networking.istio.io/v1alpha3
+  apiVersion: networking.istio.io/v1beta1
   kind: VirtualService
   metadata:
     name: vs6
@@ -166,7 +166,7 @@ You can do one of these two things:
    unique hostnames "reviews" and "ratings".
 
 ```yaml
-    apiVersion: networking.istio.io/v1alpha3
+    apiVersion: networking.istio.io/v1beta1
     kind: VirtualService
     metadata:
       name: vs3
@@ -178,7 +178,7 @@ You can do one of these two things:
       - reviews
       ...
     ---
-    apiVersion: networking.istio.io/v1alpha3
+    apiVersion: networking.istio.io/v1beta1
     kind: VirtualService
     metadata:
       name: vs4

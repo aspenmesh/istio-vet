@@ -22,7 +22,7 @@ these hosts are implemented by services in the cluster.
 If any of the following VirtualService resources exist in namespace `default`:
 
 ```yaml
-  apiVersion: networking.istio.io/v1alpha3
+  apiVersion: networking.istio.io/v1beta1
   kind: VirtualService
   metadata:
     name: vs-a
@@ -35,7 +35,7 @@ If any of the following VirtualService resources exist in namespace `default`:
       - destination:
           host: svc-a.default.svc.cluster.local
   ---
-  apiVersion: networking.istio.io/v1alpha3
+  apiVersion: networking.istio.io/v1beta1
   kind: VirtualService
   metadata:
     name: vs-a

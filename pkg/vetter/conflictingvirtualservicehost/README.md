@@ -1,7 +1,7 @@
 # Conflicting VirtualService Host
 
 The `conflictingvirtualservicehost` vetter inspects the [Virtual
-Service(s)](https://istio.io/docs/reference/config/networking/v1alpha3/virtual-service/)
+Service(s)](https://istio.io/docs/reference/config/networking/virtual-service/)
 resources in your cluster and generates errors if more than one of them define
 the same hostname and the same route. When multiple VirtualServices
 define the same hostname, Pilot will try to merge those virtual

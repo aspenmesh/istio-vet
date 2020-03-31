@@ -20,172 +20,172 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	netv1alpha3 "istio.io/api/networking/v1alpha3"
-	metanetv1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	istioNet "istio.io/api/networking/v1beta1"
+	istioClientNet "istio.io/client-go/pkg/apis/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
-	drFooOn = &metanetv1alpha3.DestinationRule{
+	drFooOn = &istioClientNet.DestinationRule{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "DestinationRule",
-			APIVersion: "networking.istio.io/v1alpha3",
+			APIVersion: "networking.istio.io/v1beta1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "drFooOn",
 			Namespace: "default",
 		},
-		Spec: netv1alpha3.DestinationRule{
+		Spec: istioNet.DestinationRule{
 			Host: "foo.default.svc.cluster.local",
-			TrafficPolicy: &netv1alpha3.TrafficPolicy{
-				Tls: &netv1alpha3.TLSSettings{
-					Mode: netv1alpha3.TLSSettings_MUTUAL,
+			TrafficPolicy: &istioNet.TrafficPolicy{
+				Tls: &istioNet.TLSSettings{
+					Mode: istioNet.TLSSettings_MUTUAL,
 				},
 			},
-			Subsets: []*netv1alpha3.Subset{},
+			Subsets: []*istioNet.Subset{},
 		},
 	}
 
-	drBarOff = &metanetv1alpha3.DestinationRule{
+	drBarOff = &istioClientNet.DestinationRule{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "DestinationRule",
-			APIVersion: "networking.istio.io/v1alpha3",
+			APIVersion: "networking.istio.io/v1beta1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "drBarOff",
 			Namespace: "default",
 		},
-		Spec: netv1alpha3.DestinationRule{
+		Spec: istioNet.DestinationRule{
 			Host: "bar.default.svc.cluster.local",
-			TrafficPolicy: &netv1alpha3.TrafficPolicy{
-				Tls: &netv1alpha3.TLSSettings{
-					Mode: netv1alpha3.TLSSettings_DISABLE,
+			TrafficPolicy: &istioNet.TrafficPolicy{
+				Tls: &istioNet.TLSSettings{
+					Mode: istioNet.TLSSettings_DISABLE,
 				},
 			},
-			Subsets: []*netv1alpha3.Subset{},
+			Subsets: []*istioNet.Subset{},
 		},
 	}
 
-	drFooPortOnlyOn8443 = &netv1alpha3.TrafficPolicy_PortTrafficPolicy{
-		Port: &netv1alpha3.PortSelector{
+	drFooPortOnlyOn8443 = &istioNet.TrafficPolicy_PortTrafficPolicy{
+		Port: &istioNet.PortSelector{
 			Number: 8443,
 		},
-		Tls: &netv1alpha3.TLSSettings{
-			Mode: netv1alpha3.TLSSettings_MUTUAL,
+		Tls: &istioNet.TLSSettings{
+			Mode: istioNet.TLSSettings_MUTUAL,
 		},
 	}
 
-	drFooPortOnlyOn = &metanetv1alpha3.DestinationRule{
+	drFooPortOnlyOn = &istioClientNet.DestinationRule{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "DestinationRule",
-			APIVersion: "networking.istio.io/v1alpha3",
+			APIVersion: "networking.istio.io/v1beta1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "drFooPortOnlyOn",
 			Namespace: "default",
 		},
-		Spec: netv1alpha3.DestinationRule{
+		Spec: istioNet.DestinationRule{
 			Host: "foo.default.svc.cluster.local",
-			TrafficPolicy: &netv1alpha3.TrafficPolicy{
-				PortLevelSettings: []*netv1alpha3.TrafficPolicy_PortTrafficPolicy{
+			TrafficPolicy: &istioNet.TrafficPolicy{
+				PortLevelSettings: []*istioNet.TrafficPolicy_PortTrafficPolicy{
 					drFooPortOnlyOn8443,
 				},
 			},
-			Subsets: []*netv1alpha3.Subset{},
+			Subsets: []*istioNet.Subset{},
 		},
 	}
 
-	drFooPortOnlyOff8443 = &netv1alpha3.TrafficPolicy_PortTrafficPolicy{
-		Port: &netv1alpha3.PortSelector{
+	drFooPortOnlyOff8443 = &istioNet.TrafficPolicy_PortTrafficPolicy{
+		Port: &istioNet.PortSelector{
 			Number: 8443,
 		},
-		Tls: &netv1alpha3.TLSSettings{
-			Mode: netv1alpha3.TLSSettings_DISABLE,
+		Tls: &istioNet.TLSSettings{
+			Mode: istioNet.TLSSettings_DISABLE,
 		},
 	}
 
-	drFooPortOnlyOff = &metanetv1alpha3.DestinationRule{
+	drFooPortOnlyOff = &istioClientNet.DestinationRule{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "DestinationRule",
-			APIVersion: "networking.istio.io/v1alpha3",
+			APIVersion: "networking.istio.io/v1beta1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "drFooPortOnlyOff",
 			Namespace: "default",
 		},
-		Spec: netv1alpha3.DestinationRule{
+		Spec: istioNet.DestinationRule{
 			Host: "foo.default.svc.cluster.local",
-			TrafficPolicy: &netv1alpha3.TrafficPolicy{
-				PortLevelSettings: []*netv1alpha3.TrafficPolicy_PortTrafficPolicy{
+			TrafficPolicy: &istioNet.TrafficPolicy{
+				PortLevelSettings: []*istioNet.TrafficPolicy_PortTrafficPolicy{
 					drFooPortOnlyOff8443,
 				},
 			},
-			Subsets: []*netv1alpha3.Subset{},
+			Subsets: []*istioNet.Subset{},
 		},
 	}
 
-	drDefaultNsOn = &metanetv1alpha3.DestinationRule{
+	drDefaultNsOn = &istioClientNet.DestinationRule{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "DestinationRule",
-			APIVersion: "networking.istio.io/v1alpha3",
+			APIVersion: "networking.istio.io/v1beta1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "drDefaultNsFooPortOnlyOn",
 			Namespace: "default",
 		},
-		Spec: netv1alpha3.DestinationRule{
+		Spec: istioNet.DestinationRule{
 			Host: "*.default.svc.cluster.local",
-			TrafficPolicy: &netv1alpha3.TrafficPolicy{
-				Tls: &netv1alpha3.TLSSettings{
-					Mode: netv1alpha3.TLSSettings_DISABLE,
+			TrafficPolicy: &istioNet.TrafficPolicy{
+				Tls: &istioNet.TLSSettings{
+					Mode: istioNet.TLSSettings_DISABLE,
 				},
 			},
-			Subsets: []*netv1alpha3.Subset{},
+			Subsets: []*istioNet.Subset{},
 		},
 	}
 
 	// This would turn on mTLS for all services in default namespace but only
 	// on port 8443.  Weird, but allowed.
-	drDefaultNsFooPortOnlyOn = &metanetv1alpha3.DestinationRule{
+	drDefaultNsFooPortOnlyOn = &istioClientNet.DestinationRule{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "DestinationRule",
-			APIVersion: "networking.istio.io/v1alpha3",
+			APIVersion: "networking.istio.io/v1beta1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "drDefaultNsFooPortOnlyOn",
 			Namespace: "default",
 		},
-		Spec: netv1alpha3.DestinationRule{
+		Spec: istioNet.DestinationRule{
 			Host: "*.default.svc.cluster.local",
-			TrafficPolicy: &netv1alpha3.TrafficPolicy{
-				PortLevelSettings: []*netv1alpha3.TrafficPolicy_PortTrafficPolicy{
-					&netv1alpha3.TrafficPolicy_PortTrafficPolicy{
-						Port: &netv1alpha3.PortSelector{
+			TrafficPolicy: &istioNet.TrafficPolicy{
+				PortLevelSettings: []*istioNet.TrafficPolicy_PortTrafficPolicy{
+					&istioNet.TrafficPolicy_PortTrafficPolicy{
+						Port: &istioNet.PortSelector{
 							Number: 8443,
 						},
-						Tls: &netv1alpha3.TLSSettings{
-							Mode: netv1alpha3.TLSSettings_MUTUAL,
+						Tls: &istioNet.TLSSettings{
+							Mode: istioNet.TLSSettings_MUTUAL,
 						},
 					},
 				},
 			},
-			Subsets: []*netv1alpha3.Subset{},
+			Subsets: []*istioNet.Subset{},
 		},
 	}
 )
 
 var _ = Describe("LoadDestRules", func() {
 	It("should load rules", func() {
-		loaded, err := LoadDestRules([]*metanetv1alpha3.DestinationRule{
+		loaded, err := LoadDestRules([]*istioClientNet.DestinationRule{
 			drFooOn,
 			drBarOff,
 			drFooPortOnlyOn,
 			drDefaultNsOn,
 		})
 		Expect(err).To(Succeed())
-		Expect(loaded.ByNamespace("default")).To(Equal([]*metanetv1alpha3.DestinationRule{drDefaultNsOn}))
-		Expect(loaded.ByName(Service{Name: "foo", Namespace: "default"})).To(Equal([]*metanetv1alpha3.DestinationRule{drFooOn}))
-		Expect(loaded.ByName(Service{Name: "bar", Namespace: "default"})).To(Equal([]*metanetv1alpha3.DestinationRule{drBarOff}))
+		Expect(loaded.ByNamespace("default")).To(Equal([]*istioClientNet.DestinationRule{drDefaultNsOn}))
+		Expect(loaded.ByName(Service{Name: "foo", Namespace: "default"})).To(Equal([]*istioClientNet.DestinationRule{drFooOn}))
+		Expect(loaded.ByName(Service{Name: "bar", Namespace: "default"})).To(Equal([]*istioClientNet.DestinationRule{drBarOff}))
 		Expect(loaded.ByPort(Service{Name: "foo", Namespace: "default"}, 8443)).To(Equal([]*PortDestRule{
 			&PortDestRule{
 				Rule:     drFooPortOnlyOn,

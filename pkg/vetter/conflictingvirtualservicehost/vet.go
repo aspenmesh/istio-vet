@@ -21,9 +21,9 @@ import (
 	"regexp"
 	"strings"
 
-	istiov1alpha3 "istio.io/api/networking/v1alpha3"
-	"istio.io/client-go/pkg/apis/networking/v1alpha3"
-	netv1alpha3 "istio.io/client-go/pkg/listers/networking/v1alpha3"
+	istioNet "istio.io/api/networking/v1beta1"
+	istioClientNet "istio.io/client-go/pkg/apis/networking/v1beta1"
+	istioNetListers "istio.io/client-go/pkg/listers/networking/v1beta1"
 	v1 "k8s.io/client-go/listers/core/v1"
 
 	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
@@ -53,7 +53,7 @@ const (
 // VsHost implements Vetter interface
 type VsHost struct {
 	nsLister v1.NamespaceLister
-	vsLister netv1alpha3.VirtualServiceLister
+	vsLister istioNetListers.VirtualServiceLister
 }
 
 type routeRule struct {
@@ -82,8 +82,8 @@ func asString(rrType routeRuleType) string {
 
 // CreateVirtualServiceNotes checks for multiple vs defining the same host and
 // generates notes for these cases
-func CreateVirtualServiceNotes(virtualServices []*v1alpha3.VirtualService) ([]*apiv1.Note, error) {
-	vsByHost := map[string][]*v1alpha3.VirtualService{}
+func CreateVirtualServiceNotes(virtualServices []*istioClientNet.VirtualService) ([]*apiv1.Note, error) {
+	vsByHost := map[string][]*istioClientNet.VirtualService{}
 	for _, vs := range virtualServices {
 		for _, host := range vs.Spec.GetHosts() {
 			h, err := util.ConvertHostnameToFQDN(host, vs.Namespace)
@@ -92,7 +92,7 @@ func CreateVirtualServiceNotes(virtualServices []*v1alpha3.VirtualService) ([]*a
 				return nil, err
 			}
 			if _, ok := vsByHost[h]; !ok {
-				vsByHost[h] = []*v1alpha3.VirtualService{vs}
+				vsByHost[h] = []*istioClientNet.VirtualService{vs}
 			} else {
 				vsByHost[h] = append(vsByHost[h], vs)
 			}
@@ -111,7 +111,7 @@ func CreateVirtualServiceNotes(virtualServices []*v1alpha3.VirtualService) ([]*a
 	return notes, nil
 }
 
-func addConflictingRulesNotes(vsByHost map[string][]*v1alpha3.VirtualService) ([]*apiv1.Note, error) {
+func addConflictingRulesNotes(vsByHost map[string][]*istioClientNet.VirtualService) ([]*apiv1.Note, error) {
 	notes := []*apiv1.Note{}
 	for host, vsList := range vsByHost {
 		if len(vsList) >= 1 {
@@ -146,7 +146,7 @@ func addConflictingRulesNotes(vsByHost map[string][]*v1alpha3.VirtualService) ([
 }
 
 // Return a list of pairs of virtual services that conflict.
-func conflictingVirtualServices(vsList []*v1alpha3.VirtualService) ([][]routeRule, error) {
+func conflictingVirtualServices(vsList []*istioClientNet.VirtualService) ([][]routeRule, error) {
 	trie := buildMergedVirtualServiceTrie(vsList)
 	conflictingRules := addConflictsForSameRoute(trie, [][]routeRule{})
 
@@ -195,7 +195,7 @@ func conflictingVirtualServices(vsList []*v1alpha3.VirtualService) ([][]routeRul
 //                  /            \
 //                 /              \
 // (/foo/bar, [prefix, exact])    (/bar/baz, [prefix])
-func buildMergedVirtualServiceTrie(vsList []*v1alpha3.VirtualService) *routeTrie {
+func buildMergedVirtualServiceTrie(vsList []*istioClientNet.VirtualService) *routeTrie {
 	subRoutes := make(map[string]*routeTrie)
 	trie := &routeTrie{subRoutes: subRoutes, regexs: []routeRule{}, routeRules: []routeRule{}}
 	for _, vs := range vsList {
@@ -210,7 +210,7 @@ func buildMergedVirtualServiceTrie(vsList []*v1alpha3.VirtualService) *routeTrie
 
 // Add a particular route to the route trie. If the given route already has a route rule,
 // add it to the list of route rules for the given node/route.
-func addRouteToMergedVsTree(trie *routeTrie, match *istiov1alpha3.StringMatch, vs *v1alpha3.VirtualService, prio int) {
+func addRouteToMergedVsTree(trie *routeTrie, match *istioNet.StringMatch, vs *istioClientNet.VirtualService, prio int) {
 	current := trie
 	rRule := getRouteRuleFromMatch(match, vs, prio)
 
@@ -372,7 +372,7 @@ func conflict(ancestorRule routeRule, descendantRule routeRule) (bool, error) {
 		"is the result of a bug in the vetter.", ancestorRule, descendantRule)
 }
 
-func getRouteRuleFromMatch(match *istiov1alpha3.StringMatch, vs *v1alpha3.VirtualService, prio int) routeRule {
+func getRouteRuleFromMatch(match *istioNet.StringMatch, vs *istioClientNet.VirtualService, prio int) routeRule {
 	if route := match.GetExact(); route != "" {
 		return routeRule{ruleType: exact, route: route, vsName: vs.Name, namespace: vs.Namespace, priority: prio}
 	} else if route := match.GetPrefix(); route != "" {
@@ -433,6 +433,6 @@ func (v *VsHost) Info() *apiv1.Info {
 func NewVetter(factory vetter.ResourceListGetter) *VsHost {
 	return &VsHost{
 		nsLister: factory.K8s().Core().V1().Namespaces().Lister(),
-		vsLister: factory.Istio().Networking().V1alpha3().VirtualServices().Lister(),
+		vsLister: factory.Istio().Networking().V1beta1().VirtualServices().Lister(),
 	}
 }

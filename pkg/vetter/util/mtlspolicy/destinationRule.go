@@ -19,8 +19,8 @@ package mtlspolicyutil
 import (
 	"errors"
 
-	istionetv1alpha3 "istio.io/api/networking/v1alpha3"
-	netv1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	istioNet "istio.io/api/networking/v1beta1"
+	istioClientNet "istio.io/client-go/pkg/apis/networking/v1beta1"
 )
 
 // Destination Rules can have arbitrary PortTrafficPolicy; we don't want to
@@ -29,8 +29,8 @@ import (
 // DestinationRule, and the PortTrafficPolicy inside that we care about for
 // this particular port.
 
-type destRulesByNamespaceMap map[string][]*netv1alpha3.DestinationRule
-type destRulesByNameMap map[string][]*netv1alpha3.DestinationRule
+type destRulesByNamespaceMap map[string][]*istioClientNet.DestinationRule
+type destRulesByNameMap map[string][]*istioClientNet.DestinationRule
 type destRulesByNamespaceNameMap map[string]destRulesByNameMap
 type destRulesByPortMap map[uint32][]*PortDestRule
 type destRulesByNamePortMap map[string]destRulesByPortMap
@@ -48,8 +48,8 @@ type DestRules struct {
 
 // PortDestRule stores the Istio destination rule and port traffic policy for a port
 type PortDestRule struct {
-	Rule     *netv1alpha3.DestinationRule
-	PortRule *istionetv1alpha3.TrafficPolicy_PortTrafficPolicy
+	Rule     *istioClientNet.DestinationRule
+	PortRule *istioNet.TrafficPolicy_PortTrafficPolicy
 }
 
 // NewDestRules initializes the maps for a DestRules to be loaded by
@@ -63,13 +63,13 @@ func NewDestRules() *DestRules {
 }
 
 // AddByNamespace adds a Destination Rule to the DestRules namespace map
-func (dr *DestRules) AddByNamespace(namespace string, rule *netv1alpha3.DestinationRule) {
+func (dr *DestRules) AddByNamespace(namespace string, rule *istioClientNet.DestinationRule) {
 	ns, _ := dr.namespace[namespace]
 	dr.namespace[namespace] = append(ns, rule)
 }
 
 // AddByName adds a Destination Rule to the DestRules name map
-func (dr *DestRules) AddByName(s Service, rule *netv1alpha3.DestinationRule) {
+func (dr *DestRules) AddByName(s Service, rule *istioClientNet.DestinationRule) {
 	namespace, ok := dr.name[s.Namespace]
 	if !ok {
 		namespace = make(destRulesByNameMap)
@@ -83,8 +83,8 @@ func (dr *DestRules) AddByName(s Service, rule *netv1alpha3.DestinationRule) {
 func (dr *DestRules) AddByPort(
 	s Service,
 	port uint32,
-	rule *netv1alpha3.DestinationRule,
-	portRule *istionetv1alpha3.TrafficPolicy_PortTrafficPolicy,
+	rule *istioClientNet.DestinationRule,
+	portRule *istioNet.TrafficPolicy_PortTrafficPolicy,
 ) {
 	namespace, ok := dr.port[s.Namespace]
 	if !ok {
@@ -102,24 +102,24 @@ func (dr *DestRules) AddByPort(
 
 // ByNamespace is passed a namespace and returns the Destination Rule in the
 // DestRules namespace map for that namespace
-func (dr *DestRules) ByNamespace(namespace string) []*netv1alpha3.DestinationRule {
+func (dr *DestRules) ByNamespace(namespace string) []*istioClientNet.DestinationRule {
 	ns, ok := dr.namespace[namespace]
 	if !ok {
-		return []*netv1alpha3.DestinationRule{}
+		return []*istioClientNet.DestinationRule{}
 	}
 	return ns
 }
 
 // ByName is passed a Service and returns the Destination Rule in the
 // DestRules name map for the name of that Service
-func (dr *DestRules) ByName(s Service) []*netv1alpha3.DestinationRule {
+func (dr *DestRules) ByName(s Service) []*istioClientNet.DestinationRule {
 	ns, ok := dr.name[s.Namespace]
 	if !ok {
-		return []*netv1alpha3.DestinationRule{}
+		return []*istioClientNet.DestinationRule{}
 	}
 	res, ok := ns[s.Name]
 	if !ok {
-		return []*netv1alpha3.DestinationRule{}
+		return []*istioClientNet.DestinationRule{}
 	}
 	return res
 }
@@ -159,7 +159,7 @@ func (dr *DestRules) ForEachByPort(cb func(s Service, port uint32, rule *PortDes
 
 // ForEachByName examines all Destination Rules for a Service based off of a
 // Destination Rule that is passed
-func (dr *DestRules) ForEachByName(cb func(s Service, rule *netv1alpha3.DestinationRule)) {
+func (dr *DestRules) ForEachByName(cb func(s Service, rule *istioClientNet.DestinationRule)) {
 	for namespace, rulesForNamespace := range dr.name {
 		for name, rulesForName := range rulesForNamespace {
 			s := Service{Name: name, Namespace: namespace}
@@ -172,12 +172,12 @@ func (dr *DestRules) ForEachByName(cb func(s Service, rule *netv1alpha3.Destinat
 
 // PortDestRuleIsMtls returns true if mTLS is enabled for the PortDestRule
 func PortDestRuleIsMtls(rule *PortDestRule) bool {
-	return rule.PortRule.GetTls().GetMode() == istionetv1alpha3.TLSSettings_ISTIO_MUTUAL
+	return rule.PortRule.GetTls().GetMode() == istioNet.TLSSettings_ISTIO_MUTUAL
 }
 
 // DestRuleIsMtls returns true if mTLS is enabled for the Destination Rule
-func DestRuleIsMtls(rule *netv1alpha3.DestinationRule) bool {
-	return rule.Spec.GetTrafficPolicy().GetTls().GetMode() == istionetv1alpha3.TLSSettings_ISTIO_MUTUAL
+func DestRuleIsMtls(rule *istioClientNet.DestinationRule) bool {
+	return rule.Spec.GetTrafficPolicy().GetTls().GetMode() == istioNet.TLSSettings_ISTIO_MUTUAL
 }
 
 // TLSByPort returns true if mTLS is enabled for the PortDestination rule of the
@@ -196,7 +196,7 @@ func (dr *DestRules) TLSByPort(s Service, port uint32) (bool, *PortDestRule, err
 }
 
 // TLSByName returns true if mTLS is enabled for the Destination Rule
-func (dr *DestRules) TLSByName(s Service) (bool, *netv1alpha3.DestinationRule, error) {
+func (dr *DestRules) TLSByName(s Service) (bool, *istioClientNet.DestinationRule, error) {
 	rules := dr.ByName(s)
 	if len(rules) > 1 {
 		// TODO: If all the rules are the same, does it work?
@@ -211,7 +211,7 @@ func (dr *DestRules) TLSByName(s Service) (bool, *netv1alpha3.DestinationRule, e
 
 // LoadDestRules is passed a list of Destination Rules and returns a DestRules
 // with each of the Destination Rules mapped by port, name, and namespace
-func LoadDestRules(rules []*netv1alpha3.DestinationRule) (*DestRules, error) {
+func LoadDestRules(rules []*istioClientNet.DestinationRule) (*DestRules, error) {
 	loaded := NewDestRules()
 	for _, r := range rules {
 		host := r.Spec.Host
