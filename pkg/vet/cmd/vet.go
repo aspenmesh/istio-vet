@@ -96,8 +96,6 @@ func vet(cmd *cobra.Command, args []string) error {
 		vetter.Vetter(serviceassociation.NewVetter(informerFactory)),
 		vetter.Vetter(danglingroutedestinationhost.NewVetter(informerFactory)),
 		vetter.Vetter(conflictingvirtualservicehost.NewVetter(informerFactory)),
-		// obsolete in Istio 1.5
-		// vetter.Vetter(invalidserviceforjwtpolicy.NewVetter(informerFactory)),
 	}
 
 	stopCh := make(chan struct{})
