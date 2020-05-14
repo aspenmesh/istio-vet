@@ -33,7 +33,6 @@ import (
 	"github.com/aspenmesh/istio-vet/pkg/vetter/applabel"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/conflictingvirtualservicehost"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/danglingroutedestinationhost"
-	"github.com/aspenmesh/istio-vet/pkg/vetter/invalidserviceforjwtpolicy"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/meshversion"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/mtlsprobes"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/podsinmesh"
@@ -97,7 +96,6 @@ func vet(cmd *cobra.Command, args []string) error {
 		vetter.Vetter(serviceassociation.NewVetter(informerFactory)),
 		vetter.Vetter(danglingroutedestinationhost.NewVetter(informerFactory)),
 		vetter.Vetter(conflictingvirtualservicehost.NewVetter(informerFactory)),
-		vetter.Vetter(invalidserviceforjwtpolicy.NewVetter(informerFactory)),
 	}
 
 	stopCh := make(chan struct{})
