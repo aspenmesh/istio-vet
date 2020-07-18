@@ -99,6 +99,29 @@ var _ = Describe("Get an Endpoint Address that refers to a pod", func() {
 				{
 					Addresses: []corev1.EndpointAddress{Pod1EpAddress}}}}
 
+		var Endpoint5 = &corev1.Endpoints{
+			metav1.TypeMeta{},
+			metav1.ObjectMeta{
+				Namespace: namespace,
+			},
+			[]corev1.EndpointSubset{
+				{
+					Addresses: []corev1.EndpointAddress{
+						{
+							IP: "11.11.111.111",
+						},
+					},
+					Ports: []corev1.EndpointPort{
+						{
+							Name:     "metrics",
+							Port:     9105,
+							Protocol: "TCP",
+						},
+					},
+				},
+			},
+		}
+
 		It("Returns nil when an empty endpoint list is passed", func() {
 			endpointList := []*corev1.Endpoints{}
 			pod := Pod1
@@ -155,6 +178,14 @@ var _ = Describe("Get an Endpoint Address that refers to a pod", func() {
 			pod := Pod1
 			podEndpoint, err := getPodEndpoint(endpointList, pod)
 			Expect(err).To(HaveOccurred())
+			Expect(podEndpoint).To(Equal(nilEndpoint))
+		})
+
+		It("nil panic due to bad reference", func() {
+			endpointList := []*corev1.Endpoints{Endpoint5}
+			pod := Pod1
+			podEndpoint, err := getPodEndpoint(endpointList, pod)
+			Expect(err).To(BeNil())
 			Expect(podEndpoint).To(Equal(nilEndpoint))
 		})
 	})
