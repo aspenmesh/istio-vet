@@ -67,7 +67,7 @@ func getPodEndpoint(endpointList []*corev1.Endpoints, pod *corev1.Pod) (*corev1.
 		if ep.Namespace == pod.Namespace {
 			for _, es := range ep.Subsets {
 				for _, ea := range es.Addresses {
-					if &ea != nil && &ea.TargetRef != nil {
+					if ea.TargetRef != nil {
 						if ea.TargetRef.Kind == "Pod" && pod.Name == ea.TargetRef.Name {
 							podEndpoints = append(podEndpoints, ep)
 						}
