@@ -96,11 +96,6 @@ It includes:
     the version of sidecar proxy running in pods in the mesh and compares it
     with the installed Istio version and reports back any version mismatch.
 
-  * [mtlsprobes](https://github.com/aspenmesh/istio-vet/blob/master/pkg/vetter/mtlsprobes/README.md) -
-    This vetter inspects if mTLS is enabled in Istio service mesh.
-    It generates warnings if Liveness or Readiness probe is configured for a Pod
-    in a mTLS enabled mesh.
-
   * [serviceportprefix](https://github.com/aspenmesh/istio-vet/blob/master/pkg/vetter/serviceportprefix/README.md) -
     This vetter inspects services in the Istio mesh and reports back if any
     service port name definition doesn't include Istio recognized port protocol prefixes.

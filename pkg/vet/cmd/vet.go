@@ -34,7 +34,6 @@ import (
 	"github.com/aspenmesh/istio-vet/pkg/vetter/conflictingvirtualservicehost"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/danglingroutedestinationhost"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/meshversion"
-	"github.com/aspenmesh/istio-vet/pkg/vetter/mtlsprobes"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/podsinmesh"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/serviceassociation"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/serviceportprefix"
@@ -90,7 +89,6 @@ func vet(cmd *cobra.Command, args []string) error {
 	vList := []vetter.Vetter{
 		vetter.Vetter(podsinmesh.NewVetter(informerFactory)),
 		vetter.Vetter(meshversion.NewVetter(informerFactory)),
-		vetter.Vetter(mtlsprobes.NewVetter(informerFactory)),
 		vetter.Vetter(applabel.NewVetter(informerFactory)),
 		vetter.Vetter(serviceportprefix.NewVetter(informerFactory)),
 		vetter.Vetter(serviceassociation.NewVetter(informerFactory)),
