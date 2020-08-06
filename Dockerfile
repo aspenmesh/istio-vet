@@ -1,4 +1,4 @@
-FROM golang:1.12 as builder
+FROM golang:1.13 as builder
 WORKDIR /go/src/github.com/aspenmesh/istio-vet
 
 RUN apt-get update \
