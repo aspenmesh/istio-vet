@@ -172,12 +172,12 @@ func (dr *DestRules) ForEachByName(cb func(s Service, rule *istioClientNet.Desti
 
 // PortDestRuleIsMtls returns true if mTLS is enabled for the PortDestRule
 func PortDestRuleIsMtls(rule *PortDestRule) bool {
-	return rule.PortRule.GetTls().GetMode() == istioNet.TLSSettings_ISTIO_MUTUAL
+	return rule.PortRule.GetTls().GetMode() == istioNet.ClientTLSSettings_MUTUAL
 }
 
 // DestRuleIsMtls returns true if mTLS is enabled for the Destination Rule
 func DestRuleIsMtls(rule *istioClientNet.DestinationRule) bool {
-	return rule.Spec.GetTrafficPolicy().GetTls().GetMode() == istioNet.TLSSettings_ISTIO_MUTUAL
+	return rule.Spec.GetTrafficPolicy().GetTls().GetMode() == istioNet.ClientTLSSettings_MUTUAL
 }
 
 // TLSByPort returns true if mTLS is enabled for the PortDestination rule of the
