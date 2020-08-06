@@ -30,7 +30,6 @@ data:
     ]]\n    - --parentShutdownDuration\n    - [[ formatDuration .ProxyConfig.ParentShutdownDuration
     ]]\n    - --discoveryAddress\n    - [[ annotation .ObjectMeta `sidecar.istio.io/discoveryAddress`
     .ProxyConfig.DiscoveryAddress ]]\n    - --zipkinAddress\n    - [[ .ProxyConfig.GetTracing.GetZipkin.GetAddress
-    ]]\n    - --connectTimeout\n    - [[ formatDuration .ProxyConfig.ConnectTimeout
     ]]\n    - --proxyAdminPort\n    - [[ .ProxyConfig.ProxyAdminPort ]]\n    [[ if
     gt .ProxyConfig.Concurrency 0 -]]\n    - --concurrency\n    - [[ .ProxyConfig.Concurrency
     ]]\n    [[ end -]]\n    - --controlPlaneAuthPolicy\n    - [[ annotation .ObjectMeta
