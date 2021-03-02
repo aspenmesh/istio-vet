@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go v0.41.0 // indirect
 	github.com/cnf/structhash v0.0.0-20180104161610-62a607eb0224
 	github.com/ghodss/yaml v1.0.0
-	github.com/gogo/protobuf v1.3.1
+	github.com/gogo/protobuf v1.3.2
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/golang/groupcache v0.0.0-20191002201903-404acd9df4cc // indirect
 	github.com/golang/protobuf v1.3.5
