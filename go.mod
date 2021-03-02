@@ -5,7 +5,7 @@ go 1.13
 require (
 	github.com/cnf/structhash v0.0.0-20180104161610-62a607eb0224
 	github.com/ghodss/yaml v1.0.0
-	github.com/gogo/protobuf v1.3.1
+	github.com/gogo/protobuf v1.3.2
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/golang/protobuf v1.4.2
 	github.com/hashicorp/golang-lru v0.5.3 // indirect
@@ -22,7 +22,6 @@ require (
 	github.com/spf13/jwalterweatherman v0.0.0-20180109140146-7c0cea34c8ec // indirect
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.0.0
-	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad // indirect
 	istio.io/api v0.0.0-20201112235759-fa4ee46c5dc2
 	istio.io/client-go v0.0.0-20200908160912-f99162621a1a
 	k8s.io/api v0.19.3
