@@ -436,3 +436,10 @@ func NewVetter(factory vetter.ResourceListGetter) *VsHost {
 		vsLister: factory.Istio().Networking().V1beta1().VirtualServices().Lister(),
 	}
 }
+
+func NewVetterFromListers(nsLister v1.NamespaceLister, vsLister istioNetListers.VirtualServiceLister) *VsHost {
+	return &VsHost{
+		nsLister: nsLister,
+		vsLister: vsLister,
+	}
+}

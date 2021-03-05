@@ -26,7 +26,7 @@ import (
 	"github.com/aspenmesh/istio-vet/pkg/vetter/util"
 	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/listers/core/v1"
+	v1 "k8s.io/client-go/listers/core/v1"
 )
 
 const (
@@ -104,5 +104,12 @@ func NewVetter(factory vetter.ResourceListGetter) *MeshStats {
 	return &MeshStats{
 		podLister: factory.K8s().Core().V1().Pods().Lister(),
 		nsLister:  factory.K8s().Core().V1().Namespaces().Lister(),
+	}
+}
+
+func NewVetterFromListers(podLister v1.PodLister, nsLister v1.NamespaceLister) *MeshStats {
+	return &MeshStats{
+		podLister: podLister,
+		nsLister:  nsLister,
 	}
 }

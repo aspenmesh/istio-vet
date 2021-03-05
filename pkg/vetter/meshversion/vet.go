@@ -20,13 +20,14 @@ package meshversion
 
 import (
 	"errors"
+
 	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
 	"github.com/aspenmesh/istio-vet/pkg/vetter"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/util"
 
 	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/listers/core/v1"
+	v1 "k8s.io/client-go/listers/core/v1"
 )
 
 const (
@@ -160,5 +161,13 @@ func NewVetter(factory vetter.ResourceListGetter) *MeshVersion {
 		podLister: factory.K8s().Core().V1().Pods().Lister(),
 		cmLister:  factory.K8s().Core().V1().ConfigMaps().Lister(),
 		nsLister:  factory.K8s().Core().V1().Namespaces().Lister(),
+	}
+}
+
+func NewVetterFromListers(podLister v1.PodLister, cmLister v1.ConfigMapLister, nsLister v1.NamespaceLister) *MeshVersion {
+	return &MeshVersion{
+		podLister: podLister,
+		cmLister:  cmLister,
+		nsLister:  nsLister,
 	}
 }
