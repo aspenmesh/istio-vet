@@ -135,3 +135,11 @@ func NewVetter(factory vetter.ResourceListGetter) *DanglingRouteDestinationHost 
 		vsLister:  factory.Istio().Networking().V1beta1().VirtualServices().Lister(),
 	}
 }
+
+func NewVetterFromListers(nsLister v1.NamespaceLister, svcLister v1.ServiceLister, vsLister istioNetListers.VirtualServiceLister) *DanglingRouteDestinationHost {
+	return &DanglingRouteDestinationHost{
+		nsLister:  nsLister,
+		svcLister: svcLister,
+		vsLister:  vsLister,
+	}
+}

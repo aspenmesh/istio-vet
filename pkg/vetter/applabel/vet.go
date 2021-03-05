@@ -22,7 +22,7 @@ import (
 	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
 	"github.com/aspenmesh/istio-vet/pkg/vetter"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/util"
-	"k8s.io/client-go/listers/core/v1"
+	v1 "k8s.io/client-go/listers/core/v1"
 )
 
 const (
@@ -82,5 +82,12 @@ func NewVetter(factory vetter.ResourceListGetter) *AppLabel {
 	return &AppLabel{
 		nsLister:  factory.K8s().Core().V1().Namespaces().Lister(),
 		podLister: factory.K8s().Core().V1().Pods().Lister(),
+	}
+}
+
+func NewVetterFromListers(nsLister v1.NamespaceLister, podLister v1.PodLister) *AppLabel {
+	return &AppLabel{
+		nsLister:  nsLister,
+		podLister: podLister,
 	}
 }

@@ -24,7 +24,7 @@ import (
 	apiv1 "github.com/aspenmesh/istio-vet/api/v1"
 	"github.com/aspenmesh/istio-vet/pkg/vetter"
 	"github.com/aspenmesh/istio-vet/pkg/vetter/util"
-	"k8s.io/client-go/listers/core/v1"
+	v1 "k8s.io/client-go/listers/core/v1"
 )
 
 const (
@@ -93,5 +93,12 @@ func NewVetter(factory vetter.ResourceListGetter) *SvcPortPrefix {
 	return &SvcPortPrefix{
 		nsLister:  factory.K8s().Core().V1().Namespaces().Lister(),
 		svcLister: factory.K8s().Core().V1().Services().Lister(),
+	}
+}
+
+func NewVetterFromListers(nsLister v1.NamespaceLister, svcLister v1.ServiceLister) *SvcPortPrefix {
+	return &SvcPortPrefix{
+		nsLister:  nsLister,
+		svcLister: svcLister,
 	}
 }
