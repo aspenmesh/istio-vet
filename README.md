@@ -47,14 +47,14 @@ If you want to build Istio-Vet from this repo, please see the instructions for [
 
 ### Using Istio-Vet via Docker
 
-Instructions to run Istio-Vet from our official Docker Image:  `quay.io/aspenmesh/istio-vet:master`
+Instructions to run Istio-Vet from our official Docker Image:  `quay.io/aspenmesh/istio-vet:main`
 #### Local
 
 When run locally, kube config for the kubernetes cluster needs to be mounted
 inside the container.
 
 ```shell
-docker run --rm -v $HOME/.kube/config:/root/.kube/config quay.io/aspenmesh/istio-vet:master
+docker run --rm -v $HOME/.kube/config:/root/.kube/config quay.io/aspenmesh/istio-vet:main
 ```
 
 #### In-Cluster
@@ -90,33 +90,33 @@ It includes:
   helper utility package and the interface definitions for vetters to implement.
   It includes the following vetters:
 
-  * [meshversion](https://github.com/aspenmesh/istio-vet/blob/master/pkg/vetter/meshversion/README.md) -
+  * [meshversion](pkg/vetter/meshversion/README.md) -
     This vetter inspects the version of various installed
     Istio components and generates notes on mismatching versions. It also inspects
     the version of sidecar proxy running in pods in the mesh and compares it
     with the installed Istio version and reports back any version mismatch.
 
-  * [serviceportprefix](https://github.com/aspenmesh/istio-vet/blob/master/pkg/vetter/serviceportprefix/README.md) -
+  * [serviceportprefix](pkg/vetter/serviceportprefix/README.md) -
     This vetter inspects services in the Istio mesh and reports back if any
     service port name definition doesn't include Istio recognized port protocol prefixes.
 
-  * [podsinmesh](https://github.com/aspenmesh/istio-vet/blob/master/pkg/vetter/podsinmesh/README.md) -
+  * [podsinmesh](pkg/vetter/podsinmesh/README.md) -
     This vetter reports back the number of user pods in/out of
     the mesh. It also reports number of system pods running which are exempted
     from the mesh.
 
-  * [applabel](https://github.com/aspenmesh/istio-vet/blob/master/pkg/vetter/applabel/README.md) -
+  * [applabel](pkg/vetter/applabel/README.md) -
     This vetter inspects the labels defined for the pods in the mesh and
     generates notes if the label `app` is missing in any pod specification.
 
-  * [serviceassociation](https://github.com/aspenmesh/istio-vet/blob/master/pkg/vetter/serviceassociation/README.md) -
+  * [serviceassociation](pkg/vetter/serviceassociation/README.md) -
     This vetter generates warning if a pod in the mesh is associated with
     multiple services.
 
-  * [danglingroutedestinationhost](https://github.com/aspenmesh/istio-vet/blob/master/pkg/vetter/danglingroutedestinationhost/README.md) -
+  * [danglingroutedestinationhost](pkg/vetter/danglingroutedestinationhost/README.md) -
     This vetter generates warnings if the route destination host in virtual service resource points to services which don't exists in the cluster.
 
-  * [conflictingvirtualservicehost](https://github.com/aspenmesh/istio-vet/blob/master/pkg/vetter/conflictingvirtualservicehost/README.md) -
+  * [conflictingvirtualservicehost](pkg/vetter/conflictingvirtualservicehost/README.md) -
     This vetter generates warnings if the same host is defined in multiple
     virtual service resources.
 
