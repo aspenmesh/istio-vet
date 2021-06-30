@@ -66,7 +66,7 @@ spec:
     spec:
       containers:
       - name: istio-vet
-        image: quay.io/aspenmesh/istio-vet:master
+        image: quay.io/aspenmesh/istio-vet:main
         imagePullPolicy: IfNotPresent
       restartPolicy: Never
       serviceAccountName: istio-vet-service-account
