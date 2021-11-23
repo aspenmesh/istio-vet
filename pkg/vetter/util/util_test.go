@@ -86,7 +86,6 @@ var _ = Describe("Converting short hostnames to FQDN", func() {
 })
 
 func configMapFromFile(file string) *corev1.ConfigMap {
-
 	icm, err := ioutil.ReadFile(file)
 	if err != nil {
 		Fail(err.Error())
@@ -94,7 +93,6 @@ func configMapFromFile(file string) *corev1.ConfigMap {
 
 	var configMap corev1.ConfigMap
 	if err := yaml.Unmarshal([]byte(icm), &configMap); err != nil {
-
 		Fail(err.Error())
 	}
 
@@ -102,7 +100,6 @@ func configMapFromFile(file string) *corev1.ConfigMap {
 }
 
 var _ = Describe("Converting configmap to SidecarInjectionSpec", func() {
-
 	It("Can create a SidecarInjectionSpec from ConfigMaps", func() {
 		file1 := "./testdata/1.1/istio-sidecar-injector.yaml"
 		file2 := "./testdata/1.1/mesh-config.yaml"
@@ -118,16 +115,14 @@ var _ = Describe("Converting configmap to SidecarInjectionSpec", func() {
 		Expect(sidecarInjSpec.Containers[0].Name).To(Equal("istio-proxy"))
 		Expect(sidecarInjSpec.Containers[0].Image).To(Equal("docker.io/istio/proxyv2:1.1.2"))
 		Expect(sidecarInjSpec.Volumes[0].Name).To(Equal("istio-envoy"))
-
 	})
-
 })
 
 var _ = Describe("Test ProxyStatusPort", func() {
 	It("Finds an override that is not 15020", func() {
-
 		// Typical argument list from a kubectl get pods
-		testArgs := []string{"proxy",
+		testArgs := []string{
+			"proxy",
 			"sidecar",
 			"--domain",
 			"$(POD_NAMESPACE).svc.cluster.local",
@@ -164,7 +159,8 @@ var _ = Describe("Test ProxyStatusPort", func() {
 		Expect(err == nil)
 
 		// Fail to parse a number value for statusPort
-		container.Args = []string{"proxy",
+		container.Args = []string{
+			"proxy",
 			"sidecar",
 			"--domain",
 			"--statusPort",
@@ -175,7 +171,8 @@ var _ = Describe("Test ProxyStatusPort", func() {
 		Expect(err != nil)
 
 		// Status port is not the default
-		container.Args = []string{"proxy",
+		container.Args = []string{
+			"proxy",
 			"sidecar",
 			"--domain",
 			"--statusPort",
@@ -186,7 +183,8 @@ var _ = Describe("Test ProxyStatusPort", func() {
 		Expect(err == nil)
 
 		// No statusPort defined
-		container.Args = []string{"proxy",
+		container.Args = []string{
+			"proxy",
 			"sidecar",
 			"--domain",
 		}
@@ -195,7 +193,8 @@ var _ = Describe("Test ProxyStatusPort", func() {
 		Expect(err != nil)
 
 		// statusPort defined but not specified!
-		container.Args = []string{"proxy",
+		container.Args = []string{
+			"proxy",
 			"sidecar",
 			"--domain",
 			"--statusPort",

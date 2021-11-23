@@ -17,6 +17,7 @@ limitations under the License.
 syntax = "proto3";
 
 package istio.vet.v1;
+option go_package = "github.com/aspenmesh/istio-vet/api/v1";
 
 // Vetters use Info to provide their information
 message Info {

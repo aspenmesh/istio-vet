@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/golang/glog"
 	"net"
 	"path"
 	"strconv"
@@ -27,6 +26,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/gogo/protobuf/types"
+	"github.com/golang/glog"
 	meshconfig "istio.io/api/mesh/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -135,9 +135,9 @@ const (
 //---------------------------------------------
 // Copied from other isto file locations:
 const (
-	sidecarTemplateDelimBegin = "[["
-	sidecarTemplateDelimEnd   = "]]"
-	InterceptionNone string = "NONE"
+	sidecarTemplateDelimBegin        = "[["
+	sidecarTemplateDelimEnd          = "]]"
+	InterceptionNone          string = "NONE"
 )
 
 // End Aspenmesh inserts
@@ -303,7 +303,6 @@ func validatePortList(parameterName, ports string) error {
 
 // validateInterceptionMode validates the interceptionMode annotation
 func validateInterceptionMode(mode string) error {
-
 	// Aspenmesh modification
 	switch mode {
 	case meshconfig.ProxyConfig_REDIRECT.String():
@@ -314,7 +313,6 @@ func validateInterceptionMode(mode string) error {
 	}
 	return nil
 }
-
 
 // ValidateIncludeIPRanges validates the includeIPRanges parameter
 func ValidateIncludeIPRanges(ipRanges string) error {

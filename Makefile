@@ -47,6 +47,7 @@ info:
 ############################################################################
 
 go-build: $(GENERATED_GO)
+	go mod download
 	GO111MODULE=on go install $(GO_BUILD_FLAGS) $(ALL_PKGS)
 
 fmt:
@@ -79,8 +80,7 @@ _build/coverage.out:
 pkg/generated/api/v1/note.pb.go: api/v1/note.proto
 	@mkdir -p $(@D)
 	protoc -I/usr/local/include -I. \
-		-I$(GOPATH)/src \
-		--go_out=:pkg/generated \
+		--go_out=module=github.com/aspenmesh/istio-vet:. \
 		$<
 
 .PHONY: all test image precommit debug clean info fmt go-build go-test
