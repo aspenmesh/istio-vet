@@ -2,6 +2,12 @@ module github.com/aspenmesh/istio-vet
 
 go 1.17
 
+replace (
+	// pseudo version for tag 1.11.4-am1-rc0
+	istio.io/istio => github.com/aspenmesh/istio-private v0.0.0-20211110174632-2408efb7dad5
+	github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.10-0.20210708144103-3a95f2df6351
+)
+
 require (
 	github.com/cnf/structhash v0.0.0-20201127153200-e1b16c1ebc08
 	github.com/ghodss/yaml v1.0.0
@@ -12,10 +18,11 @@ require (
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.9.0
+	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad
 	google.golang.org/protobuf v1.27.1
-	istio.io/api v0.0.0-20211122230647-4866a573a9cb
-	istio.io/client-go v1.12.0
-	istio.io/istio v0.0.0-20211116190527-016bc46f4a5e
+	istio.io/api v0.0.0-20211012192923-310f2a3f3c76
+	istio.io/client-go v1.11.4
+	istio.io/istio v0.0.0-20211013140753-9f6f03276054
 	k8s.io/api v0.22.3
 	k8s.io/apimachinery v0.22.3
 	k8s.io/client-go v0.22.3
@@ -65,7 +72,6 @@ require (
 	github.com/spf13/cast v1.4.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
-	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.opentelemetry.io/proto/otlp v0.7.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
