@@ -2,11 +2,7 @@ module github.com/aspenmesh/istio-vet
 
 go 1.17
 
-replace (
-	// pseudo version for tag 1.11.4-am1-rc0
-	istio.io/istio => github.com/aspenmesh/istio-private v0.0.0-20211110174632-2408efb7dad5
-	github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.10-0.20210708144103-3a95f2df6351
-)
+replace github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.10-0.20210708144103-3a95f2df6351
 
 require (
 	github.com/cnf/structhash v0.0.0-20201127153200-e1b16c1ebc08
