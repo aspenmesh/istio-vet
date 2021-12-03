@@ -30,6 +30,7 @@ import (
 	meshv1alpha1 "istio.io/api/mesh/v1alpha1"
 	istioClientNet "istio.io/client-go/pkg/apis/networking/v1beta1"
 	istioNetListers "istio.io/client-go/pkg/listers/networking/v1beta1"
+	"istio.io/istio/pkg/config/mesh"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -61,7 +62,8 @@ const (
 )
 
 var istioInjectNamespaceLabel = map[string]string{
-	"istio-injection": "enabled"}
+	"istio-injection": "enabled",
+}
 
 // Config specifies the sidecar injection configuration This includes
 // the sidear template and cluster-side injection policy. It is used
@@ -83,12 +85,14 @@ var istioSupportedServicePrefix = []string{
 	"redis", "redis-",
 	"tcp", "tcp-",
 	"tls", "tls-",
-	"udp", "udp-"}
+	"udp", "udp-",
+}
 
 var defaultExemptedNamespaces = map[string]bool{
 	"kube-system":  true,
 	"kube-public":  true,
-	"istio-system": true}
+	"istio-system": true,
+}
 
 // DefaultExemptedNamespaces returns list of default Namsepaces which are
 // exempted from automatic sidecar injection.
@@ -160,12 +164,7 @@ func GetMeshConfig(cm *corev1.ConfigMap) (*meshv1alpha1.MeshConfig, error) {
 	if len(c) == 0 {
 		return nil, nil
 	}
-	var cfg meshv1alpha1.MeshConfig
-	if err := ApplyYAML(c, &cfg, false); err != nil {
-		glog.Errorf("Failed to parse yaml mesh config: %s", err)
-		return nil, err
-	}
-	return &cfg, nil
+	return mesh.ApplyMeshConfigDefaults(c)
 }
 
 func makeSideCarSpec(icm, mcm *corev1.ConfigMap) (*SidecarInjectionSpec, error) {
@@ -185,7 +184,6 @@ func makeSideCarSpec(icm, mcm *corev1.ConfigMap) (*SidecarInjectionSpec, error) 
 // GetInitializerSidecarSpec retrieves the sidecar spec which will be inserted
 // by the initializer
 func GetInitializerSidecarSpec(cmLister v1.ConfigMapLister) (*SidecarInjectionSpec, error) {
-
 	configMap, err := GetInitializerConfigMap(cmLister)
 	if err != nil {
 		return nil, err
@@ -204,7 +202,8 @@ func IstioInitializerDisabledNote(e, vetterID, vetterType string) *apiv1.Note {
 		return &apiv1.Note{
 			Type:    vetterType,
 			Summary: initializerDisabledSummary + "\"" + vetterID + "\" vetter.",
-			Level:   apiv1.NoteLevel_INFO}
+			Level:   apiv1.NoteLevel_INFO,
+		}
 	}
 	return nil
 }
